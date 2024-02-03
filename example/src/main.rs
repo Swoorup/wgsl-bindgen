@@ -141,9 +141,7 @@ impl<'a> State<'a> {
 
         let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("uniforms"),
-            contents: bytemuck::cast_slice(&[shader::Uniforms {
-                color_rgb: [1.0, 1.0, 1.0, 1.0],
-            }]),
+            contents: bytemuck::cast_slice(&[shader::Uniforms::new([1.0, 1.0, 1.0, 1.0])]),
             usage: wgpu::BufferUsages::UNIFORM,
         });
 

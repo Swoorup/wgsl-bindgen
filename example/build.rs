@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use wgsl_to_wgpu::{create_shader_module, WriteOptions};
+use wgsl_to_wgpu::{create_shader_module, ShaderSerializationStrategy, WriteOptions};
 
 fn main() {
     println!("cargo:rerun-if-changed=src/shader.wgsl");
@@ -14,7 +14,7 @@ fn main() {
         &wgsl_source,
         "shader.wgsl",
         WriteOptions {
-            derive_bytemuck: true,
+            serialization_strategy: ShaderSerializationStrategy::Bytemuck,
             ..Default::default()
         },
     )

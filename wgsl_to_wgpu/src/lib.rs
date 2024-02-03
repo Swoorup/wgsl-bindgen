@@ -20,6 +20,8 @@
 
 extern crate wgpu_types as wgpu;
 
+use std::default;
+
 use bindgroup::{bind_groups_module, get_bind_group_data};
 use case::CaseExt;
 use naga::ShaderStage;
@@ -32,6 +34,13 @@ mod bindgroup;
 mod consts;
 mod structs;
 mod wgsl;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum ShaderSerializationStrategy {
+    Encase,
+    #[default]
+    Bytemuck,
+}
 
 /// Errors while generating Rust source for a WGSl shader module.
 #[derive(Debug, PartialEq, Eq, Error)]
@@ -53,12 +62,7 @@ pub enum CreateModuleError {
 pub struct WriteOptions {
     /// Derive [encase::ShaderType](https://docs.rs/encase/latest/encase/trait.ShaderType.html#)
     /// for user defined WGSL structs when `true`.
-    pub derive_encase: bool,
-
-    /// Derive [bytemuck::Pod](https://docs.rs/bytemuck/latest/bytemuck/trait.Pod.html#)
-    /// and [bytemuck::Zeroable](https://docs.rs/bytemuck/latest/bytemuck/trait.Zeroable.html#)
-    /// for user defined WGSL structs when `true`.
-    pub derive_bytemuck: bool,
+    pub serialization_strategy: ShaderSerializationStrategy,
 
     /// Derive [serde::Serialize](https://docs.rs/serde/1.0.159/serde/trait.Serialize.html)
     /// and [serde::Deserialize](https://docs.rs/serde/1.0.159/serde/trait.Deserialize.html)

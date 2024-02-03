@@ -5,7 +5,132 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Ident, Index};
 
-use crate::{wgsl::rust_type, WriteOptions};
+use crate::{wgsl::rust_type, ShaderSerializationStrategy, WriteOptions};
+
+struct StructMemberPaddingInfo {
+  pad_name: Ident,
+  pad_size: TokenStream
+}
+
+struct StructMemberEntry {
+  name: Ident,
+  ty: syn::Type,
+  attr: Option<TokenStream>,
+  padding: Option<StructMemberPaddingInfo>
+}
+
+struct StructInfo {
+  name: Ident,
+  members: Vec<StructMemberEntry>,
+  has_rts_array: bool,
+  is_host_shareable: bool,
+  options: WriteOptions
+}
+
+impl StructInfo {
+  fn build_init_struct(&self) -> TokenStream {
+    if self.options.serialization_strategy == ShaderSerializationStrategy::Encase 
+      || !self.is_host_shareable {
+      return quote!();
+    }
+
+    let struct_name = self.name.clone();
+    let init_struct_name = Ident::new(&format!("{}Init", struct_name.to_string()), Span::call_site());
+    let mut init_struct_members = vec![]; 
+    let mut mem_assignments = vec![];
+    
+    for StructMemberEntry { name: member_name, ty: member_ty, padding, .. } in self.members.iter() {
+      init_struct_members.push(quote!(pub #member_name: #member_ty));
+      mem_assignments.push(quote!(#member_name: init.#member_name));
+
+      if let Some(StructMemberPaddingInfo { pad_name, pad_size }) = padding {
+        mem_assignments.push(quote!(#pad_name: [0; #pad_size]));
+      }
+    };
+
+
+    quote! {
+      #[repr(C)]
+      #[derive(Debug, Copy, Clone, PartialEq)]
+      pub struct #init_struct_name {
+        #(#init_struct_members),*
+      }
+
+      impl #init_struct_name {
+        pub const fn const_into(&self) -> #struct_name {
+          let init = self;
+          #struct_name {
+            #(#mem_assignments),*
+          }
+        }
+      }
+
+      impl From<#init_struct_name> for #struct_name {
+        fn from(init: #init_struct_name) -> Self {
+          Self {
+            #(#mem_assignments),*
+          }
+        }
+      }
+    }
+  }
+
+  fn build_new_fn(&self) -> TokenStream {
+    let struct_name = self.name.clone();
+
+    let mut non_padding_members = Vec::new();
+    let mut member_assignments = Vec::new();
+
+    for StructMemberEntry {name: member_name, ty: member_ty, padding, ..} in &self.members {
+      non_padding_members.push(quote!(#member_name: #member_ty));
+      member_assignments.push(quote!(#member_name));
+
+      if let Some(StructMemberPaddingInfo { pad_name, pad_size }) = padding {
+        member_assignments.push(quote!(#pad_name: [0; #pad_size]));
+      }
+    }
+
+    quote! {
+      impl #struct_name {
+        pub fn new(
+          #(#non_padding_members),*
+        ) -> Self {
+          Self {
+            #(#member_assignments),*
+          }
+        }
+      }
+    }
+  }
+
+  fn build_struct_fields(&self) -> Vec<TokenStream> {
+    let members = self.members
+      .iter()
+      .map(|StructMemberEntry { name, ty, padding, attr }| {
+        let mut qs: Vec<TokenStream> = Vec::new();
+
+        if let Some(attr) = attr {
+          qs.push(quote!(
+            #attr
+            pub #name: #ty
+          ))
+        } else {
+          qs.push(quote!(pub #name: #ty));
+        }
+
+        if self.options.serialization_strategy == ShaderSerializationStrategy::Bytemuck {
+          if let Some(StructMemberPaddingInfo { pad_name, pad_size }) = padding {
+            qs.push(quote!(#pad_name: [u8; #pad_size]))
+          } 
+        }
+
+        quote!(#(#qs), *)
+      })
+      .collect();
+
+      members
+  }
+}
 
 pub fn structs(module: &naga::Module, options: WriteOptions) -> Vec<TokenStream> {
     // Initialize the layout calculator provided by naga.
@@ -101,8 +226,16 @@ fn rust_struct(
         const _: () = assert!(std::mem::size_of::<#struct_name>() == #struct_size, #assert_size_text);
     };
 
+    // Assume types used in global variables are host shareable and require validation.
+    // This includes storage, uniform, and workgroup variables.
+    // This also means types that are never used will not be validated.
+    // Structs used only for vertex inputs do not require validation on desktop platforms.
+    // Vertex input layout is handled already by setting the attribute offsets and types.
+    // This allows vertex input field types without padding like vec3 for positions.
+    let is_host_shareable = global_variable_types.contains(&t_handle);
+
     let has_rts_array = struct_has_rts_array_member(&members, module);
-    let members = struct_members(&members, module, options);
+    let struct_members_entries = struct_members(&members, module, options, layout.size as usize, is_host_shareable);
     let mut derives = Vec::new();
 
     derives.push(quote!(Debug));
@@ -112,32 +245,24 @@ fn rust_struct(
     derives.push(quote!(Clone));
     derives.push(quote!(PartialEq));
 
-    if options.derive_bytemuck {
+    match options.serialization_strategy {
+      ShaderSerializationStrategy::Bytemuck => {
         if has_rts_array {
             panic!("Runtime-sized array fields are not supported in options.derive_bytemuck mode");
         }
         derives.push(quote!(bytemuck::Pod));
         derives.push(quote!(bytemuck::Zeroable));
-    }
-    if options.derive_encase {
+      },
+      ShaderSerializationStrategy::Encase => {
         derives.push(quote!(encase::ShaderType));
-    } else if has_rts_array {
-        panic!("Runtime-sized array fields are only supported in options.derive_encase mode");
+      }
     }
     if options.derive_serde {
         derives.push(quote!(serde::Serialize));
         derives.push(quote!(serde::Deserialize));
     }
 
-    // Assume types used in global variables are host shareable and require validation.
-    // This includes storage, uniform, and workgroup variables.
-    // This also means types that are never used will not be validated.
-    // Structs used only for vertex inputs do not require validation on desktop platforms.
-    // Vertex input layout is handled already by setting the attribute offsets and types.
-    // This allows vertex input field types without padding like vec3 for positions.
-    let is_host_shareable = global_variable_types.contains(&t_handle);
-
-    let assert_layout = if options.derive_bytemuck && is_host_shareable {
+    let assert_layout = if options.serialization_strategy == ShaderSerializationStrategy::Bytemuck && is_host_shareable {
         // Assert that the Rust layout matches the WGSL layout.
         // Enable for bytemuck since it uses the Rust struct's memory layout.
         quote! {
@@ -149,16 +274,39 @@ fn rust_struct(
     };
 
     let repr_c = if !has_rts_array {
+      if is_host_shareable {
+        quote!(#[repr(C, packed)])
+      }
+      else {
         quote!(#[repr(C)])
+      }
     } else {
         quote!()
     };
+
+    let struct_info = StructInfo {
+        name: struct_name.clone(),
+        members: struct_members_entries,
+        has_rts_array, 
+        is_host_shareable, 
+        options
+    };
+
+    let members = struct_info.build_struct_fields();
+    let struct_new_fn = struct_info.build_new_fn();
+    let init_struct = struct_info.build_init_struct();
+
     quote! {
         #repr_c
         #[derive(#(#derives),*)]
         pub struct #struct_name {
             #(#members),*
         }
+        
+        #struct_new_fn
+
+        #init_struct
+
         #assert_layout
     }
 }
@@ -187,11 +335,15 @@ fn struct_members(
     members: &[naga::StructMember],
     module: &naga::Module,
     options: WriteOptions,
-) -> Vec<TokenStream> {
+    struct_size: usize, 
+    enable_padding: bool,
+) -> Vec<StructMemberEntry> {
+    let mut member_entries: Vec<StructMemberEntry> = vec![];
+
     members
         .iter()
         .enumerate()
-        .map(|(index, member)| {
+        .for_each(|(index, member)| {
             let member_name = Ident::new(member.name.as_ref().unwrap(), Span::call_site());
             let ty = &module.types[member.ty];
 
@@ -206,16 +358,53 @@ fn struct_members(
                 }
                 let element_type =
                     rust_type(module, &module.types[*base], options.matrix_vector_types);
-                quote!(
-                    #[size(runtime)]
-                    pub #member_name: Vec<#element_type>
-                )
+                let member_type = syn::Type::Verbatim(quote!(Vec<#element_type));
+
+                member_entries.push(StructMemberEntry {
+                  name: member_name.clone(), 
+                  ty: member_type.clone(), 
+                  attr: Some(quote!(#[size(runtime)])),
+                  padding: None
+                });
             } else {
-                let member_type = rust_type(module, ty, options.matrix_vector_types);
-                quote!(pub #member_name: #member_type)
+              let member_type = syn::Type::Verbatim(rust_type(module, ty, options.matrix_vector_types));
+              if !enable_padding {
+                member_entries.push(
+                  StructMemberEntry {
+                    name: member_name.clone(), 
+                    ty: member_type, 
+                    attr: None,
+                    padding: None
+                  }
+                );
+              } else {
+                let current_offset = Index::from(member.offset as usize);
+
+                let next_offset = if index == members.len() - 1 {
+                  Index::from(struct_size)
+                } else {
+                  Index::from(members[index + 1].offset as usize)
+                };
+
+                let pad_member_name = Ident::new(&format!("_pad_{}", member_name), Span::call_site());
+                let pad_member_size = quote!(#next_offset - #current_offset - core::mem::size_of::<#member_type>());
+
+                member_entries.push(
+                  StructMemberEntry {
+                    name: member_name.clone(),
+                    ty: member_type.clone(),
+                    attr: None,
+                    padding: Some(StructMemberPaddingInfo {
+                                    pad_name: pad_member_name.clone(),
+                                    pad_size: pad_member_size
+                            })
+                  }
+                );
+              }
             }
-        })
-        .collect()
+        });
+
+        member_entries
 }
 
 fn struct_has_rts_array_member(members: &[naga::StructMember], module: &naga::Module) -> bool {
@@ -235,7 +424,7 @@ mod tests {
     use indoc::indoc;
 
     use super::*;
-    use crate::{assert_tokens_eq, MatrixVectorTypes, WriteOptions};
+    use crate::{assert_tokens_eq, MatrixVectorTypes, ShaderSerializationStrategy, WriteOptions};
 
     #[test]
     fn write_all_structs_rust() {
@@ -776,8 +965,7 @@ mod tests {
         let structs = structs(
             &module,
             WriteOptions {
-                derive_encase: true,
-                derive_bytemuck: true,
+                serialization_strategy: ShaderSerializationStrategy::Encase,
                 derive_serde: false,
                 matrix_vector_types: MatrixVectorTypes::Rust,
             },
@@ -868,8 +1056,7 @@ mod tests {
         let structs = structs(
             &module,
             WriteOptions {
-                derive_encase: true,
-                derive_bytemuck: true,
+                serialization_strategy: ShaderSerializationStrategy::Encase,
                 derive_serde: true,
                 matrix_vector_types: MatrixVectorTypes::Rust,
             },
@@ -966,8 +1153,7 @@ mod tests {
         let structs = structs(
             &module,
             WriteOptions {
-                derive_encase: false,
-                derive_bytemuck: false,
+                serialization_strategy: ShaderSerializationStrategy::Bytemuck,
                 derive_serde: false,
                 matrix_vector_types: MatrixVectorTypes::Rust,
             },
@@ -1010,8 +1196,7 @@ mod tests {
         let structs = structs(
             &module,
             WriteOptions {
-                derive_encase: false,
-                derive_bytemuck: true,
+                serialization_strategy: ShaderSerializationStrategy::Bytemuck,
                 derive_serde: false,
                 matrix_vector_types: MatrixVectorTypes::Rust,
             },
@@ -1068,8 +1253,7 @@ mod tests {
         let structs = structs(
             &module,
             WriteOptions {
-                derive_encase: false,
-                derive_bytemuck: true,
+                serialization_strategy: ShaderSerializationStrategy::Bytemuck,
                 derive_serde: false,
                 matrix_vector_types: MatrixVectorTypes::Rust,
             },
@@ -1180,7 +1364,7 @@ mod tests {
         let structs = structs(
             &module,
             WriteOptions {
-                derive_encase: true,
+                serialization_strategy: ShaderSerializationStrategy::Encase,
                 ..Default::default()
             },
         );
@@ -1220,8 +1404,7 @@ mod tests {
         let _structs = structs(
             &module,
             WriteOptions {
-                derive_encase: true,
-                derive_bytemuck: true,
+                serialization_strategy: ShaderSerializationStrategy::Bytemuck,
                 ..Default::default()
             },
         );
@@ -1245,7 +1428,7 @@ mod tests {
         let _structs = structs(
             &module,
             WriteOptions {
-                derive_encase: true,
+                serialization_strategy: ShaderSerializationStrategy::Encase,
                 ..Default::default()
             },
         );

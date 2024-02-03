@@ -5,10 +5,46 @@
 pub struct VertexInput {
     pub position: [f32; 3],
 }
-#[repr(C)]
+impl VertexInput {
+    pub fn new(position: [f32; 3]) -> Self {
+        Self { position }
+    }
+}
+#[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Uniforms {
     pub color_rgb: [f32; 4],
+    _pad_color_rgb: [u8; 16 - 0 - core::mem::size_of::<[f32; 4]>()],
+}
+impl Uniforms {
+    pub fn new(color_rgb: [f32; 4]) -> Self {
+        Self {
+            color_rgb,
+            _pad_color_rgb: [0; 16 - 0 - core::mem::size_of::<[f32; 4]>()],
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct UniformsInit {
+    pub color_rgb: [f32; 4],
+}
+impl UniformsInit {
+    pub const fn const_into(&self) -> Uniforms {
+        let init = self;
+        Uniforms {
+            color_rgb: init.color_rgb,
+            _pad_color_rgb: [0; 16 - 0 - core::mem::size_of::<[f32; 4]>()],
+        }
+    }
+}
+impl From<UniformsInit> for Uniforms {
+    fn from(init: UniformsInit) -> Self {
+        Self {
+            color_rgb: init.color_rgb,
+            _pad_color_rgb: [0; 16 - 0 - core::mem::size_of::<[f32; 4]>()],
+        }
+    }
 }
 const _: () = assert!(
     std::mem::size_of:: < Uniforms > () == 16, "size of Uniforms does not match WGSL"
