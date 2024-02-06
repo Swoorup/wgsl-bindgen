@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::iter;
 
 use crate::shader::ENTRY_FS_MAIN;
@@ -240,7 +241,7 @@ impl<'a> State<'a> {
 fn main() {
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
-        .with_title("wgsl_to_wgpu example")
+        .with_title("wgsl_bindgen example")
         .build(&event_loop)
         .unwrap();
 

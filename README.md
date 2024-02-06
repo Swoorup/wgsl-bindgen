@@ -1,8 +1,8 @@
-# wgsl_to_wgpu
-[![Latest Version](https://img.shields.io/crates/v/wgsl_to_wgpu.svg)](https://crates.io/crates/wgsl_to_wgpu) [![docs.rs](https://docs.rs/wgsl_to_wgpu/badge.svg)](https://docs.rs/wgsl_to_wgpu)  
+# wgsl-bindgen
+[![Latest Version](https://img.shields.io/crates/v/wgsl_bindgen.svg)](https://crates.io/crates/wgsl_bindgen) [![docs.rs](https://docs.rs/wgsl_bindgen/badge.svg)](https://docs.rs/wgsl_bindgen)  
 An experimental library for generating typesafe Rust bindings from [WGSL](https://www.w3.org/TR/WGSL/) shaders to [wgpu](https://github.com/gfx-rs/wgpu).
 
-wgsl_to_wgpu is designed to be incorporated into the compilation process using a build script. The WGSL shaders are parsed using [naga](https://github.com/gfx-rs/naga) to generate a corresponding Rust module. The generated Rust module contains the type definitions and boilerplate code needed to work with the WGSL shader module. Using the generated code can also reduce many instances of invalid API usage. wgsl_to_wgpu facilitates a shader focused workflow where edits to WGSL code are automatically reflected in the corresponding Rust file. For example, changing the type of a uniform in WGSL will raise a compile error in Rust code using the generated struct to initialize the buffer.
+wgsl_bindgen is designed to be incorporated into the compilation process using a build script. The WGSL shaders are parsed using [naga](https://github.com/gfx-rs/naga) to generate a corresponding Rust module. The generated Rust module contains the type definitions and boilerplate code needed to work with the WGSL shader module. Using the generated code can also reduce many instances of invalid API usage. wgsl_bindgen facilitates a shader focused workflow where edits to WGSL code are automatically reflected in the corresponding Rust file. For example, changing the type of a uniform in WGSL will raise a compile error in Rust code using the generated struct to initialize the buffer.
 
 ## Features
 - more strongly typed [bind group and bindings](#bind-groups) initialization
@@ -13,15 +13,15 @@ wgsl_to_wgpu is designed to be incorporated into the compilation process using a
 
 ## Usage
 The generated code currently relies on [memoffset](https://crates.io/crates/memoffset) for calculating field offsets for vertex input structs.
-Add the following lines to the `Cargo.toml` and fill in the appropriate versions for `memoffset` and `wgsl_to_wgpu`.
-When enabling derives for crates like bytemuck, serde, or encase, these dependencies should also be added to the `Cargo.toml` with the appropriate derive features. See the provided [example project](https://github.com/ScanMountGoat/wgsl_to_wgpu/tree/main/example) for basic usage.
+Add the following lines to the `Cargo.toml` and fill in the appropriate versions for `memoffset` and `wgsl_bindgen`.
+When enabling derives for crates like bytemuck, serde, or encase, these dependencies should also be added to the `Cargo.toml` with the appropriate derive features. See the provided [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for basic usage.
 
 ```toml
 [dependencies]
 memoffset = "..."
 
 [build-dependencies]
-wgsl_to_wgpu = "..."
+wgsl_bindgen = "..."
 ```
 
 See the example crate for how to use the generated code. Run the example with `cargo run`.
@@ -59,7 +59,7 @@ Rust expects build scripts to not modify files outside of OUT_DIR. The provided 
 This approach is also fine for applications. Published crates should follow the recommendations for build scripts in the [Cargo Book](https://doc.rust-lang.org/cargo/reference/build-scripts.html#case-study-code-generation).
 
 ```rust
-use wgsl_to_wgpu::{create_shader_module_embedded, WriteOptions};
+use wgsl_bindgen::{create_shader_module_embedded, WriteOptions};
 
 // src/build.rs
 fn main() {

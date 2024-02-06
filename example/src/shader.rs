@@ -13,6 +13,7 @@ impl VertexInput {
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Uniforms {
+    /// Offset: 0x0, Size: 0x10
     pub color_rgb: [f32; 4],
     _pad_color_rgb: [u8; 16 - 0 - core::mem::size_of::<[f32; 4]>()],
 }

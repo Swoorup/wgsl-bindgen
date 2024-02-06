@@ -1,11 +1,11 @@
 [package]
-name = "wgsl_to_wgpu"
-version = "0.5.0"
-authors = ["ScanMountGoat <>"]
+name = "wgsl_bindgen"
+version = "0.5.1"
+authors = ["Swoorup", "ScanMountGoat(Original)"]
 description = "Generate typesafe Rust bindings for wgsl shaders in wgpu"
 license = "MIT"
-documentation = "https://docs.rs/wgsl_to_wgpu"
-repository = "https://github.com/ScanMountGoat/wgsl_to_wgpu"
+documentation = "https://docs.rs/wgsl_bindgen"
+repository = "https://github.com/Swoorup/wgsl_bindgen"
 readme = "../README.md"
 edition = "2021"
 

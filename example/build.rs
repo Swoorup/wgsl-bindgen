@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use wgsl_to_wgpu::{create_shader_module, ShaderSerializationStrategy, WriteOptions};
+use wgsl_bindgen::{create_shader_module, ShaderSerializationStrategy, WriteOptions};
 
 fn main() {
     println!("cargo:rerun-if-changed=src/shader.wgsl");

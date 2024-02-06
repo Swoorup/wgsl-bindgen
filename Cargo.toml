@@ -1,4 +1,4 @@
 [workspace]
 # wgpu requires the newer resolver
 resolver = "2"
-members = ["wgsl_to_wgpu", "example"]
+members = ["wgsl_bindgen", "example"]

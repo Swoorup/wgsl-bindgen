@@ -11,4 +11,4 @@ bytemuck = { version = "1.13", features = [ "derive" ] }
 memoffset = "0.8.0"
 
 [build-dependencies]
-wgsl_to_wgpu = { path = "../wgsl_to_wgpu" }
+wgsl_bindgen = { path = "../wgsl_bindgen" }
