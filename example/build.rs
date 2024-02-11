@@ -15,6 +15,7 @@ fn main() {
         "shader.wgsl",
         WriteOptions {
             serialization_strategy: ShaderSerializationStrategy::Bytemuck,
+            matrix_vector_types: wgsl_bindgen::MatrixVectorTypes::Glam,
             ..Default::default()
         },
     )

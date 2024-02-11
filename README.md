@@ -4,6 +4,13 @@ An experimental library for generating typesafe Rust bindings from [WGSL](https:
 
 wgsl_bindgen is designed to be incorporated into the compilation process using a build script. The WGSL shaders are parsed using [naga](https://github.com/gfx-rs/naga) to generate a corresponding Rust module. The generated Rust module contains the type definitions and boilerplate code needed to work with the WGSL shader module. Using the generated code can also reduce many instances of invalid API usage. wgsl_bindgen facilitates a shader focused workflow where edits to WGSL code are automatically reflected in the corresponding Rust file. For example, changing the type of a uniform in WGSL will raise a compile error in Rust code using the generated struct to initialize the buffer.
 
+## Differences from the fork 
+- You can only choose either bytemuck or encase for serialization
+- Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
+  - I think DST might be a better option (Not sure how feasible it is though, open to PR)
+- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas the original would fail at compile assertions.
+- Expect breaking changes
+
 ## Features
 - more strongly typed [bind group and bindings](#bind-groups) initialization
 - shader module initialization
@@ -27,12 +34,12 @@ wgsl_bindgen = "..."
 See the example crate for how to use the generated code. Run the example with `cargo run`.
 
 ## Memory Layout
-WGSL structs have different memory layout requirements than Rust structs or standard layout algorithms like `repr(C)` or `repr(packed)`. Matching the expected layout to share data between the CPU and GPU can be tedious and error prone. wgsl_to_wgpu offers options to add derives for [encase](https://crates.io/crates/encase) to handle padding and alignment at runtime or [bytemuck](https://crates.io/crates/bytemuck) for enforcing padding and alignment at compile time. 
+WGSL structs have different memory layout requirements than Rust structs or standard layout algorithms like `repr(C)` or `repr(packed)`. Matching the expected layout to share data between the CPU and GPU can be tedious and error prone. wgsl_bindgen offers options to add derives for [encase](https://crates.io/crates/encase) to handle padding and alignment at runtime or [bytemuck](https://crates.io/crates/bytemuck) for enforcing padding and alignment at compile time. 
 
-When deriving bytemuck, wgsl_to_wgpu will use naga's layout calculations to add const assertions to ensure that all fields of host-shareable types (structs for uniform and storage buffers) have the correct offset, size, and alignment expected by WGSL. It's strongly recommended to use types like vec4 or mat4 instead of vec3 or mat3 with bytemuck to avoid alignment mismatches. Structs used only as vertex input structs have their layout manually specified and do not generate layout validation assertions.
+When deriving bytemuck, wgsl_bindgen will use naga's layout calculations to add const assertions to ensure that all fields of host-shareable types (structs for uniform and storage buffers) have the correct offset, size, and alignment expected by WGSL. 
 
 ## Bind Groups
-wgpu uses resource bindings organized into bind groups to define global shader resources like textures and buffers. Shaders can have many resource bindings organized into up to 4 bind groups. wgsl_to_wgpu will generate types and functions for initializing and setting these bind groups in a more typesafe way. Adding, removing, or changing bind groups in the WGSl shader will typically result in a compile error instead of a runtime error when compiling the code without updating the code for creating or using these bind groups.
+wgpu uses resource bindings organized into bind groups to define global shader resources like textures and buffers. Shaders can have many resource bindings organized into up to 4 bind groups. wgsl_bindgen will generate types and functions for initializing and setting these bind groups in a more typesafe way. Adding, removing, or changing bind groups in the WGSl shader will typically result in a compile error instead of a runtime error when compiling the code without updating the code for creating or using these bind groups.
 
 While bind groups can easily be set all at once using the `bind_groups::set_bind_groups` function, it's recommended to organize bindings into bindgroups based on their update frequency. Bind group 0 will change the least frequently like per frame resources with bind group 3 changing most frequently like per draw resources. Bind groups can be set individually using their `set(render_pass)` method. This can provide a small performance improvement for scenes with many draw calls. See [descriptor table frequency (DX12)](https://learn.microsoft.com/en-us/windows/win32/direct3d12/advanced-use-of-descriptor-tables#changing-descriptor-table-entries-between-rendering-calls) and [descriptor set frequency (Vulkan)](https://vkguide.dev/docs/chapter-4/descriptors/#mental-model) for details.
 

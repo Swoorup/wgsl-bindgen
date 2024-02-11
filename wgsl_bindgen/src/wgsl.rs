@@ -1,4 +1,4 @@
-use crate::MatrixVectorTypes;
+use crate::{MatrixVectorTypes, ShaderSerializationStrategy, WriteOptions};
 use naga::StructMember;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
@@ -16,7 +16,7 @@ pub fn shader_stages(module: &naga::Module) -> wgpu::ShaderStages {
         .collect()
 }
 
-pub fn rust_scalar_type(scalar: &naga::Scalar) -> TokenStream {
+pub fn rust_scalar_type(scalar: &naga::Scalar, _alignment: naga::proc::Alignment) -> TokenStream {
     // TODO: Support other widths?
     match (scalar.kind, scalar.width) {
         (naga::ScalarKind::Sint, 1) => quote!(i8),
@@ -51,26 +51,62 @@ pub fn buffer_binding_type(storage: naga::AddressSpace) -> TokenStream {
     }
 }
 
-pub fn rust_type(module: &naga::Module, ty: &naga::Type, format: MatrixVectorTypes) -> TokenStream {
+fn get_length_required_after_alignment(
+    alignment: naga::proc::Alignment,
+    rows: naga::VectorSize,
+    width: u8,
+    options: &WriteOptions,
+) -> usize {
+    let width = width as u32;
+    let rows = rows as u32;
+
+    if options.serialization_strategy == ShaderSerializationStrategy::Bytemuck {
+        let column_array_stride = alignment.round_up(rows * width);
+        (column_array_stride / width) as usize
+    } else {
+        return rows as usize;
+    }
+}
+
+pub fn rust_type(module: &naga::Module, ty: &naga::Type, options: &WriteOptions) -> TokenStream {
+    let t_handle = module.types.get(ty).unwrap();
+    let mut layouter = naga::proc::Layouter::default();
+    layouter.update(module.to_ctx()).unwrap();
+    let type_layout = layouter[t_handle];
+
+    let alignment = type_layout.alignment;
+
     match &ty.inner {
-        naga::TypeInner::Scalar(scalar) => rust_scalar_type(scalar),
-        naga::TypeInner::Vector { size, scalar } => match format {
-            MatrixVectorTypes::Rust => rust_vector_type(*size, scalar.kind, scalar.width),
-            MatrixVectorTypes::Glam => glam_vector_type(*size, scalar.kind, scalar.width),
-            MatrixVectorTypes::Nalgebra => nalgebra_vector_type(*size, scalar.kind, scalar.width),
+        naga::TypeInner::Scalar(scalar) => rust_scalar_type(scalar, alignment),
+        naga::TypeInner::Vector { size, scalar } => match options.matrix_vector_types {
+            MatrixVectorTypes::Rust => {
+                rust_vector_type(*size, scalar.kind, scalar.width, alignment, options)
+            }
+            MatrixVectorTypes::Glam => {
+                glam_vector_type(*size, scalar.kind, scalar.width, alignment, options)
+            }
+            MatrixVectorTypes::Nalgebra => {
+                nalgebra_vector_type(*size, scalar.kind, scalar.width, alignment, options)
+            }
         },
         naga::TypeInner::Matrix {
             columns,
             rows,
             scalar,
-        } => match format {
-            MatrixVectorTypes::Rust => rust_matrix_type(*rows, *columns, scalar.width),
-            MatrixVectorTypes::Glam => glam_matrix_type(*rows, *columns, scalar.width),
-            MatrixVectorTypes::Nalgebra => nalgebra_matrix_type(*rows, *columns, scalar.width),
+        } => match options.matrix_vector_types {
+            MatrixVectorTypes::Rust => {
+                rust_matrix_type(*rows, *columns, scalar.width, alignment, options)
+            }
+            MatrixVectorTypes::Glam => {
+                glam_matrix_type(*rows, *columns, scalar.width, alignment, options)
+            }
+            MatrixVectorTypes::Nalgebra => {
+                nalgebra_matrix_type(*rows, *columns, scalar.width, alignment)
+            }
         },
         naga::TypeInner::Image { .. } => todo!(),
         naga::TypeInner::Sampler { .. } => todo!(),
-        naga::TypeInner::Atomic(scalar) => rust_scalar_type(scalar),
+        naga::TypeInner::Atomic(scalar) => rust_scalar_type(scalar, alignment),
         naga::TypeInner::Pointer { base: _, space: _ } => todo!(),
         naga::TypeInner::ValuePointer { .. } => todo!(),
         naga::TypeInner::Array {
@@ -78,7 +114,7 @@ pub fn rust_type(module: &naga::Module, ty: &naga::Type, format: MatrixVectorTyp
             size: naga::ArraySize::Constant(size),
             stride: _,
         } => {
-            let element_type = rust_type(module, &module.types[*base], format);
+            let element_type = rust_type(module, &module.types[*base], options);
             let count = Index::from(size.get() as usize);
             quote!([#element_type; #count])
         }
@@ -102,28 +138,47 @@ pub fn rust_type(module: &naga::Module, ty: &naga::Type, format: MatrixVectorTyp
     }
 }
 
-fn rust_matrix_type(rows: naga::VectorSize, columns: naga::VectorSize, width: u8) -> TokenStream {
-    let inner_type = rust_scalar_type(&naga::Scalar {
-        kind: naga::ScalarKind::Float,
-        width,
-    });
-    // Use Index to generate "4" instead of "4usize".
-    let rows = Index::from(rows as usize);
-    let columns = Index::from(columns as usize);
-    quote!([[#inner_type; #columns]; #rows])
+fn rust_matrix_type(
+    rows: naga::VectorSize,
+    columns: naga::VectorSize, // unused as we need to calculate alignment
+    width: u8,
+    alignment: naga::proc::Alignment,
+    options: &WriteOptions,
+) -> TokenStream {
+    let inner_type = rust_scalar_type(
+        &naga::Scalar {
+            kind: naga::ScalarKind::Float,
+            width,
+        },
+        alignment,
+    );
+
+    let new_rows = get_length_required_after_alignment(alignment, rows, width, options);
+    let cols = Index::from(columns as usize);
+    let rows = Index::from(new_rows as usize);
+    quote!([[#inner_type; #cols]; #rows])
 }
 
-fn glam_matrix_type(rows: naga::VectorSize, columns: naga::VectorSize, width: u8) -> TokenStream {
+fn glam_matrix_type(
+    rows: naga::VectorSize,
+    columns: naga::VectorSize,
+    width: u8,
+    alignment: naga::proc::Alignment,
+    options: &WriteOptions,
+) -> TokenStream {
+    let new_rows = get_length_required_after_alignment(alignment, rows, width, options);
+
     // glam only supports square matrices for some types.
     // Use Rust types for unsupported matrices.
-    match (rows, columns, width) {
-        (naga::VectorSize::Bi, naga::VectorSize::Bi, 4) => quote!(glam::Mat2),
-        (naga::VectorSize::Tri, naga::VectorSize::Tri, 4) => quote!(glam::Mat3),
-        (naga::VectorSize::Quad, naga::VectorSize::Quad, 4) => quote!(glam::Mat4),
-        (naga::VectorSize::Bi, naga::VectorSize::Bi, 8) => quote!(glam::DMat2),
-        (naga::VectorSize::Tri, naga::VectorSize::Tri, 8) => quote!(glam::DMat3),
-        (naga::VectorSize::Quad, naga::VectorSize::Quad, 8) => quote!(glam::DMat4),
-        _ => rust_matrix_type(rows, columns, width),
+    match (rows, new_rows, columns, width) {
+        // (naga::VectorSize::Bi, 2, naga::VectorSize::Bi, 4) => quote!(glam::Mat2), // this is not correctly aligned because of align repr 
+        (naga::VectorSize::Tri, 3, naga::VectorSize::Tri, 4) => quote!(glam::Mat3),
+        (naga::VectorSize::Tri, 4, naga::VectorSize::Tri, 4) => quote!(glam::Mat3A),
+        (naga::VectorSize::Quad, 4, naga::VectorSize::Quad, 4) => quote!(glam::Mat4),
+        (naga::VectorSize::Bi, 2, naga::VectorSize::Bi, 8) => quote!(glam::DMat2),
+        (naga::VectorSize::Tri, 3, naga::VectorSize::Tri, 8) => quote!(glam::DMat3),
+        (naga::VectorSize::Quad, 4, naga::VectorSize::Quad, 8) => quote!(glam::DMat4),
+        _ => rust_matrix_type(rows, columns, width, alignment, options),
     }
 }
 
@@ -131,43 +186,68 @@ fn nalgebra_matrix_type(
     rows: naga::VectorSize,
     columns: naga::VectorSize,
     width: u8,
+    alignment: naga::proc::Alignment,
 ) -> TokenStream {
-    let inner_type = rust_scalar_type(&naga::Scalar {
-        kind: naga::ScalarKind::Float,
-        width,
-    });
+    let inner_type = rust_scalar_type(
+        &naga::Scalar {
+            kind: naga::ScalarKind::Float,
+            width,
+        },
+        alignment,
+    );
     let rows = Index::from(rows as usize);
     let columns = Index::from(columns as usize);
     quote!(nalgebra::SMatrix<#inner_type, #rows, #columns>)
 }
 
-fn rust_vector_type(size: naga::VectorSize, kind: naga::ScalarKind, width: u8) -> TokenStream {
-    let inner_type = rust_scalar_type(&naga::Scalar { kind, width });
-    let size = Index::from(size as usize);
+fn rust_vector_type(
+    size: naga::VectorSize,
+    kind: naga::ScalarKind,
+    width: u8,
+    alignment: naga::proc::Alignment,
+    options: &WriteOptions,
+) -> TokenStream {
+    let new_size = get_length_required_after_alignment(alignment, size, width, options);
+    let inner_type = rust_scalar_type(&naga::Scalar { kind, width }, alignment);
+    let size = Index::from(new_size as usize);
     quote!([#inner_type; #size])
 }
 
-fn glam_vector_type(size: naga::VectorSize, kind: naga::ScalarKind, width: u8) -> TokenStream {
-    match (size, kind, width) {
-        (naga::VectorSize::Bi, naga::ScalarKind::Float, 4) => quote!(glam::Vec2),
-        (naga::VectorSize::Tri, naga::ScalarKind::Float, 4) => quote!(glam::Vec3),
-        (naga::VectorSize::Quad, naga::ScalarKind::Float, 4) => quote!(glam::Vec4),
-        (naga::VectorSize::Bi, naga::ScalarKind::Float, 8) => quote!(glam::DVec2),
-        (naga::VectorSize::Tri, naga::ScalarKind::Float, 8) => quote!(glam::DVec3),
-        (naga::VectorSize::Quad, naga::ScalarKind::Float, 8) => quote!(glam::DVec4),
-        (naga::VectorSize::Bi, naga::ScalarKind::Uint, 4) => quote!(glam::UVec2),
-        (naga::VectorSize::Tri, naga::ScalarKind::Uint, 4) => quote!(glam::UVec3),
-        (naga::VectorSize::Quad, naga::ScalarKind::Uint, 4) => quote!(glam::UVec4),
-        (naga::VectorSize::Bi, naga::ScalarKind::Sint, 4) => quote!(glam::IVec2),
-        (naga::VectorSize::Tri, naga::ScalarKind::Sint, 4) => quote!(glam::IVec3),
-        (naga::VectorSize::Quad, naga::ScalarKind::Sint, 4) => quote!(glam::IVec4),
+fn glam_vector_type(
+    size: naga::VectorSize,
+    kind: naga::ScalarKind,
+    width: u8,
+    alignment: naga::proc::Alignment,
+    options: &WriteOptions,
+) -> TokenStream {
+    let new_size = get_length_required_after_alignment(alignment, size, width, options);
+    match (size, new_size, kind, width) {
+        (naga::VectorSize::Bi, 2, naga::ScalarKind::Float, 4) => quote!(glam::Vec2),
+        (naga::VectorSize::Tri, 3, naga::ScalarKind::Float, 4) => quote!(glam::Vec3),
+        (naga::VectorSize::Tri, 4, naga::ScalarKind::Float, 4) => quote!(glam::Vec3A),
+        (naga::VectorSize::Quad, 4, naga::ScalarKind::Float, 4) => quote!(glam::Vec4),
+        (naga::VectorSize::Bi, 2, naga::ScalarKind::Float, 8) => quote!(glam::DVec2),
+        (naga::VectorSize::Tri, 3, naga::ScalarKind::Float, 8) => quote!(glam::DVec3),
+        (naga::VectorSize::Quad, 4, naga::ScalarKind::Float, 8) => quote!(glam::DVec4),
+        (naga::VectorSize::Bi, 2, naga::ScalarKind::Uint, 4) => quote!(glam::UVec2),
+        (naga::VectorSize::Tri, 3, naga::ScalarKind::Uint, 4) => quote!(glam::UVec3),
+        (naga::VectorSize::Quad, 4, naga::ScalarKind::Uint, 4) => quote!(glam::UVec4),
+        (naga::VectorSize::Bi, 2, naga::ScalarKind::Sint, 4) => quote!(glam::IVec2),
+        (naga::VectorSize::Tri, 3, naga::ScalarKind::Sint, 4) => quote!(glam::IVec3),
+        (naga::VectorSize::Quad, 4, naga::ScalarKind::Sint, 4) => quote!(glam::IVec4),
         // Use Rust types for unsupported types.
-        _ => rust_vector_type(size, kind, width),
+        _ => rust_vector_type(size, kind, width, alignment, options),
     }
 }
 
-fn nalgebra_vector_type(size: naga::VectorSize, kind: naga::ScalarKind, width: u8) -> TokenStream {
-    let inner_type = rust_scalar_type(&naga::Scalar { kind, width });
+fn nalgebra_vector_type(
+    size: naga::VectorSize,
+    kind: naga::ScalarKind,
+    width: u8,
+    alignment: naga::proc::Alignment,
+    _options: &WriteOptions,
+) -> TokenStream {
+    let inner_type = rust_scalar_type(&naga::Scalar { kind, width }, alignment);
     let size = Index::from(size as usize);
     quote!(nalgebra::SVector<#inner_type, #size>)
 }
