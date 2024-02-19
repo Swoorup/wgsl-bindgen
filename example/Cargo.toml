@@ -8,9 +8,9 @@ winit = "0.29.10"
 wgpu = "0.19.0"
 futures = "0.3"
 bytemuck = { version = "1.13", features = ["derive"] }
-memoffset = "0.9.0"
-encase = "0.7.0"
+encase = { version = "0.7.0", features = ["glam"] }
 glam = { version = "0.25.0", features = ["bytemuck"] }
 
 [build-dependencies]
 wgsl_bindgen = { path = "../wgsl_bindgen" }
+miette = { version = "7.0.0", features = ["fancy", "syntect"] }

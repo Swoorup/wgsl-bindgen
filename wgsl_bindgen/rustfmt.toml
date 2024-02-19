@@ -1,0 +1,6 @@
+indent_style = "Block"
+reorder_imports = true
+tab_spaces = 2
+max_width=90
+fn_call_width=80
+group_imports="StdExternalCrate"
