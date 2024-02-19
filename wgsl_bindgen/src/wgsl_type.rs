@@ -7,8 +7,8 @@ use strum_macros::EnumIter;
 
 use crate::{quote_gen::RustTypeInfo, WgslTypeSerializeStrategy};
 
-// https://www.w3.org/TR/WGSL/#alignment-and-size
-// ensure that the alignment and size matches
+/// The `WgslType` enum represents various WGSL types, such as vectors and matrices.
+/// See [spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, EnumIter)]
 pub enum WgslType {
   Vec2i,
@@ -136,6 +136,7 @@ pub trait WgslTypeMap: DynClone {
   ) -> Option<TokenStream>;
 }
 
+/// Provides an extension method for `WgslTypeMap` to convert WGSL types to `RustTypeInfo`.
 pub(crate) trait WgslTypeMapExt {
   fn map_as_rust_type_info(
     &self,
@@ -186,7 +187,7 @@ impl WgslTypeMap for WgslRustTypeMap {
 }
 
 /// `glam` types like `glam::Vec4` or `glam::Mat4`.
-/// Types not representable by `glam` like `mat2x3<f32>` will use the output from [MatrixVectorTypes::Rust].
+/// Types not representable by `glam` like `mat2x3<f32>` will use the output from [WgslRustTypeMap::map].
 #[derive(Clone)]
 pub struct WgslGlamTypeMap;
 

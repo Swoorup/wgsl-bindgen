@@ -2,7 +2,9 @@
 [![Latest Version](https://img.shields.io/crates/v/wgsl_bindgen.svg)](https://crates.io/crates/wgsl_bindgen) [![docs.rs](https://docs.rs/wgsl_bindgen/badge.svg)](https://docs.rs/wgsl_bindgen)  
 An experimental library for generating typesafe Rust bindings from [WGSL](https://www.w3.org/TR/WGSL/) shaders to [wgpu](https://github.com/gfx-rs/wgpu).
 
-wgsl_bindgen is designed to be incorporated into the compilation process using a build script. The WGSL shaders are parsed using [naga](https://github.com/gfx-rs/naga) to generate a corresponding Rust module. The generated Rust module contains the type definitions and boilerplate code needed to work with the WGSL shader module. Using the generated code can also reduce many instances of invalid API usage. wgsl_bindgen facilitates a shader focused workflow where edits to WGSL code are automatically reflected in the corresponding Rust file. For example, changing the type of a uniform in WGSL will raise a compile error in Rust code using the generated struct to initialize the buffer.
+wgsl_bindgen, powered by [naga-oil](https://github.com/bevyengine/naga_oil), is a tool that integrates into your Rust build process. It parses WGSL shaders and generates corresponding Rust modules. These modules contain type definitions and boilerplate code that match your shaders, reducing the risk of runtime errors by catching mismatches at compile time.
+
+The tool facilitates a shader-focused workflow. When you modify your WGSL shaders, the changes are automatically reflected in the Rust code. This immediate feedback helps catch errors early, making it easier to work with shaders.
 
 ## Features
 - supports import syntax and many more features from naga oil flavour.
@@ -16,8 +18,8 @@ wgsl_bindgen is designed to be incorporated into the compilation process using a
 - Supports WGSL import syntax and many more features from naga oil flavour.
 - You can only choose either bytemuck or encase for serialization
 - Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
-  - I think DST might be a better option (Not sure how feasible it is though, open to PR)
-- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas the original would fail at compile assertions.
+- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas original would fail at compile assertions.
+- User can provide their own wgsl type mappings using `quote` library
 - Expect breaking changes
 
 ## Usage
@@ -48,7 +50,7 @@ fn main() {
 }
 ```
 
-This will generate Rust bindings for the WGSL shader at `src/shader.wgsl` and write them to `src/shader.rs`.
+This will generate Rust bindings for the WGSL shader at `src/pbr.wgsl`, `src/pfx.wgsl` and write them to `src/shader.rs`.
 See the example crate for how to use the generated code. Run the example with `cargo run`.
 
 ## Memory Layout

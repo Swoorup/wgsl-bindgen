@@ -42,16 +42,6 @@ pub fn demangle(string: &str) -> Cow<str> {
 }
 
 /// Demangles a string representing a module path and item name, splitting them into separate parts.
-///
-/// # Arguments
-///
-/// * `string` - The string to demangle.
-///
-/// # Returns
-///
-/// A tuple containing the demangled module path and item name. If the string represents only an item name, the module path will be `None`.
-///
-/// ```
 pub fn demangle_splitting_mod_path_and_item(string: &str) -> (Option<String>, String) {
   let demangled = demangle(string);
   let mut parts = demangled

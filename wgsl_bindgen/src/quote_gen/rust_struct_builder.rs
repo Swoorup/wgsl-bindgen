@@ -335,7 +335,7 @@ impl<'a> RustStructBuilder<'a> {
             let size = naga_type.inner.size(gctx);
             let ty_name = naga_type.inner.to_wgsl(&gctx);
             let doc =
-              format!(" size: {}, offset: 0x{:X}, type: {}", size, offset, ty_name);
+              format!(" size: {}, offset: 0x{:X}, type: `{}`", size, offset, ty_name);
 
             quote!(#[doc = #doc])
           } else {

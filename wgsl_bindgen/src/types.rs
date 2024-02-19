@@ -28,7 +28,10 @@ impl SourceFilePath {
   }
 
   pub fn file_prefix(&self) -> String {
-    self.0.file_prefix().unwrap().to_str().unwrap().to_string()
+    // file_prefix is only available in nightly
+    let file_name = self.0.file_stem().unwrap().to_str().unwrap();
+    let prefix = file_name.split('.').next().unwrap_or("");
+    prefix.to_string()
   }
 }
 
