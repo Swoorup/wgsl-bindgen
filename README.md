@@ -53,6 +53,38 @@ fn main() {
 This will generate Rust bindings for the WGSL shader at `src/pbr.wgsl`, `src/pfx.wgsl` and write them to `src/shader.rs`.
 See the example crate for how to use the generated code. Run the example with `cargo run`.
 
+## Wgsl Import resolution
+
+wgsl_bindgen uses a specific strategy to resolve the import paths in your WGSL source code. This process is handled by the [DependencyTree::generate_possible_module_paths](https://github.com/Swoorup/wgsl-bindgen/blob/99ea17c17bf682dd1ed9990341fb1a3aa119a6f6/wgsl_bindgen/src/bevy_util/deptree.rs#L140) function.
+
+Consider the following directory structure:
+
+```
+/my_project
+├── src
+│   ├── shaders
+│   │   ├── main.wgsl
+│   │   ├── utils
+│   │   │   ├── math.wgsl
+│   ├── main.rs
+├── Cargo.toml
+```
+
+And the following import statement in main.wgsl:
+
+```
+import utils::math;
+```
+
+Here's how wgsl_bindgen resolves the import path:
+
+1. The function first checks if the import module name ("utils::math") starts with the module prefix. If a module prefix is set and matches, it removes the prefix and treats the rest of the import module name as a relative path converting the double semicolor `::` to forward slash `/` from the directory of the current source file (src/shaders).
+2. If the import module name does not start with the module prefix, it treats the entire import module name as a relative path from the directory of the current source file. In this case, it will look for `utils/math.wgsl` in the same directory as `main.wgsl`.
+3. The function then returns a set of possible import paths. The actual file that the import statement refers to is the first file in this set that exists. In this case, it would successfully find and import `src/shaders/utils/math.wgsl`. 
+2. If not, the second possible path it would have tried would be `src/shaders/utils.wgsl` treating `math` as an item within `utils.wgsl` had it existed.
+
+This strategy allows `wgsl_bindgen` to handle a variety of import statement formats and directory structures, providing flexibility in how you organize your WGSL source files.
+
 ## Memory Layout
 WGSL structs have different memory layout requirements than Rust structs or standard layout algorithms like `repr(C)` or `repr(packed)`. Matching the expected layout to share data between the CPU and GPU can be tedious and error prone. wgsl_bindgen offers options to add derives for [encase](https://crates.io/crates/encase) to handle padding and alignment at runtime or [bytemuck](https://crates.io/crates/bytemuck) for enforcing padding and alignment at compile time. 
 
