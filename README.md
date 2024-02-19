@@ -4,33 +4,51 @@ An experimental library for generating typesafe Rust bindings from [WGSL](https:
 
 wgsl_bindgen is designed to be incorporated into the compilation process using a build script. The WGSL shaders are parsed using [naga](https://github.com/gfx-rs/naga) to generate a corresponding Rust module. The generated Rust module contains the type definitions and boilerplate code needed to work with the WGSL shader module. Using the generated code can also reduce many instances of invalid API usage. wgsl_bindgen facilitates a shader focused workflow where edits to WGSL code are automatically reflected in the corresponding Rust file. For example, changing the type of a uniform in WGSL will raise a compile error in Rust code using the generated struct to initialize the buffer.
 
-## Differences from the fork 
-- You can only choose either bytemuck or encase for serialization
-- Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
-  - I think DST might be a better option (Not sure how feasible it is though, open to PR)
-- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas the original would fail at compile assertions.
-- Expect breaking changes
-
 ## Features
+- supports import syntax and many more features from naga oil flavour.
 - more strongly typed [bind group and bindings](#bind-groups) initialization
 - shader module initialization
 - Rust structs for vertex, storage, and uniform buffers
 - optional derives for encase, bytemuck, and serde
 - const validation of [WGSL memory layout](#memory-layout) for generated structs when using bytemuck
 
+## Differences from the [fork](https://github.com/ScanMountGoat/wgsl_to_wgpu/) 
+- Supports WGSL import syntax and many more features from naga oil flavour.
+- You can only choose either bytemuck or encase for serialization
+- Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
+  - I think DST might be a better option (Not sure how feasible it is though, open to PR)
+- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas the original would fail at compile assertions.
+- Expect breaking changes
+
 ## Usage
-The generated code currently relies on [memoffset](https://crates.io/crates/memoffset) for calculating field offsets for vertex input structs.
-Add the following lines to the `Cargo.toml` and fill in the appropriate versions for `memoffset` and `wgsl_bindgen`.
 When enabling derives for crates like bytemuck, serde, or encase, these dependencies should also be added to the `Cargo.toml` with the appropriate derive features. See the provided [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for basic usage.
 
 ```toml
 [dependencies]
-memoffset = "..."
+bytemuck = "..."
 
 [build-dependencies]
 wgsl_bindgen = "..."
 ```
 
+Then, in your build.rs:
+
+```rust
+use wgsl_bindgen::WgslBindgenOptionBuilder;
+
+fn main() {
+  let options = WgslBindgenOptionBuilder::default()
+    .add_entry_point("src/pbr.wgsl")
+    .add_entry_point("src/pfx.wgsl")
+    .build()
+    .unwrap();
+
+  let bindgen = options.build().unwrap();
+  bindgen.write_to_file("src/shader.rs").unwrap();
+}
+```
+
+This will generate Rust bindings for the WGSL shader at `src/shader.wgsl` and write them to `src/shader.rs`.
 See the example crate for how to use the generated code. Run the example with `cargo run`.
 
 ## Memory Layout
@@ -66,24 +84,27 @@ Rust expects build scripts to not modify files outside of OUT_DIR. The provided 
 This approach is also fine for applications. Published crates should follow the recommendations for build scripts in the [Cargo Book](https://doc.rust-lang.org/cargo/reference/build-scripts.html#case-study-code-generation).
 
 ```rust
-use wgsl_bindgen::{create_shader_module_embedded, WriteOptions};
+use miette::{IntoDiagnostic, Result};
+use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, WgslGlamTypeMap};
 
 // src/build.rs
-fn main() {
-    println!("cargo:rerun-if-changed=src/model.wgsl");
-
-    // Generate the Rust bindings and write to a file.
-    let text = create_shader_module_embedded(wgsl_source, WriteOptions::default()).unwrap();
-    let out_dir = std::env::var("OUT_DIR").unwrap();
-    std::fs::write(format!("{out_dir}/model.rs"), text.as_bytes()).unwrap();
+fn main() -> Result<()> {
+    WgslBindgenOptionBuilder::default()
+        .add_entry_point("src/shader/testbed.wgsl")
+        .add_entry_point("src/shader/triangle.wgsl")
+        .skip_hash_check(true)
+        .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+        .wgsl_type_map(WgslGlamTypeMap)
+        .derive_serde(false)
+        .build()?
+        .generate("src/shader.rs")
+        .into_diagnostic()
 }
 ```
 
 The generated code will need to be included in one of the normal source files. This includes adding any nested modules as needed.
 
 ```rust
-// src/shader.rs
-pub mod model {
-    include!(concat!(env!("OUT_DIR"), "/model.rs"));
-}
+// src/lib.rs
+mod shader;
 ```

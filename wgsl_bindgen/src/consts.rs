@@ -2,44 +2,55 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
+use crate::quote_gen::RustSourceItem;
+
+pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
+  // Create matching Rust constants for WGSl constants.
+  module
+    .constants
+    .iter()
+    .filter_map(|(_, t)| -> Option<RustSourceItem> {
+      let name_str = t.name.as_ref()?;
+      let name = Ident::new(&name_str, Span::call_site());
+
+      // TODO: Add support for f64 and f16 once naga supports them.
+      let type_and_value = match &module.const_expressions[t.init] {
+        naga::Expression::Literal(literal) => match literal {
+          naga::Literal::F64(v) => Some(quote!(f32 = #v)),
+          naga::Literal::F32(v) => Some(quote!(f32 = #v)),
+          naga::Literal::U32(v) => Some(quote!(u32 = #v)),
+          naga::Literal::I32(v) => Some(quote!(i32 = #v)),
+          naga::Literal::Bool(v) => Some(quote!(bool = #v)),
+          naga::Literal::I64(v) => Some(quote!(i64 = #v)),
+          naga::Literal::AbstractInt(v) => Some(quote!(i64 = #v)),
+          naga::Literal::AbstractFloat(v) => Some(quote!(f64 = #v)),
+        },
+        _ => None,
+      }?;
+
+      Some(RustSourceItem::from_mangled(
+        &name_str,
+        quote! { pub const #name: #type_and_value;},
+      ))
+    })
+    .collect()
+}
+
+#[allow(unused)]
 pub fn consts(module: &naga::Module) -> Vec<TokenStream> {
-    // Create matching Rust constants for WGSl constants.
-    module
-        .constants
-        .iter()
-        .filter_map(|(_, t)| -> Option<TokenStream> {
-            let name = Ident::new(t.name.as_ref()?, Span::call_site());
-
-            // TODO: Add support for f64 and f16 once naga supports them.
-            let type_and_value = match &module.const_expressions[t.init] {
-                naga::Expression::Literal(literal) => match literal {
-                    naga::Literal::F64(v) => Some(quote!(f32 = #v)),
-                    naga::Literal::F32(v) => Some(quote!(f32 = #v)),
-                    naga::Literal::U32(v) => Some(quote!(u32 = #v)),
-                    naga::Literal::I32(v) => Some(quote!(i32 = #v)),
-                    naga::Literal::Bool(v) => Some(quote!(bool = #v)),
-                    naga::Literal::I64(v) => Some(quote!(i64 = #v)),
-                    naga::Literal::AbstractInt(v) => Some(quote!(i64 = #v)),
-                    naga::Literal::AbstractFloat(v) => Some(quote!(f64 = #v)),
-                },
-                _ => None,
-            }?;
-
-            Some(quote!( pub const #name: #type_and_value;))
-        })
-        .collect()
+  consts_items(module).into_iter().map(|i| i.item).collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+  use indoc::indoc;
 
-    use crate::assert_tokens_eq;
-    use indoc::indoc;
+  use super::*;
+  use crate::assert_tokens_eq;
 
-    #[test]
-    fn write_global_consts() {
-        let source = indoc! {r#"
+  #[test]
+  fn write_global_consts() {
+    let source = indoc! {r#"
             const INT_CONST = 12;
             const UNSIGNED_CONST = 34u;
             const FLOAT_CONST = 0.1;
@@ -54,20 +65,20 @@ mod tests {
             }
         "#};
 
-        let module = naga::front::wgsl::parse_str(source).unwrap();
+    let module = naga::front::wgsl::parse_str(source).unwrap();
 
-        let consts = consts(&module);
-        let actual = quote!(#(#consts)*);
-        eprintln!("{actual}");
+    let consts = consts(&module);
+    let actual = quote!(#(#consts)*);
+    eprintln!("{actual}");
 
-        assert_tokens_eq!(
-            quote! {
-                pub const INT_CONST: i32 = 12i32;
-                pub const UNSIGNED_CONST: u32 = 34u32;
-                pub const FLOAT_CONST: f32 = 0.1f32;
-                pub const BOOL_CONST: bool = true;
-            },
-            actual
-        );
-    }
+    assert_tokens_eq!(
+      quote! {
+          pub const INT_CONST: i32 = 12i32;
+          pub const UNSIGNED_CONST: u32 = 34u32;
+          pub const FLOAT_CONST: f32 = 0.1f32;
+          pub const BOOL_CONST: bool = true;
+      },
+      actual
+    );
+  }
 }

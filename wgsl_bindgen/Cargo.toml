@@ -1,6 +1,6 @@
 [package]
 name = "wgsl_bindgen"
-version = "0.5.3"
+version = "0.6.0"
 authors = ["Swoorup", "ScanMountGoat(Original)"]
 description = "Generate typesafe Rust bindings for wgsl shaders in wgpu"
 license = "MIT"
@@ -18,7 +18,25 @@ proc-macro2 = "1.0"
 prettyplease = "0.2"
 thiserror = "1.0"
 case = "1.0"
+naga_oil = "0.13.0"
+regex = "1.10.3"
+data-encoding = "2.5.0"
+indexmap = "2.2.3"
+smallvec = "1.13.1"
+derive_more = "0.99.17"
+fxhash = "0.2.1"
+derivative = "2.2.0"
+smol_str = "0.2.1"
+colored = "2.1.0"
+derive_builder = "0.20.0"
+miette = "7.0.0"
+blake3 = "1.5.0"
+regex-syntax = "0.8.2"
+strum = "0.26.1"
+strum_macros = "0.26.1"
+dyn-clone = "1.0.16"
 
 [dev-dependencies]
 indoc = "2.0"
 pretty_assertions = "1.2.1"
+miette = { version = "7.0.0", features = ["fancy", "syntect"] }
