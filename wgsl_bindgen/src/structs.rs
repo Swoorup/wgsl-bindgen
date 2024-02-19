@@ -1052,13 +1052,13 @@ mod tests {
         #[repr(C, align(4))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct Input0 {
-            /// size: 4, offset: 0x0, type: u32
+            /// size: 4, offset: 0x0, type: `u32`
             pub a: u32,
             pub _pad_a: [u8; 0x8 - core::mem::size_of::<u32>()],
-            /// size: 4, offset: 0x8, type: i32
+            /// size: 4, offset: 0x8, type: `i32`
             pub b: i32,
             pub _pad_b: [u8; 0x18 - core::mem::size_of::<i32>()],
-            /// size: 4, offset: 0x20, type: f32
+            /// size: 4, offset: 0x20, type: `f32`
             pub c: f32,
             pub _pad_c: [u8; 0x20 - core::mem::size_of::<f32>()],
         }
@@ -1111,7 +1111,7 @@ mod tests {
         #[repr(C, align(4))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct Inner {
-            /// size: 4, offset: 0x0, type: f32
+            /// size: 4, offset: 0x0, type: `f32`
             pub a: f32,
         }
         impl Inner {
@@ -1128,7 +1128,7 @@ mod tests {
         #[repr(C, align(4))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct Outer {
-            /// size: 4, offset: 0x0, type: struct
+            /// size: 4, offset: 0x0, type: `struct`
             pub inner: Inner,
         }
         impl Outer {
@@ -1250,9 +1250,9 @@ mod tests {
       quote! {
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct RtsStruct<const N: usize> {
-            /// size: 4, offset: 0x0, type: i32
+            /// size: 4, offset: 0x0, type: `i32`
             pub other_data: i32,
-            /// size: 4, offset: 0x4, type: array<u32>
+            /// size: 4, offset: 0x4, type: `array<u32>`
             pub the_array: [u32; N]
         }
         impl<const N:usize> RtsStruct<N> {
@@ -1323,7 +1323,7 @@ mod tests {
         #[repr(C, align(16))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct UniformsData {
-            /// size: 48, offset: 0x0, type: mat3x3<f32>
+            /// size: 48, offset: 0x0, type: `mat3x3<f32>`
             pub a: [[f32; 4]; 3],
         }
         impl UniformsData {
@@ -1370,7 +1370,7 @@ mod tests {
         #[repr(C, align(16))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct UniformsData {
-            /// size: 48, offset: 0x0, type: mat3x3<f32>
+            /// size: 48, offset: 0x0, type: `mat3x3<f32>`
             pub centered_mvp: glam::Mat3A,
         }
         impl UniformsData {
@@ -1419,13 +1419,13 @@ mod tests {
         #[repr(C, align(16))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct MatricesF32 {
-            /// size: 64, offset: 0x0, type: mat4x4<f32>
+            /// size: 64, offset: 0x0, type: `mat4x4<f32>`
             pub a: [[f32; 4]; 4],
-            /// size: 64, offset: 0x40, type: mat4x3<f32>
+            /// size: 64, offset: 0x40, type: `mat4x3<f32>`
             pub b: [[f32; 4]; 4],
-            /// size: 32, offset: 0x80, type: mat4x2<f32>
+            /// size: 32, offset: 0x80, type: `mat4x2<f32>`
             pub c: [[f32; 2]; 4],
-            /// size: 48, offset: 0xA0, type: mat3x4<f32>
+            /// size: 48, offset: 0xA0, type: `mat3x4<f32>`
             pub d: [[f32; 4]; 3],
         }
         impl MatricesF32 {

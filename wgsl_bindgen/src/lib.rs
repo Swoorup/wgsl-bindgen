@@ -30,6 +30,7 @@
 //!         .derive_serde(false)
 //!         .build()?
 //!         .generate("src/shader.rs")
+//!         .into_diagnostic()
 //! }
 //! ```
 

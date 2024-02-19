@@ -138,6 +138,8 @@ impl WGSLBindgen {
   fn get_contents_hash(dep_tree: &DependencyTree) -> String {
     let mut hasher = blake3::Hasher::new();
 
+    hasher.update(PKG_VER.as_bytes());
+
     for SourceFile { content, .. } in dep_tree.parsed_files() {
       hasher.update(content.as_bytes());
     }

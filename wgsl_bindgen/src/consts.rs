@@ -2,7 +2,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
-use crate::quote_gen::RustSourceItem;
+use crate::{bevy_util::demangle_splitting_mod_path_and_item, quote_gen::RustSourceItem};
 
 pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
   // Create matching Rust constants for WGSl constants.
@@ -11,7 +11,11 @@ pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
     .iter()
     .filter_map(|(_, t)| -> Option<RustSourceItem> {
       let name_str = t.name.as_ref()?;
-      let name = Ident::new(&name_str, Span::call_site());
+
+      // we don't need full qualification here
+      let (_, demangled_name) = demangle_splitting_mod_path_and_item(name_str);
+
+      let name = Ident::new(&demangled_name, Span::call_site());
 
       // TODO: Add support for f64 and f16 once naga supports them.
       let type_and_value = match &module.const_expressions[t.init] {
