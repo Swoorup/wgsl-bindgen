@@ -1,7 +1,11 @@
 #import types
+#import "../more-shader-files/reachme" as reachme 
+
+// The following also works
+// #import "../more-shader-files/reachme.wgsl" as reachme
 
 @group(2) @binding(1)
-var<storage> rts: types::RtsStruct;
+var<storage> rts: reachme::RtsStruct;
 
 @group(2) @binding(2)
 var<storage> a: types::Scalars;

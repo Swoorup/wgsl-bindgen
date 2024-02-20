@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 use DependencyTreeError::*;
 
-use super::{parse_imports::ImportStatement, source_file::SourceFile};
+use super::{parse_imports::ImportStatement, source_file::SourceFile, escape_os_path};
 use crate::{FxIndexMap, FxIndexSet, SourceFileDir, SourceFilePath, SourceModuleName};
 
 #[derive(Debug, Error, Diagnostic)]
@@ -157,14 +157,23 @@ impl DependencyTree {
       panic!("import module is empty")
     }
 
-    let create_path = |root_dir: &Path, part_slice: &[&str]| {
+    let create_path = |root_dir: &Path, path_fragments: &[&str]| {
       let mut path = PathBuf::from(root_dir);
-      for module_part in part_slice {
-        if !path.ends_with(module_part) {
-          path.push(module_part);
+      for fragment in path_fragments {
+
+        // Allow to use paths directly
+        let fragment = escape_os_path(fragment); 
+        
+        // avoid duplicates repeated patterns
+        if !path.ends_with(&fragment) {
+          path.push(fragment);
         }
       }
-      path.set_extension("wgsl");
+
+      if path.extension().is_none() {
+        path.set_extension("wgsl");
+      }
+
       SourceFilePath::new(path)
     };
 

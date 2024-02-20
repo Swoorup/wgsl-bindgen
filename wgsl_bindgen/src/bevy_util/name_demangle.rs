@@ -29,13 +29,29 @@ fn decode(from: &str) -> String {
   String::from_utf8(data_encoding::BASE32_NOPAD.decode(from.as_bytes()).unwrap()).unwrap()
 }
 
+pub fn escape_os_path(path: &str) -> String {
+  path.replace("\"", "")
+}
+
+/// Converts 
+///   * "\"../types\"::RtsStruct" => "types::RtsStruct"
+///   * "../more-shader-files/reachme" => "reachme"
+pub fn make_valid_rust_import(value: &str) -> String {
+  let v = value.replace("\"../", "").replace("\"", "");
+  std::path::Path::new(&v)
+    .file_stem()
+    .and_then(|name| name.to_str())
+    .unwrap_or(&v)
+    .to_string()
+}
+
 // https://github.com/bevyengine/naga_oil/blob/master/src/compose/mod.rs#L421-L431
 pub fn demangle(string: &str) -> Cow<str> {
   undecorate_regex().replace_all(string, |caps: &regex::Captures| {
     format!(
       "{}{}::{}",
       caps.get(1).map(|cc| cc.as_str()).unwrap_or(""),
-      decode(caps.get(3).unwrap().as_str()),
+      make_valid_rust_import(&decode(caps.get(3).unwrap().as_str())),
       caps.get(2).unwrap().as_str()
     )
   })
@@ -61,7 +77,13 @@ pub fn demangle_splitting_mod_path_and_item(string: &str) -> (Option<String>, St
 mod tests {
   use pretty_assertions::assert_eq;
 
-  use crate::bevy_util::demangle_splitting_mod_path_and_item;
+  use crate::bevy_util::{demangle_splitting_mod_path_and_item, make_valid_rust_import};
+
+  #[test]
+  fn test_make_valid_rust_import() {
+    assert_eq!(make_valid_rust_import("\"../types\"::RtsStruct"), "types::RtsStruct");
+    assert_eq!(make_valid_rust_import("../more-shader-files/reachme"), "reachme");
+  }
 
   #[test]
   fn test_demangle_mod_names() {

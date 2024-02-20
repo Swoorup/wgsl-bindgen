@@ -128,7 +128,8 @@ fn test_example_wgsl_dep_tree() {
     result.all_files_including_dependencies(),
     indexset![
       SourceFilePath::new("../example/src/shader/testbed.wgsl"),
-      SourceFilePath::new("../example/src/shader/types.wgsl")
+      SourceFilePath::new("../example/src/shader/types.wgsl"),
+      SourceFilePath::new("../example/src/shader/../more-shader-files/reachme.wgsl")
     ]
   )
 }

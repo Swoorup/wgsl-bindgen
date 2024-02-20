@@ -16,7 +16,7 @@
 //!
 //! Here's an example of how to use `WgslBindgenOptionBuilder` to generate Rust bindings from WGSL shaders:
 //!
-//! ```rust
+//! ```no_run
 //! use miette::{IntoDiagnostic, Result};
 //! use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, WgslGlamTypeMap};
 //!

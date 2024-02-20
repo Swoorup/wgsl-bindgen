@@ -1,8 +1,3 @@
-struct RtsStruct {
-  other_data: i32,
-  the_array: array<u32>,
-};
-
 struct Scalars {
   a: u32,
   b: i32,
