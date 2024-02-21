@@ -1,5 +1,10 @@
 # Rough ideas. 
 
+* Allow to use naga-oil in the final generated output.
+  * Allows injecting dynamic shader defines at runtime
+* Generate from string instead of source files?
+* proc_macro as an option instead of build.rs. We need proc_macro::tracked* feature?
+
 * Use struct like this instead directly using the array.
   * ```rust
     #[repr(C)]
