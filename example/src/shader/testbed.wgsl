@@ -5,6 +5,8 @@
 // #import "../more-shader-files/reachme.wgsl" as reachme
 
 @group(2) @binding(1)
+// TODO: Fix this, I think the bug is in naga_oil.
+// var<storage> rts: array<reachme::RtsStruct>;
 var<storage> rts: reachme::RtsStruct;
 
 @group(2) @binding(2)
@@ -40,6 +42,9 @@ struct Uniforms {
 
 @group(1) @binding(0)
 var<uniform> uniforms: Uniforms;
+
+@group(1) @binding(1)
+var<uniform> one: f32;
 
 struct VertexInput {
   @location(0) position: vec3<f32>,

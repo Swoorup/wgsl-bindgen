@@ -123,6 +123,7 @@ fn bind_group_layout(group_no: u32, group: &GroupData) -> TokenStream {
         naga::TypeInner::Image { .. } => quote!(&'a wgpu::TextureView),
         naga::TypeInner::Sampler { .. } => quote!(&'a wgpu::Sampler),
         naga::TypeInner::Array { .. } => quote!(wgpu::BufferBinding<'a>),
+        naga::TypeInner::Scalar(_) => quote!(wgpu::BufferBinding<'a>),
         _ => panic!("Unsupported type for binding fields."),
       };
       quote!(pub #field_name: #field_type)
@@ -178,16 +179,9 @@ fn bind_group_layout_entry(
   let binding_index = Index::from(binding.binding_index as usize);
   // TODO: Support more types.
   let binding_type = match binding.binding_type.inner {
-    naga::TypeInner::Struct { .. } => {
-      let buffer_binding_type = buffer_binding_type(binding.address_space);
-
-      quote!(wgpu::BindingType::Buffer {
-          ty: #buffer_binding_type,
-          has_dynamic_offset: false,
-          min_binding_size: None,
-      })
-    }
-    naga::TypeInner::Array { .. } => {
+    naga::TypeInner::Scalar(_)
+    | naga::TypeInner::Struct { .. }
+    | naga::TypeInner::Array { .. } => {
       let buffer_binding_type = buffer_binding_type(binding.address_space);
 
       quote!(wgpu::BindingType::Buffer {
@@ -279,10 +273,9 @@ fn bind_group(
       let binding_index = Index::from(binding.binding_index as usize);
       let binding_name = Ident::new(binding.name.as_ref().unwrap(), Span::call_site());
       let resource_type = match binding.binding_type.inner {
-        naga::TypeInner::Struct { .. } => {
-          quote!(wgpu::BindingResource::Buffer(bindings.#binding_name))
-        }
-        naga::TypeInner::Array { .. } => {
+        naga::TypeInner::Scalar(_)
+        | naga::TypeInner::Struct { .. }
+        | naga::TypeInner::Array { .. } => {
           quote!(wgpu::BindingResource::Buffer(bindings.#binding_name))
         }
         naga::TypeInner::Image { .. } => {
@@ -657,6 +650,7 @@ mod tests {
             var depth_texture_msaa: texture_depth_multisampled_2d;
 
             @group(1) @binding(0) var<uniform> transforms: Transforms;
+            @group(1) @binding(1) var<uniform> one: f32;
 
             @vertex
             fn vs_main() {}
@@ -860,12 +854,23 @@ mod tests {
               #[derive(Debug)]
               pub struct BindGroupLayout1<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
+                  pub one: wgpu::BufferBinding<'a>,
               }
               const LAYOUT_DESCRIPTOR1: wgpu::BindGroupLayoutDescriptor = wgpu::BindGroupLayoutDescriptor {
                   label: None,
                   entries: &[
                       wgpu::BindGroupLayoutEntry {
                           binding: 0,
+                          visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                          ty: wgpu::BindingType::Buffer {
+                              ty: wgpu::BufferBindingType::Uniform,
+                              has_dynamic_offset: false,
+                              min_binding_size: None,
+                          },
+                          count: None,
+                      },
+                      wgpu::BindGroupLayoutEntry {
+                          binding: 1,
                           visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                           ty: wgpu::BindingType::Buffer {
                               ty: wgpu::BufferBindingType::Uniform,
@@ -890,6 +895,10 @@ mod tests {
                                       wgpu::BindGroupEntry {
                                           binding: 0,
                                           resource: wgpu::BindingResource::Buffer(bindings.transforms),
+                                      },
+                                      wgpu::BindGroupEntry {
+                                          binding: 1,
+                                          resource: wgpu::BindingResource::Buffer(bindings.one),
                                       },
                                   ],
                                   label: None,
