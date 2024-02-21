@@ -43,9 +43,6 @@ struct Uniforms {
 @group(1) @binding(0)
 var<uniform> uniforms: Uniforms;
 
-@group(1) @binding(1)
-var<uniform> one: f32;
-
 struct VertexInput {
   @location(0) position: vec3<f32>,
 };
@@ -60,7 +57,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     //A fullscreen triangle.
   var out: VertexOutput;
   out.clip_position = vec4(in.position.xyz, 1.0);
-  out.tex_coords = in.position.xy * 0.5 + 0.5;
+  out.tex_coords = in.position.xy * 0.5 + 0.5 * reachme::ONE;
   return out;
 }
 

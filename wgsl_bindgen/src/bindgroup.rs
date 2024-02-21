@@ -5,6 +5,7 @@ use quote::quote;
 use syn::{Ident, Index};
 
 use crate::{indexed_name_to_ident, wgsl::buffer_binding_type, CreateModuleError};
+use crate::bevy_util::demangle_splitting_mod_path_and_item;
 
 pub struct GroupData<'a> {
   pub bindings: Vec<GroupBinding<'a>>,
@@ -116,7 +117,8 @@ fn bind_group_layout(group_no: u32, group: &GroupData) -> TokenStream {
     .bindings
     .iter()
     .map(|binding| {
-      let field_name = Ident::new(binding.name.as_ref().unwrap(), Span::call_site());
+      let (_, demangled_name) = demangle_splitting_mod_path_and_item(binding.name.as_ref().unwrap());
+      let field_name = Ident::new(&demangled_name, Span::call_site());
       // TODO: Support more types.
       let field_type = match binding.binding_type.inner {
         naga::TypeInner::Struct { .. } => quote!(wgpu::BufferBinding<'a>),
@@ -132,6 +134,7 @@ fn bind_group_layout(group_no: u32, group: &GroupData) -> TokenStream {
 
   let name = indexed_name_to_ident("BindGroupLayout", group_no);
   quote! {
+      #[allow(non_snake_case)]
       #[derive(Debug)]
       pub struct #name<'a> {
           #(#fields),*
@@ -271,7 +274,8 @@ fn bind_group(
     .iter()
     .map(|binding| {
       let binding_index = Index::from(binding.binding_index as usize);
-      let binding_name = Ident::new(binding.name.as_ref().unwrap(), Span::call_site());
+      let (_, demangled_name) = demangle_splitting_mod_path_and_item(binding.name.as_ref().unwrap());
+      let binding_name = Ident::new(&demangled_name, Span::call_site());
       let resource_type = match binding.binding_type.inner {
         naga::TypeInner::Scalar(_)
         | naga::TypeInner::Struct { .. }
@@ -468,6 +472,7 @@ mod tests {
           pub mod bind_groups {
               #[derive(Debug)]
               pub struct BindGroup0(wgpu::BindGroup);
+              #[allow(non_snake_case)]
               #[derive(Debug)]
               pub struct BindGroupLayout0<'a> {
                   pub src: wgpu::BufferBinding<'a>,
@@ -552,6 +557,7 @@ mod tests {
               }
               #[derive(Debug)]
               pub struct BindGroup1(wgpu::BindGroup);
+              #[allow(non_snake_case)]
               #[derive(Debug)]
               pub struct BindGroupLayout1<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
@@ -671,6 +677,7 @@ mod tests {
           pub mod bind_groups {
               #[derive(Debug)]
               pub struct BindGroup0(wgpu::BindGroup);
+              #[allow(non_snake_case)]
               #[derive(Debug)]
               pub struct BindGroupLayout0<'a> {
                   pub color_texture: &'a wgpu::TextureView,
@@ -851,6 +858,7 @@ mod tests {
               }
               #[derive(Debug)]
               pub struct BindGroup1(wgpu::BindGroup);
+              #[allow(non_snake_case)]
               #[derive(Debug)]
               pub struct BindGroupLayout1<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
@@ -959,6 +967,7 @@ mod tests {
           pub mod bind_groups {
               #[derive(Debug)]
               pub struct BindGroup0(wgpu::BindGroup);
+              #[allow(non_snake_case)]
               #[derive(Debug)]
               pub struct BindGroupLayout0<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
@@ -1047,6 +1056,7 @@ mod tests {
           pub mod bind_groups {
               #[derive(Debug)]
               pub struct BindGroup0(wgpu::BindGroup);
+              #[allow(non_snake_case)]
               #[derive(Debug)]
               pub struct BindGroupLayout0<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
