@@ -47,7 +47,7 @@ See the example crate for how to use the generated code. Run the example with `c
 
 ## Wgsl Import resolution
 
-wgsl_bindgen uses a specific strategy to resolve the import paths in your WGSL source code. This process is handled by the [DependencyTree::generate_possible_module_paths](https://github.com/Swoorup/wgsl-bindgen/blob/99ea17c17bf682dd1ed9990341fb1a3aa119a6f6/wgsl_bindgen/src/bevy_util/deptree.rs#L140) function.
+wgsl_bindgen uses a specific strategy to resolve the import paths in your WGSL source code. This process is handled by the [ModulePathResolver::generate_possible_paths](https://github.com/Swoorup/wgsl-bindgen/blob/3e581089e21b245bd85feecdc94f3f1d9310aacc/wgsl_bindgen/src/bevy_util/module_path_resolver.rs#L32) function.
 
 Consider the following directory structure:
 
