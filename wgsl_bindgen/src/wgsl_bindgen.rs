@@ -4,7 +4,8 @@ use std::path::Path;
 use derive_builder::Builder;
 use miette::Diagnostic;
 use naga_oil::compose::{
-  ComposableModuleDescriptor, Composer, NagaModuleDescriptor, ShaderLanguage,
+  ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor,
+  ShaderLanguage,
 };
 use thiserror::Error;
 
@@ -24,16 +25,20 @@ const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 pub enum WgslBindgenError {
   #[error("All required fields need to be set upfront")]
   OptionBuilderError(#[from] WgslBindgenOptionBuilderError),
+
   #[error(transparent)]
   #[diagnostic(transparent)]
   DependencyTreeError(#[from] DependencyTreeError),
-  #[error("'{entry}': {inner}")]
+
+  #[error("Failed to compose modules with entry `{entry}`\n{inner}")]
   NagaModuleComposeError {
     entry: String,
-    inner: naga_oil::compose::ComposerError,
+    inner: naga_oil::compose::ComposerErrorInner,
   },
+
   #[error(transparent)]
   ModuleCreationError(#[from] CreateModuleError),
+
   #[error(transparent)]
   WriteOutputError(#[from] std::io::Error),
 }
@@ -153,9 +158,9 @@ impl WGSLBindgen {
   fn generate_naga_module_for_entry(
     entry: SourceWithFullDependenciesResult<'_>,
   ) -> Result<(String, naga::Module), WgslBindgenError> {
-    let map_err = |err| WgslBindgenError::NagaModuleComposeError {
+    let map_err = |err: ComposerError| WgslBindgenError::NagaModuleComposeError {
       entry: entry.source_file.file_path.to_string(),
-      inner: err,
+      inner: err.inner,
     };
 
     let mut composer = Composer::default();

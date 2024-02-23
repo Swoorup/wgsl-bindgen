@@ -40,3 +40,19 @@ fn test_main_bindgen() -> Result<()> {
   assert_eq!(actual, expected);
   Ok(())
 }
+
+#[test]
+#[ignore = "It doesn't like path symbols inside a nested type like array."]
+fn test_path_import() -> Result<()> {
+  let _ = WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/test_shaders/path_import.wgsl")
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .wgsl_type_map(WgslGlamTypeMap)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  Ok(())
+}
