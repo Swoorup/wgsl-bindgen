@@ -3,12 +3,12 @@ use std::{ops::Range, sync::OnceLock};
 use indexmap::IndexMap;
 use regex::Regex;
 
-use crate::{FxIndexSet, SourceLocation, SourceModuleName};
+use crate::{FxIndexSet, ImportedPath, SourceLocation};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportStatement {
   pub source_location: SourceLocation,
-  pub item_to_module_paths: IndexMap<String, Vec<String>>,
+  pub item_to_import_paths: IndexMap<String, Vec<String>>,
 }
 
 impl ImportStatement {
@@ -18,12 +18,12 @@ impl ImportStatement {
     start..end
   }
 
-  pub fn get_imported_modules(&self) -> FxIndexSet<SourceModuleName> {
+  pub fn get_imported_paths(&self) -> FxIndexSet<ImportedPath> {
     self
-      .item_to_module_paths
+      .item_to_import_paths
       .values()
       .flatten()
-      .map(SourceModuleName::new)
+      .map(ImportedPath::new)
       .collect()
   }
 }
@@ -60,7 +60,7 @@ fn get_line_and_column(offset: usize, newline_offsets: &[usize]) -> (usize, usiz
   (line_idx, offset - line_start + 1)
 }
 
-pub(crate) fn iter_import_statements(
+pub(crate) fn parse_import_statements_iter(
   wgsl_content: &str,
 ) -> impl Iterator<Item = ImportStatement> + '_ {
   let mut start = 0;
@@ -107,7 +107,7 @@ pub(crate) fn iter_import_statements(
 
       let import_stmt = ImportStatement {
         source_location,
-        item_to_module_paths,
+        item_to_import_paths: item_to_module_paths,
       };
 
       Some(import_stmt)
@@ -118,21 +118,125 @@ pub(crate) fn iter_import_statements(
 }
 
 pub fn get_import_statements<B: FromIterator<ImportStatement>>(content: &str) -> B {
-  iter_import_statements(content).collect::<B>()
+  parse_import_statements_iter(content).collect::<B>()
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::bevy_util::parse_imports;
-  use crate::SourceModuleName;
+  use indexmap::IndexMap;
+  use pretty_assertions::{assert_eq, assert_str_eq};
+  use smallvec::{smallvec, SmallVec};
+
+  use super::*;
+  use crate::ImportedPath;
+
+  const TEST_IMPORTS: &'static str = r#"
+#import a::b::{c::{d, e}, f, g::{h as i, j}}
+#import a::b c, d
+#import a, b
+#import "path//with\ all sorts of .stuff"::{a, b}
+#import a::b::{
+    c::{d, e}, 
+    f, 
+    g::{
+        h as i, 
+        j::k::l as m,
+    }
+}
+"#;
+
+  fn create_index_map(values: Vec<(&str, Vec<&str>)>) -> IndexMap<String, Vec<String>> {
+    let mut m = IndexMap::default();
+    for (k, v) in values {
+      let _ = m.insert(k.to_string(), v.into_iter().map(String::from).collect());
+    }
+    m
+  }
+
+  #[test]
+  fn test_parsing_from_contents() {
+    let test_imports = TEST_IMPORTS.replace("\r\n", "\n").replace("\r", "\n");
+    let actual = parse_import_statements_iter(&test_imports)
+      .collect::<SmallVec<[ImportStatement; 4]>>();
+
+    let expected: SmallVec<[ImportStatement; 4]> = smallvec![
+      ImportStatement {
+        source_location: SourceLocation {
+          line_number: 1,
+          line_position: 1,
+          offset: 1,
+          length: 44,
+        },
+        item_to_import_paths: create_index_map(vec![
+          ("d", vec!["a::b::c::d"]),
+          ("e", vec!["a::b::c::e"]),
+          ("f", vec!["a::b::f"]),
+          ("i", vec!["a::b::g::h"]),
+          ("j", vec!["a::b::g::j",]),
+        ]),
+      },
+      ImportStatement {
+        source_location: SourceLocation {
+          line_number: 2,
+          line_position: 1,
+          offset: 46,
+          length: 17,
+        },
+        item_to_import_paths: create_index_map(vec![
+          ("c", vec!["a::b::c"]),
+          ("d", vec!["a::b::d"]),
+        ]),
+      },
+      ImportStatement {
+        source_location: SourceLocation {
+          line_number: 3,
+          line_position: 1,
+          offset: 64,
+          length: 12,
+        },
+        item_to_import_paths: create_index_map(vec![("a", vec!["a"]), ("b", vec!["b"]),]),
+      },
+      ImportStatement {
+        source_location: SourceLocation {
+          line_number: 4,
+          line_position: 1,
+          offset: 77,
+          length: 49,
+        },
+        item_to_import_paths: create_index_map(vec![
+          ("a", vec!["\"path//with\\ all sorts of .stuff\"::a"]),
+          ("b", vec!["\"path//with\\ all sorts of .stuff\"::b"]),
+        ]),
+      },
+      ImportStatement {
+        source_location: SourceLocation {
+          line_number: 5,
+          line_position: 1,
+          offset: 127,
+          length: 95,
+        },
+        item_to_import_paths: create_index_map(vec![
+          ("d", vec!["a::b::c::d"]),
+          ("e", vec!["a::b::c::e"]),
+          ("f", vec!["a::b::f"]),
+          ("i", vec!["a::b::g::h"]),
+          ("m", vec!["a::b::g::j::k::l"]),
+        ]),
+      }
+    ];
+
+    assert_eq!(actual, expected);
+
+    assert_str_eq!(&test_imports[actual[1].range()], "#import a::b c, d");
+  }
 
   #[test]
   fn test_parsing_imports_from_bevy_mesh_view_bindings() {
     let contents = include_str!("../../tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl");
-    let actual = parse_imports::iter_import_statements(contents)
-      .flat_map(|x| x.get_imported_modules())
+    let actual = parse_import_statements_iter(contents)
+      .flat_map(|x| x.get_imported_paths())
       .collect::<Vec<_>>();
 
-    assert_eq!(actual, vec![SourceModuleName::new("bevy_pbr::mesh_view_types")]);
+    assert_eq!(actual, vec![ImportedPath::new("bevy_pbr::mesh_view_types")]);
   }
 }

@@ -1042,7 +1042,7 @@ fn saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(value: f32) -> f32 {
     return clamp(value, 0f, 1f);
 }
 
-fn EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_: vec3<f32>, perceptual_roughness_1: f32, NoV: f32) -> vec3<f32> {
+fn EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_: vec3<f32>, perceptual_roughness_1: f32, NoV: f32) -> vec3<f32> {
     let c0_ = vec4<f32>(-1f, -0.0275f, -0.572f, 0.022f);
     let c1_ = vec4<f32>(1f, 0.0425f, 1.04f, -0.04f);
     let r = ((perceptual_roughness_1 * c0_) + c1_);
@@ -1051,35 +1051,35 @@ fn EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_: vec3<f32>, p
     return ((f0_ * AB.x) + vec3(AB.y));
 }
 
-fn perceptualRoughnessToRoughnessX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(perceptualRoughness: f32) -> f32 {
+fn perceptualRoughnessToRoughnessX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(perceptualRoughness: f32) -> f32 {
     let clampedPerceptualRoughness = clamp(perceptualRoughness, 0.089f, 1f);
     return (clampedPerceptualRoughness * clampedPerceptualRoughness);
 }
 
-fn luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(v: vec3<f32>) -> f32 {
+fn luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(v: vec3<f32>) -> f32 {
     return dot(v, vec3<f32>(0.2126f, 0.7152f, 0.0722f));
 }
 
-fn change_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(c_in: vec3<f32>, l_out: f32) -> vec3<f32> {
-    let _e1 = luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(c_in);
+fn change_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(c_in: vec3<f32>, l_out: f32) -> vec3<f32> {
+    let _e1 = luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(c_in);
     return (c_in * (l_out / _e1));
 }
 
-fn reinhard_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(color: vec3<f32>) -> vec3<f32> {
-    let _e1 = luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(color);
+fn reinhard_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(color: vec3<f32>) -> vec3<f32> {
+    let _e1 = luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(color);
     let l_new = (_e1 / (1f + _e1));
-    let _e5 = change_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(color, l_new);
+    let _e5 = change_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(color, l_new);
     return _e5;
 }
 
-fn getDistanceAttenuationX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(distanceSquare: f32, inverseRangeSquared: f32) -> f32 {
+fn getDistanceAttenuationX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(distanceSquare: f32, inverseRangeSquared: f32) -> f32 {
     let factor = (distanceSquare * inverseRangeSquared);
     let _e6 = saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX((1f - (factor * factor)));
     let attenuation = (_e6 * _e6);
     return ((attenuation * 1f) / max(distanceSquare, 0.0001f));
 }
 
-fn D_GGXX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness: f32, NoH: f32, h: vec3<f32>) -> f32 {
+fn D_GGXX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness: f32, NoH: f32, h: vec3<f32>) -> f32 {
     let oneMinusNoHSquared = (1f - (NoH * NoH));
     let a = (NoH * roughness);
     let k = (roughness / (oneMinusNoHSquared + (a * a)));
@@ -1087,7 +1087,7 @@ fn D_GGXX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness: f32, NoH: f32,
     return d;
 }
 
-fn V_SmithGGXCorrelatedX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_1: f32, NoV_1: f32, NoL: f32) -> f32 {
+fn V_SmithGGXCorrelatedX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness_1: f32, NoV_1: f32, NoL: f32) -> f32 {
     let a2_ = (roughness_1 * roughness_1);
     let lambdaV = (NoL * sqrt((((NoV_1 - (a2_ * NoV_1)) * NoV_1) + a2_)));
     let lambdaL = (NoV_1 * sqrt((((NoL - (a2_ * NoL)) * NoL) + a2_)));
@@ -1095,35 +1095,35 @@ fn V_SmithGGXCorrelatedX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_
     return v_1;
 }
 
-fn F_Schlick_vecX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_1: vec3<f32>, f90_: f32, VoH: f32) -> vec3<f32> {
+fn F_Schlick_vecX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_1: vec3<f32>, f90_: f32, VoH: f32) -> vec3<f32> {
     return (f0_1 + ((vec3(f90_) - f0_1) * pow((1f - VoH), 5f)));
 }
 
-fn fresnelX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_2: vec3<f32>, LoH: f32) -> vec3<f32> {
+fn fresnelX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_2: vec3<f32>, LoH: f32) -> vec3<f32> {
     let _e4 = saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(dot(f0_2, vec3(16.5f)));
-    let _e6 = F_Schlick_vecX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_2, _e4, LoH);
+    let _e6 = F_Schlick_vecX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_2, _e4, LoH);
     return _e6;
 }
 
-fn specularX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_3: vec3<f32>, roughness_2: f32, h_1: vec3<f32>, NoV_2: f32, NoL_1: f32, NoH_1: f32, LoH_1: f32, specularIntensity: f32) -> vec3<f32> {
-    let _e3 = D_GGXX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_2, NoH_1, h_1);
-    let _e6 = V_SmithGGXCorrelatedX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_2, NoV_2, NoL_1);
-    let _e9 = fresnelX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_3, LoH_1);
+fn specularX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_3: vec3<f32>, roughness_2: f32, h_1: vec3<f32>, NoV_2: f32, NoL_1: f32, NoH_1: f32, LoH_1: f32, specularIntensity: f32) -> vec3<f32> {
+    let _e3 = D_GGXX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness_2, NoH_1, h_1);
+    let _e6 = V_SmithGGXCorrelatedX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness_2, NoV_2, NoL_1);
+    let _e9 = fresnelX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_3, LoH_1);
     return (((specularIntensity * _e3) * _e6) * _e9);
 }
 
-fn F_SchlickX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(f0_4: f32, f90_1: f32, VoH_1: f32) -> f32 {
+fn F_SchlickX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_4: f32, f90_1: f32, VoH_1: f32) -> f32 {
     return (f0_4 + ((f90_1 - f0_4) * pow((1f - VoH_1), 5f)));
 }
 
-fn Fd_BurleyX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_3: f32, NoV_3: f32, NoL_2: f32, LoH_2: f32) -> f32 {
+fn Fd_BurleyX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness_3: f32, NoV_3: f32, NoL_2: f32, LoH_2: f32) -> f32 {
     let f90_2 = (0.5f + (((2f * roughness_3) * LoH_2) * LoH_2));
-    let _e10 = F_SchlickX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(1f, f90_2, NoL_2);
-    let _e13 = F_SchlickX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(1f, f90_2, NoV_3);
+    let _e10 = F_SchlickX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(1f, f90_2, NoL_2);
+    let _e13 = F_SchlickX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(1f, f90_2, NoV_3);
     return ((_e10 * _e13) * 0.31830987f);
 }
 
-fn point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position: vec3<f32>, light: PointLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, roughness_4: f32, NdotV: f32, N: vec3<f32>, V: vec3<f32>, R: vec3<f32>, F0_: vec3<f32>, diffuseColor: vec3<f32>) -> vec3<f32> {
+fn point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(world_position: vec3<f32>, light: PointLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, roughness_4: f32, NdotV: f32, N: vec3<f32>, V: vec3<f32>, R: vec3<f32>, F0_: vec3<f32>, diffuseColor: vec3<f32>) -> vec3<f32> {
     var L: vec3<f32>;
     var H: vec3<f32>;
     var NoL_3: f32;
@@ -1132,7 +1132,7 @@ fn point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position: vec
 
     let light_to_frag = (light.position_radius.xyz - world_position.xyz);
     let distance_square = dot(light_to_frag, light_to_frag);
-    let _e9 = getDistanceAttenuationX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(distance_square, light.color_inverse_square_range.w);
+    let _e9 = getDistanceAttenuationX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(distance_square, light.color_inverse_square_range.w);
     let centerToRay = ((dot(light_to_frag, R) * R) - light_to_frag);
     let _e19 = saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX((light.position_radius.w * inverseSqrt(dot(centerToRay, centerToRay))));
     let closestPoint = (light_to_frag + (centerToRay * _e19));
@@ -1157,7 +1157,7 @@ fn point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position: vec
     let _e56 = NoL_3;
     let _e57 = NoH_2;
     let _e58 = LoH_3;
-    let _e61 = specularX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(F0_, roughness_4, _e55, NdotV, _e56, _e57, _e58, specularIntensity_1);
+    let _e61 = specularX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(F0_, roughness_4, _e55, NdotV, _e56, _e57, _e58, specularIntensity_1);
     L = normalize(light_to_frag);
     let _e63 = L;
     H = normalize((_e63 + V));
@@ -1173,16 +1173,16 @@ fn point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position: vec
     LoH_3 = _e75;
     let _e76 = NoL_3;
     let _e77 = LoH_3;
-    let _e78 = Fd_BurleyX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_4, NdotV, _e76, _e77);
+    let _e78 = Fd_BurleyX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness_4, NdotV, _e76, _e77);
     let diffuse = (diffuseColor * _e78);
     let _e85 = NoL_3;
     return (((diffuse + _e61) * light.color_inverse_square_range.xyz) * (_e9 * _e85));
 }
 
-fn spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position_1: vec3<f32>, light_1: PointLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, roughness_5: f32, NdotV_1: f32, N_1: vec3<f32>, V_1: vec3<f32>, R_1: vec3<f32>, F0_1: vec3<f32>, diffuseColor_1: vec3<f32>) -> vec3<f32> {
+fn spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(world_position_1: vec3<f32>, light_1: PointLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, roughness_5: f32, NdotV_1: f32, N_1: vec3<f32>, V_1: vec3<f32>, R_1: vec3<f32>, F0_1: vec3<f32>, diffuseColor_1: vec3<f32>) -> vec3<f32> {
     var spot_dir: vec3<f32>;
 
-    let _e9 = point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position_1, light_1, roughness_5, NdotV_1, N_1, V_1, R_1, F0_1, diffuseColor_1);
+    let _e9 = point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(world_position_1, light_1, roughness_5, NdotV_1, N_1, V_1, R_1, F0_1, diffuseColor_1);
     spot_dir = vec3<f32>(light_1.light_custom_data.x, 0f, light_1.light_custom_data.y);
     let _e19 = spot_dir.x;
     let _e21 = spot_dir.x;
@@ -1201,15 +1201,15 @@ fn spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(world_position_1: ve
     return (_e9 * spot_attenuation);
 }
 
-fn directional_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(light_2: DirectionalLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, roughness_6: f32, NdotV_2: f32, normal: vec3<f32>, view: vec3<f32>, R_2: vec3<f32>, F0_2: vec3<f32>, diffuseColor_2: vec3<f32>) -> vec3<f32> {
+fn directional_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(light_2: DirectionalLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, roughness_6: f32, NdotV_2: f32, normal: vec3<f32>, view: vec3<f32>, R_2: vec3<f32>, F0_2: vec3<f32>, diffuseColor_2: vec3<f32>) -> vec3<f32> {
     let incident_light = light_2.direction_to_light.xyz;
     let half_vector = normalize((incident_light + view));
     let _e8 = saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(dot(normal, incident_light));
     let _e10 = saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(dot(normal, half_vector));
     let _e12 = saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(dot(incident_light, half_vector));
-    let _e15 = Fd_BurleyX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(roughness_6, NdotV_2, _e8, _e12);
+    let _e15 = Fd_BurleyX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(roughness_6, NdotV_2, _e8, _e12);
     let diffuse_1 = (diffuseColor_2 * _e15);
-    let _e20 = specularX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(F0_2, roughness_6, half_vector, NdotV_2, _e8, _e10, _e12, 1f);
+    let _e20 = specularX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(F0_2, roughness_6, half_vector, NdotV_2, _e8, _e10, _e12, 1f);
     return (((_e20 + diffuse_1) * light_2.color.xyz) * _e8);
 }
 
@@ -1378,7 +1378,7 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
     let emissive_1 = in.material.emissive;
     let metallic_1 = in.material.metallic;
     let perceptual_roughness_2 = in.material.perceptual_roughness;
-    let _e13 = perceptualRoughnessToRoughnessX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(perceptual_roughness_2);
+    let _e13 = perceptualRoughnessToRoughnessX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(perceptual_roughness_2);
     let occlusion_1 = in.occlusion;
     if ((in.material.flags & STANDARD_MATERIAL_FLAGS_ALPHA_MODE_OPAQUEX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2OR4XAZLTX) != 0u) {
         output_color_2.w = 1f;
@@ -1423,7 +1423,7 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
                 let _e121 = fetch_point_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e99, in.world_position, in.world_normal);
                 shadow = _e121;
             }
-            let _e126 = point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_6, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
+            let _e126 = point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_6, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
             let _e128 = light_accum;
             let _e129 = shadow;
             light_accum = (_e128 + (_e126 * _e129));
@@ -1450,7 +1450,7 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
                 let _e169 = fetch_spot_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e147, in.world_position, in.world_normal);
                 shadow_1 = _e169;
             }
-            let _e174 = spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_7, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
+            let _e174 = spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_7, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
             let _e175 = light_accum;
             let _e176 = shadow_1;
             light_accum = (_e175 + (_e174 * _e176));
@@ -1477,7 +1477,7 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
                 let _e211 = fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e208, in.world_position, in.world_normal);
                 shadow_2 = _e211;
             }
-            let _e214 = directional_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(light_8, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
+            let _e214 = directional_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(light_8, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
             let _e215 = light_accum;
             let _e216 = shadow_2;
             light_accum = (_e215 + (_e214 * _e216));
@@ -1487,8 +1487,8 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
             i_2 = (_e219 + 1u);
         }
     }
-    let _e223 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(diffuse_color, 1f, NdotV_3);
-    let _e224 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(F0_3, perceptual_roughness_2, NdotV_3);
+    let _e223 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(diffuse_color, 1f, NdotV_3);
+    let _e224 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(F0_3, perceptual_roughness_2, NdotV_3);
     let _e225 = light_accum;
     let _e229 = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.ambient_color;
     let _e236 = output_color_2.w;
@@ -1502,7 +1502,7 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
 }
 
 fn tone_mappingX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in_1: vec4<f32>) -> vec4<f32> {
-    let _e2 = reinhard_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2NRUWO2DUNFXGOX(in_1.xyz);
+    let _e2 = reinhard_luminanceX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in_1.xyz);
     return vec4<f32>(_e2, in_1.w);
 }
 

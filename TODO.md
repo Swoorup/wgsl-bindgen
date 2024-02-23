@@ -1,8 +1,9 @@
 # Rough ideas. 
 
 * Allow to use naga-oil in the final generated output.
-  * Allows injecting dynamic shader defines at runtime
-* Generate from string instead of source files?
+* Allow injecting dynamic shader defines at runtime
+* Allow injecting scan directory for module paths
+* Allow generation directly from source files.
 * proc_macro as an option instead of build.rs. We need proc_macro::tracked* feature?
 
 * Use struct like this instead directly using the array.

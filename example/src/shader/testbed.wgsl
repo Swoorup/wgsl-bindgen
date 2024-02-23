@@ -1,5 +1,5 @@
-#import types
 #import "../more-shader-files/reachme" as reachme 
+#import types::{Scalars, VectorsU32, VectorsI32, VectorsF32, MatricesF32, StaticArrays, Nested}
 
 // The following also works
 // #import "../more-shader-files/reachme.wgsl" as reachme
@@ -10,25 +10,25 @@
 var<storage> rts: reachme::RtsStruct;
 
 @group(2) @binding(2)
-var<storage> a: types::Scalars;
+var<storage> a: Scalars;
 
 @group(2) @binding(3)
-var<storage> b: types::VectorsU32;
+var<storage> b: VectorsU32;
 
 @group(2) @binding(4)
-var<storage> c: types::VectorsI32;
+var<storage> c: VectorsI32;
 
 @group(2) @binding(5)
-var<storage> d: types::VectorsF32;
+var<storage> d: VectorsF32;
 
 @group(2) @binding(6)
-var<storage> f: types::MatricesF32;
+var<storage> f: MatricesF32;
 
 @group(2) @binding(8)
-var<storage> h: types::StaticArrays;
+var<storage> h: StaticArrays;
 
 @group(2) @binding(9)
-var<storage> i: types::Nested;
+var<storage> i: Nested;
 
 @group(0) @binding(0)
 var color_texture: texture_2d<f32>;
@@ -37,7 +37,7 @@ var color_sampler: sampler;
 
 struct Uniforms {
   color_rgb: vec4<f32>,
-  scalars: types::Scalars
+  scalars: Scalars
 }
 
 @group(1) @binding(0)

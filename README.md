@@ -7,20 +7,12 @@ wgsl_bindgen, powered by [naga-oil](https://github.com/bevyengine/naga_oil), is 
 The tool facilitates a shader-focused workflow. When you modify your WGSL shaders, the changes are automatically reflected in the Rust code. This immediate feedback helps catch errors early, making it easier to work with shaders.
 
 ## Features
-- supports import syntax and many more features from naga oil flavour.
-- more strongly typed [bind group and bindings](#bind-groups) initialization
-- shader module initialization
+- Supports import syntax and many more features from naga oil flavour.
+- More strongly typed [bind group and bindings](#bind-groups) initialization
+- Shader module initialization
 - Rust structs for vertex, storage, and uniform buffers
-- optional derives for encase, bytemuck, and serde
-- const validation of [WGSL memory layout](#memory-layout) for generated structs when using bytemuck
-
-## Differences from the [fork](https://github.com/ScanMountGoat/wgsl_to_wgpu/) 
-- Supports WGSL import syntax and many more features from naga oil flavour.
-- You can only choose either bytemuck or encase for serialization
-- Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
-- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas original would fail at compile assertions.
-- User can provide their own wgsl type mappings using `quote` library
-- Expect breaking changes
+- Conditionally derives for encase, bytemuck, and optionally serde
+- Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
 
 ## Usage
 When enabling derives for crates like bytemuck, serde, or encase, these dependencies should also be added to the `Cargo.toml` with the appropriate derive features. See the provided [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for basic usage.
@@ -46,7 +38,7 @@ fn main() {
     .unwrap();
 
   let bindgen = options.build().unwrap();
-  bindgen.write_to_file("src/shader.rs").unwrap();
+  bindgen.generate("src/shader.rs").unwrap();
 }
 ```
 
@@ -78,7 +70,7 @@ import utils::math;
 
 Here's how wgsl_bindgen resolves the import path:
 
-1. The function first checks if the import module name ("utils::math") starts with the module prefix. If a module prefix is set and matches, it removes the prefix and treats the rest of the import module name as a relative path converting the double semicolor `::` to forward slash `/` from the directory of the current source file (src/shaders).
+1. The function first checks if the import module name (`utils::math`) starts with the module prefix. If a module prefix is set and matches, it removes the prefix and treats the rest of the import module name as a relative path from the entry source directory converting the double semicolor `::` to forward slash `/` from the directory of the current source file (`src/shaders`).
 2. If the import module name does not start with the module prefix, it treats the entire import module name as a relative path from the directory of the current source file. In this case, it will look for `utils/math.wgsl` in the same directory as `main.wgsl`.
 3. The function then returns a set of possible import paths. The actual file that the import statement refers to is the first file in this set that exists. In this case, it would successfully find and import `src/shaders/utils/math.wgsl`. 
 2. If not, the second possible path it would have tried would be `src/shaders/utils.wgsl` treating `math` as an item within `utils.wgsl` had it existed.
@@ -103,18 +95,21 @@ Please make an issue if any new or existing WGSL syntax is unsupported.
 - This library is not a rendering library and will not generate any high level abstractions like a material or scene graph. 
 The goal is just to generate most of the tedious and error prone boilerplate required to use WGSL shaders with wgpu.
 - The generated code will not prevent accidentally calling a function from an unrelated generated module.
-It's recommended to name the shader module with the same name as the shader and use unique shader names to avoid issues. 
-Using generated code from a different shader module may be desirable in some cases such as using the same camera struct definition in multiple WGSL shaders.
-- The current implementation assumes all shader stages are part of a single WGSL source file. Shader modules split across files may be supported in a future release.
-- Uniform and storage buffers can be initialized using the wrong generated Rust struct. 
-WGPU will still validate the size of the buffer binding at runtime.
 - Most but not all WGSL types are currently supported.
 - Vertex attributes using floating point types in WGSL like `vec2<f32>` are assumed to use float inputs instead of normalized attributes like unorm or snorm integers.
 - All textures are assumed to be filterable and all samplers are assumed to be filtering. This may lead to compatibility issues. This can usually be resolved by requesting the native only feature TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES.
 - It's possible to achieve slightly better performance than the generated code in some cases like avoiding redundant bind group bindings or adjusting resource shader stage visibility. This should be addressed by using some handwritten code where appropriate.
 
+## Differences from the [fork](https://github.com/ScanMountGoat/wgsl_to_wgpu/) 
+- Supports WGSL import syntax and many more features from naga oil flavour.
+- You can only choose either bytemuck or encase for serialization
+- Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
+- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas original would fail at compile assertions.
+- User can provide their own wgsl type mappings using `quote` library
+- Expect breaking changes
+
 ## Publishing Crates
-Rust expects build scripts to not modify files outside of OUT_DIR. The provided example project outputs the generated bindings to the `src/` directory for documentation purposes. 
+The provided example project outputs the generated bindings to the `src/` directory for documentation purposes. 
 This approach is also fine for applications. Published crates should follow the recommendations for build scripts in the [Cargo Book](https://doc.rust-lang.org/cargo/reference/build-scripts.html#case-study-code-generation).
 
 ```rust
@@ -126,7 +121,6 @@ fn main() -> Result<()> {
     WgslBindgenOptionBuilder::default()
         .add_entry_point("src/shader/testbed.wgsl")
         .add_entry_point("src/shader/triangle.wgsl")
-        .skip_hash_check(true)
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
         .wgsl_type_map(WgslGlamTypeMap)
         .derive_serde(false)

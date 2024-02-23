@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-
 use colored::*;
 use indexmap::map::Entry;
 use miette::{Diagnostic, NamedSource, SourceSpan};
@@ -7,8 +5,12 @@ use smallvec::SmallVec;
 use thiserror::Error;
 use DependencyTreeError::*;
 
-use super::{parse_imports::ImportStatement, source_file::SourceFile, escape_os_path};
-use crate::{FxIndexMap, FxIndexSet, SourceFileDir, SourceFilePath, SourceModuleName};
+use super::{
+  parse_imports::ImportStatement, source_file::SourceFile, ModulePathResolver,
+};
+use crate::{
+  FxIndexMap, FxIndexSet, ImportedPath, SourceFileDir, SourceFilePath, SourceModuleName,
+};
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum DependencyTreeError {
@@ -136,85 +138,35 @@ impl DependencyTree {
     Ok(tree)
   }
 
-  /// Generates possible import paths for a given import path fragment.
-  fn generate_possible_module_paths(
-    module_prefix: Option<&str>,
-    entry_dir: &SourceFileDir,
-    import_module: &SourceModuleName,
-    current_source_path: &SourceFilePath,
-  ) -> FxIndexSet<SourceFilePath> {
-    let import_parts: SmallVec<[&str; 10]> = import_module
-      .split("::")
-      .enumerate()
-      .skip_while(|(i, part)| {
-        *i == 0 && module_prefix == Some(part) // skip the first part
-      })
-      .map(|(_, part)| part)
-      .filter(|part| !part.is_empty())
-      .collect();
-
-    if import_parts.is_empty() {
-      panic!("import module is empty")
-    }
-
-    let create_path = |root_dir: &Path, path_fragments: &[&str]| {
-      let mut path = PathBuf::from(root_dir);
-      for fragment in path_fragments {
-
-        // Allow to use paths directly
-        let fragment = escape_os_path(fragment); 
-        
-        // avoid duplicates repeated patterns
-        if !path.ends_with(&fragment) {
-          path.push(fragment);
-        }
-      }
-
-      if path.extension().is_none() {
-        path.set_extension("wgsl");
-      }
-
-      SourceFilePath::new(path)
-    };
-
-    let current_source_dir = current_source_path.parent().unwrap_or(Path::new(""));
-    let paths = (0..import_parts.len())
-      .map(|i| create_path(&current_source_dir, &import_parts[0..=i]))
-      .filter(|path| path.as_ref() != current_source_path.as_path())
-      .rev();
-
-    // obvious path are directly appended from the entry root, and first prioritized
-    let obvious_path = [create_path(&entry_dir, &import_parts)];
-
-    obvious_path.into_iter().chain(paths).collect()
-  }
-
   /// Crawls an import statement and resolves the import paths.
   fn crawl_import_module(
     &mut self,
     entry_dir: &SourceFileDir,
     parent_source_path: &SourceFilePath,
     import_stmt: &ImportStatement,
-    import_module: &SourceModuleName,
+    imported_path: &ImportedPath,
     limiter: &mut MaxRecursionLimiter,
   ) -> Result<(), DependencyTreeError> {
-    let possible_import_path = Self::generate_possible_module_paths(
+    let path_resolver = ModulePathResolver::new(
       self.module_prefix.as_deref(),
       &entry_dir,
-      &import_module,
+      &imported_path,
       parent_source_path,
-    )
-    .into_iter()
-    .find(|path| path.is_file()); // make sure this is not reimporting itself
+    );
+
+    let possible_source_path = path_resolver
+      .generate_possible_paths()
+      .into_iter()
+      .find(|(_, path)| path.is_file()); // make sure this is not reimporting itself
 
     let Some(parent_source) = self.parsed_sources.get_mut(parent_source_path) else {
       unreachable!("{:?} source code as not parsed", parent_source_path)
     };
 
-    let Some(import_path) = possible_import_path else {
+    let Some((module_name, source_path)) = possible_source_path else {
       return Err(ImportPathNotFound {
         stmt: import_stmt.clone(),
-        path: import_module.to_string(),
+        path: imported_path.to_string(),
         import_bit: (&import_stmt.source_location).into(),
         src: NamedSource::new(
           parent_source_path.to_string(),
@@ -224,14 +176,14 @@ impl DependencyTree {
     };
 
     // add self as a dependency to the parent
-    parent_source.add_direct_dependency(import_path.clone());
+    parent_source.add_direct_dependency(source_path.clone());
 
     limiter.push(import_stmt, parent_source).check_depth();
 
     // if not crawled, crawl this import file
-    if !self.parsed_sources.contains_key(&import_path) {
+    if !self.parsed_sources.contains_key(&source_path) {
       self
-        .crawl_source(entry_dir, import_path, Some(import_module).cloned(), limiter)
+        .crawl_source(entry_dir, source_path, Some(module_name), limiter)
         .expect("failed to crawl import path");
     }
 
@@ -264,12 +216,12 @@ impl DependencyTree {
     let source_file = self.parsed_sources.get(&source_path).unwrap();
 
     for import_stmt in &source_file.imports.clone() {
-      for import_module in import_stmt.get_imported_modules() {
+      for imported_path in import_stmt.get_imported_paths() {
         self.crawl_import_module(
           entry_dir,
           &source_path,
           &import_stmt,
-          &import_module,
+          &imported_path,
           limiter,
         )?
       }
@@ -346,172 +298,5 @@ impl DependencyTree {
         }
       })
       .collect()
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use indexmap::indexset;
-  use pretty_assertions::assert_eq;
-
-  use crate::bevy_util::DependencyTree;
-  use crate::{SourceFileDir, SourceFilePath, SourceModuleName};
-
-  #[test]
-  fn should_generate_single_import_path() {
-    let module_prefix = None;
-    let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let import_module = SourceModuleName::new("Fragment");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![SourceFilePath::new("mydir/Fragment.wgsl")];
-
-    assert_eq!(result, expected);
-  }
-
-  #[test]
-  fn should_generate_single_import_path_when_module_prefix_match() {
-    let module_prefix = Some("mymod");
-    let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let import_module = SourceModuleName::new("mymod::Fragment");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![SourceFilePath::new("mydir/Fragment.wgsl")];
-
-    assert_eq!(result, expected);
-  }
-
-  // Should generate import paths with correct extensions
-  #[test]
-  fn should_generate_import_paths_with_correct_extensions() {
-    let module_prefix = Some("prefix");
-    let source_path = SourceFilePath::new("mydir/source");
-    let import_module = SourceModuleName::new("Module::Submodule::Fragment");
-
-    let actual = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![
-      SourceFilePath::new("mydir/Module/Submodule/Fragment.wgsl"),
-      SourceFilePath::new("mydir/Module/Submodule.wgsl"),
-      SourceFilePath::new("mydir/Module.wgsl"),
-    ];
-    assert_eq!(actual, expected);
-  }
-
-  #[test]
-  #[should_panic]
-  fn should_panic_when_import_module_is_empty() {
-    let module_prefix = None;
-    let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let import_module = SourceModuleName::new("");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![];
-
-    assert_eq!(result, expected);
-  }
-
-  // Should return an empty SmallVec when import_module has only the module prefix
-  #[test]
-  #[should_panic]
-  fn should_return_empty_smallvec_when_import_module_has_only_module_prefix() {
-    let module_prefix = Some("prefix");
-    let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let import_module = SourceModuleName::new("prefix");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![];
-
-    assert_eq!(result, expected);
-  }
-
-  #[test]
-  fn should_return_smallvec_when_import_module() {
-    let module_prefix = Some("prefix");
-    let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let import_module = SourceModuleName::new("Fragment");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![SourceFilePath::new("mydir/Fragment.wgsl")];
-
-    assert_eq!(result, expected);
-  }
-
-  #[test]
-  fn should_return_valid_pbr_paths_from_repeated_part() {
-    let module_prefix = Some("bevy_pbr");
-    let source_path = SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/functions.wgsl");
-    let import_module = SourceModuleName::new("bevy_pbr::pbr::types");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &source_path.dir(),
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr.wgsl")
-    ];
-
-    assert_eq!(result, expected);
-  }
-
-  #[test]
-  fn should_return_valid_pbr_paths_back_to_current_dir() {
-    let module_prefix = Some("bevy_pbr");
-    let entry_dir = SourceFileDir::new("tests/bevy_pbr_wgsl");
-    let source_path = SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/functions.wgsl");
-    let import_module = SourceModuleName::new("bevy_pbr::mesh_types");
-
-    let result = DependencyTree::generate_possible_module_paths(
-      module_prefix,
-      &entry_dir,
-      &import_module,
-      &source_path,
-    );
-
-    let expected = indexset![
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/mesh_types.wgsl")
-    ];
-
-    assert_eq!(result, expected);
   }
 }

@@ -5,7 +5,7 @@
 #import bevy_pbr::mesh_bindings as MeshBindings
 #import bevy_pbr::mesh_view_types as ViewTypes
 #import bevy_pbr::mesh_view_bindings as ViewBindings
-#import bevy_pbr::lighting as Lighting
+#import bevy_pbr::pbr::lighting as Lighting
 #import bevy_pbr::clustered_forward as Clustering
 #import bevy_pbr::shadows as Shadows
 

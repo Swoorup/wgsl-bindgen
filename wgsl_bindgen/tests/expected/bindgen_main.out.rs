@@ -184,13 +184,13 @@ pub mod main {
     }
     const SHADER_STRING: &'static str = r#"
 @group(1) @binding(11) 
-var<uniform> ONEX_naga_oil_mod_XN52GQZLSX: f32;
+var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
 @group(0) @binding(0) 
 var<storage, read_write> buffer: array<f32>;
 
 @compute @workgroup_size(1, 1, 1) 
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let _e5 = ONEX_naga_oil_mod_XN52GQZLSX;
+    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
     let _e8 = buffer[id.x];
     buffer[id.x] = (_e8 * (2f * _e5));
     return;
