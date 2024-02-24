@@ -63,7 +63,7 @@ mod tests {
     let source = SourceFile::create(
       source_path,
       module_name,
-      include_str!("../../tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl").to_owned(),
+      include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl").to_owned(),
     );
     let actual = source.get_imported_paths();
 

@@ -1,6 +1,5 @@
 # Rough ideas. 
 
-* Allow to use naga-oil in the final generated output.
 * Allow injecting dynamic shader defines at runtime
 * Allow injecting scan directory for module paths
 * Allow generation directly from source files.

@@ -5,12 +5,12 @@ use proc_macro2::TokenStream;
 
 use crate::{
   quote_gen::{RustSourceItem, RustStructBuilder},
-  WgslTypeSerializeStrategy, WriteOptions,
+  WgslBindgenOption, WgslTypeSerializeStrategy,
 };
 
 pub fn structs_items(
   module: &naga::Module,
-  options: &WriteOptions,
+  options: &WgslBindgenOption,
 ) -> Vec<RustSourceItem> {
   // Initialize the layout calculator provided by naga.
   let mut layouter = naga::proc::Layouter::default();
@@ -62,7 +62,7 @@ pub fn structs_items(
 }
 
 #[allow(unused)]
-pub fn structs(module: &naga::Module, options: &WriteOptions) -> Vec<TokenStream> {
+pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
   structs_items(module, options)
     .into_iter()
     .map(|s| s.item)
@@ -75,7 +75,7 @@ fn rust_struct(
   layouter: &naga::proc::Layouter,
   t_handle: naga::Handle<naga::Type>,
   naga_module: &naga::Module,
-  options: &WriteOptions,
+  options: &WgslBindgenOption,
   global_variable_types: &HashSet<Handle<Type>>,
 ) -> TokenStream {
   let layout = layouter[t_handle];
@@ -234,7 +234,7 @@ mod tests {
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
 
-    let structs = structs(&module, &WriteOptions::default());
+    let structs = structs(&module, &WgslBindgenOption::default());
     let actual = quote!(#(#structs)*);
 
     assert_tokens_eq!(
@@ -448,8 +448,8 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
-        wgsl_type_map: Box::new(WgslGlamTypeMap),
+      &WgslBindgenOption {
+        wgsl_type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -626,8 +626,8 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
-        wgsl_type_map: Box::new(WgslNalgebraTypeMap),
+      &WgslBindgenOption {
+        wgsl_type_map: NalgebraWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -780,10 +780,11 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Encase,
         derive_serde: false,
-        wgsl_type_map: Box::new(WgslRustTypeMap),
+        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        ..Default::default()
       },
     );
     let actual = quote!(#(#structs)*);
@@ -844,10 +845,11 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Encase,
         derive_serde: true,
-        wgsl_type_map: Box::new(WgslRustTypeMap),
+        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        ..Default::default()
       },
     );
     let actual = quote!(#(#structs)*);
@@ -926,10 +928,11 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         derive_serde: false,
-        wgsl_type_map: Box::new(WgslRustTypeMap),
+        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        ..Default::default()
       },
     );
     let actual = quote!(#(#structs)*);
@@ -976,10 +979,11 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         derive_serde: false,
-        wgsl_type_map: Box::new(WgslRustTypeMap),
+        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        ..Default::default()
       },
     );
     let actual = quote!(#(#structs)*);
@@ -1039,10 +1043,11 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         derive_serde: false,
-        wgsl_type_map: Box::new(WgslRustTypeMap),
+        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        ..Default::default()
       },
     );
     let actual = quote!(#(#structs)*);
@@ -1163,8 +1168,8 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
-        wgsl_type_map: Box::new(WgslNalgebraTypeMap),
+      &WgslBindgenOption {
+        wgsl_type_map: NalgebraWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -1207,7 +1212,7 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Encase,
         ..Default::default()
       },
@@ -1238,7 +1243,7 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         ..Default::default()
       },
@@ -1289,7 +1294,7 @@ mod tests {
 
     let _structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Encase,
         ..Default::default()
       },
@@ -1311,7 +1316,7 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         ..Default::default()
       },
@@ -1357,9 +1362,9 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
-        wgsl_type_map: Box::new(WgslGlamTypeMap),
+        wgsl_type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );
@@ -1406,9 +1411,9 @@ mod tests {
 
     let structs = structs(
       &module,
-      &WriteOptions {
+      &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
-        wgsl_type_map: Box::new(WgslRustTypeMap),
+        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );

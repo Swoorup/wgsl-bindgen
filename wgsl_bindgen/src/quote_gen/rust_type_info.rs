@@ -6,7 +6,7 @@ use syn::Index;
 
 use crate::{
   quote_gen::demangle_and_qualify, WgslTypeSerializeStrategy, WgslType, WgslTypeMapExt,
-  WriteOptions,
+  WgslBindgenOption,
 };
 
 #[derive(Debug, Clone)]
@@ -34,7 +34,7 @@ impl ToTokens for RustTypeInfo {
   }
 }
 
-pub(crate) fn add_prelude_types_assertions(options: &WriteOptions) -> TokenStream {
+pub(crate) fn add_prelude_types_assertions(options: &WgslBindgenOption) -> TokenStream {
   if options.serialization_strategy.is_encase() {
     return quote!();
   }
@@ -43,7 +43,7 @@ pub(crate) fn add_prelude_types_assertions(options: &WriteOptions) -> TokenStrea
     .filter_map(|built_in| {
       let ty = options
         .wgsl_type_map
-        .map_as_rust_type_info(options.serialization_strategy, built_in)?;
+        .get_rust_type_info(built_in)?;
       let size_after_alignment = ty.size_after_alignment()?;
 
       let alignment = Index::from(ty.alignment_value());
@@ -101,7 +101,7 @@ fn get_stride_and_padding(
   alignment: naga::proc::Alignment,
   size: naga::VectorSize,
   width: u8,
-  options: &WriteOptions,
+  options: &WgslBindgenOption,
 ) -> (u32, u32) {
   let width = width as u32;
   let rows = size as u32;
@@ -217,7 +217,7 @@ fn map_naga_mat_type(
 pub(crate) fn rust_type(
   module: &naga::Module,
   ty: &naga::Type,
-  options: &WriteOptions,
+  options: &WgslBindgenOption,
 ) -> RustTypeInfo {
   let t_handle = module.types.get(ty).unwrap();
   let mut layouter = naga::proc::Layouter::default();
@@ -230,7 +230,7 @@ pub(crate) fn rust_type(
   let create_rust_type = |ty: WgslType| -> Option<RustTypeInfo> {
     let info = options
       .wgsl_type_map
-      .map_as_rust_type_info(options.serialization_strategy, ty)?;
+      .get_rust_type_info(ty)?;
     assert!(alignment == info.alignment);
     Some(info)
   };

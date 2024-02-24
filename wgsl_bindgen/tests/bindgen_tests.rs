@@ -1,16 +1,16 @@
 use miette::{IntoDiagnostic, Result};
 use pretty_assertions::assert_eq;
 use wgsl_bindgen::{
-  WgslBindgenOptionBuilder, WgslGlamTypeMap, WgslTypeSerializeStrategy,
+  WgslBindgenOptionBuilder, GlamWgslTypeMap, WgslTypeSerializeStrategy,
 };
 
 #[test]
 fn test_bevy_bindgen() -> Result<()> {
   let actual = WgslBindgenOptionBuilder::default()
     .module_import_root("bevy_pbr")
-    .add_entry_point("tests/bevy_pbr_wgsl/pbr.wgsl")
+    .add_entry_point("tests/shaders/bevy_pbr_wgsl/pbr.wgsl")
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-    .wgsl_type_map(WgslGlamTypeMap)
+    .wgsl_type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
     .build()?
@@ -26,9 +26,9 @@ fn test_bevy_bindgen() -> Result<()> {
 #[test]
 fn test_main_bindgen() -> Result<()> {
   let actual = WgslBindgenOptionBuilder::default()
-    .add_entry_point("tests/test_shaders/main.wgsl")
+    .add_entry_point("tests/shaders/basic/main.wgsl")
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-    .wgsl_type_map(WgslGlamTypeMap)
+    .wgsl_type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
     .build()?
@@ -45,9 +45,9 @@ fn test_main_bindgen() -> Result<()> {
 #[ignore = "It doesn't like path symbols inside a nested type like array."]
 fn test_path_import() -> Result<()> {
   let _ = WgslBindgenOptionBuilder::default()
-    .add_entry_point("tests/test_shaders/path_import.wgsl")
+    .add_entry_point("tests/shaders/basic/path_import.wgsl")
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-    .wgsl_type_map(WgslGlamTypeMap)
+    .wgsl_type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
     .build()?

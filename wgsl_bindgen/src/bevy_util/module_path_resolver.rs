@@ -29,7 +29,7 @@ impl<'a> ModulePathResolver<'a> {
   }
 
   /// Generates possible import paths for a given import path fragment.
-  pub fn generate_possible_paths(
+  pub fn generate_best_possible_paths(
     &self,
   ) -> FxIndexSet<(SourceModuleName, SourceFilePath)> {
     let import_parts: SmallVec<[&str; 10]> = self
@@ -120,7 +120,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![(
       SourceModuleName::new("Fragment"),
@@ -142,7 +142,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![(
       SourceModuleName::new("mymod::Fragment"),
@@ -165,7 +165,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![
       (
@@ -197,7 +197,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![];
 
@@ -218,7 +218,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![];
 
@@ -237,7 +237,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![(
       SourceModuleName::new("prefix::Fragment"),
@@ -259,7 +259,7 @@ mod tests {
       &imported_path,
       &source_path,
     )
-    .generate_possible_paths();
+    .generate_best_possible_paths();
 
     let expected = indexset![(
       SourceModuleName::new("bevy_pbr::types"),
@@ -278,7 +278,7 @@ mod tests {
 
     let result =
       ModulePathResolver::new(module_prefix, &entry_dir, &imported_path, &source_path)
-        .generate_possible_paths();
+        .generate_best_possible_paths();
 
     let expected = indexset![
       (

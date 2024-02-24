@@ -13,35 +13,35 @@ pub fn bevy_dependency_map() -> &'static SourceDependencyMap {
   static MEM: OnceLock<SourceDependencyMap> = OnceLock::new();
   MEM.get_or_init(|| {
     indexmap![
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh.wgsl") => indexmap![
-        "bevy_pbr::mesh_view_types"    => "tests/bevy_pbr_wgsl/mesh_view_types.wgsl",
-        "bevy_pbr::mesh_view_bindings" => "tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl",
-        "bevy_pbr::mesh_types"         => "tests/bevy_pbr_wgsl/mesh_types.wgsl",
-        "bevy_pbr::mesh_bindings"      => "tests/bevy_pbr_wgsl/mesh_bindings.wgsl",
-        "bevy_pbr::mesh_functions"     => "tests/bevy_pbr_wgsl/mesh_functions.wgsl",
-        "bevy_pbr::mesh_vertex_output" => "tests/bevy_pbr_wgsl/mesh_vertex_output.wgsl",
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl") => indexmap![
+        "bevy_pbr::mesh_view_types"    => "tests/shaders/bevy_pbr_wgsl/mesh_view_types.wgsl",
+        "bevy_pbr::mesh_view_bindings" => "tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl",
+        "bevy_pbr::mesh_types"         => "tests/shaders/bevy_pbr_wgsl/mesh_types.wgsl",
+        "bevy_pbr::mesh_bindings"      => "tests/shaders/bevy_pbr_wgsl/mesh_bindings.wgsl",
+        "bevy_pbr::mesh_functions"     => "tests/shaders/bevy_pbr_wgsl/mesh_functions.wgsl",
+        "bevy_pbr::mesh_vertex_output" => "tests/shaders/bevy_pbr_wgsl/mesh_vertex_output.wgsl",
       ],
-      SourceFilePath::new("tests/bevy_pbr_wgsl/output_VERTEX_UVS.wgsl") => indexmap![],
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr.wgsl") => indexmap![
-        "bevy_pbr::mesh_vertex_output"  => "tests/bevy_pbr_wgsl/mesh_vertex_output.wgsl",
-        "bevy_pbr::pbr::types"          => "tests/bevy_pbr_wgsl/pbr/types.wgsl",
-        "bevy_pbr::mesh_types"          => "tests/bevy_pbr_wgsl/mesh_types.wgsl",
-        "bevy_pbr::mesh_bindings"       => "tests/bevy_pbr_wgsl/mesh_bindings.wgsl",
-        "bevy_pbr::mesh_view_types"     => "tests/bevy_pbr_wgsl/mesh_view_types.wgsl",
-        "bevy_pbr::mesh_view_bindings"  => "tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl",
-        "bevy_pbr::utils"               => "tests/bevy_pbr_wgsl/utils.wgsl",
-        "bevy_pbr::pbr::lighting"       => "tests/bevy_pbr_wgsl/pbr/lighting.wgsl",
-        "bevy_pbr::clustered_forward"   => "tests/bevy_pbr_wgsl/clustered_forward.wgsl",
-        "bevy_pbr::shadows"             => "tests/bevy_pbr_wgsl/shadows.wgsl",
-        "bevy_pbr::pbr::functions"      => "tests/bevy_pbr_wgsl/pbr/functions.wgsl",
-        "bevy_pbr::pbr::bindings"       => "tests/bevy_pbr_wgsl/pbr/bindings.wgsl",
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/output_VERTEX_UVS.wgsl") => indexmap![],
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr.wgsl") => indexmap![
+        "bevy_pbr::mesh_vertex_output"  => "tests/shaders/bevy_pbr_wgsl/mesh_vertex_output.wgsl",
+        "bevy_pbr::pbr::types"          => "tests/shaders/bevy_pbr_wgsl/pbr/types.wgsl",
+        "bevy_pbr::mesh_types"          => "tests/shaders/bevy_pbr_wgsl/mesh_types.wgsl",
+        "bevy_pbr::mesh_bindings"       => "tests/shaders/bevy_pbr_wgsl/mesh_bindings.wgsl",
+        "bevy_pbr::mesh_view_types"     => "tests/shaders/bevy_pbr_wgsl/mesh_view_types.wgsl",
+        "bevy_pbr::mesh_view_bindings"  => "tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl",
+        "bevy_pbr::utils"               => "tests/shaders/bevy_pbr_wgsl/utils.wgsl",
+        "bevy_pbr::pbr::lighting"       => "tests/shaders/bevy_pbr_wgsl/pbr/lighting.wgsl",
+        "bevy_pbr::clustered_forward"   => "tests/shaders/bevy_pbr_wgsl/clustered_forward.wgsl",
+        "bevy_pbr::shadows"             => "tests/shaders/bevy_pbr_wgsl/shadows.wgsl",
+        "bevy_pbr::pbr::functions"      => "tests/shaders/bevy_pbr_wgsl/pbr/functions.wgsl",
+        "bevy_pbr::pbr::bindings"       => "tests/shaders/bevy_pbr_wgsl/pbr/bindings.wgsl",
       ],
-      SourceFilePath::new("tests/bevy_pbr_wgsl/wireframe.wgsl") => indexmap![
-        "bevy_pbr::mesh_types"         => "tests/bevy_pbr_wgsl/mesh_types.wgsl",
-        "bevy_pbr::mesh_view_types"    => "tests/bevy_pbr_wgsl/mesh_view_types.wgsl",
-        "bevy_pbr::mesh_view_bindings" => "tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl",
-        "bevy_pbr::skinning"           => "tests/bevy_pbr_wgsl/skinning.wgsl",
-        "bevy_pbr::mesh_functions"     => "tests/bevy_pbr_wgsl/mesh_functions.wgsl",
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/wireframe.wgsl") => indexmap![
+        "bevy_pbr::mesh_types"         => "tests/shaders/bevy_pbr_wgsl/mesh_types.wgsl",
+        "bevy_pbr::mesh_view_types"    => "tests/shaders/bevy_pbr_wgsl/mesh_view_types.wgsl",
+        "bevy_pbr::mesh_view_bindings" => "tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl",
+        "bevy_pbr::skinning"           => "tests/shaders/bevy_pbr_wgsl/skinning.wgsl",
+        "bevy_pbr::mesh_functions"     => "tests/shaders/bevy_pbr_wgsl/mesh_functions.wgsl",
       ],
     ]
   })
@@ -51,10 +51,10 @@ fn build_bevy_deptree() -> DependencyTree {
   DependencyTree::try_build(
     Some("bevy_pbr".into()),
     vec![
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/output_VERTEX_UVS.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/wireframe.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/output_VERTEX_UVS.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/wireframe.wgsl"),
     ],
   )
   .into_diagnostic()
@@ -68,24 +68,24 @@ fn test_bevy_all_files_enumeration() {
   assert_eq!(
     deptree.all_files_including_dependencies(),
     indexset![
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_view_types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_bindings.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_functions.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_vertex_output.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/output_VERTEX_UVS.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/functions.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/lighting.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/utils.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/clustered_forward.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/shadows.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/bindings.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/wireframe.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/skinning.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_types.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_bindings.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_types.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_functions.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_vertex_output.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/output_VERTEX_UVS.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr/functions.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr/types.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr/lighting.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/utils.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/clustered_forward.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/shadows.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr/bindings.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/wireframe.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/skinning.wgsl"),
     ]
   )
 }
@@ -138,19 +138,19 @@ fn test_example_wgsl_dep_tree() {
 fn test_bevy_mesh_wgsl_dependency_order() {
   let deptree = build_bevy_deptree();
   let deps = deptree
-    .get_full_dependency_for(&SourceFilePath::new("tests/bevy_pbr_wgsl/mesh.wgsl"))
+    .get_full_dependency_for(&SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl"))
     .into_iter()
     .collect::<Vec<_>>();
 
   assert_eq!(
     deps,
     vec![
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_view_types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_types.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_bindings.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_functions.wgsl"),
-      SourceFilePath::new("tests/bevy_pbr_wgsl/mesh_vertex_output.wgsl")
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_types.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_types.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_bindings.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_functions.wgsl"),
+      SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_vertex_output.wgsl")
     ]
   );
 }

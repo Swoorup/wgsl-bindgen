@@ -34,18 +34,19 @@ fn main() {
   let options = WgslBindgenOptionBuilder::default()
     .add_entry_point("src/pbr.wgsl")
     .add_entry_point("src/pfx.wgsl")
+    .output_file("src/shader.rs")
     .build()
     .unwrap();
 
   let bindgen = options.build().unwrap();
-  bindgen.generate("src/shader.rs").unwrap();
+  bindgen.generate().unwrap();
 }
 ```
 
 This will generate Rust bindings for the WGSL shader at `src/pbr.wgsl`, `src/pfx.wgsl` and write them to `src/shader.rs`.
 See the example crate for how to use the generated code. Run the example with `cargo run`.
 
-## Wgsl Import resolution
+## Wgsl Import Resolution
 
 wgsl_bindgen uses a specific strategy to resolve the import paths in your WGSL source code. This process is handled by the [ModulePathResolver::generate_possible_paths](https://github.com/Swoorup/wgsl-bindgen/blob/3e581089e21b245bd85feecdc94f3f1d9310aacc/wgsl_bindgen/src/bevy_util/module_path_resolver.rs#L32) function.
 
@@ -114,7 +115,7 @@ This approach is also fine for applications. Published crates should follow the 
 
 ```rust
 use miette::{IntoDiagnostic, Result};
-use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, WgslGlamTypeMap};
+use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, GlamWgslTypeMap};
 
 // src/build.rs
 fn main() -> Result<()> {
@@ -122,10 +123,11 @@ fn main() -> Result<()> {
         .add_entry_point("src/shader/testbed.wgsl")
         .add_entry_point("src/shader/triangle.wgsl")
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-        .wgsl_type_map(WgslGlamTypeMap)
+        .wgsl_type_map(GlamWgslTypeMap)
         .derive_serde(false)
+        .output_file("src/shader.rs")
         .build()?
-        .generate("src/shader.rs")
+        .generate()
         .into_diagnostic()
 }
 ```

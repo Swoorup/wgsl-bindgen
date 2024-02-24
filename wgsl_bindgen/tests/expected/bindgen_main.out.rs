@@ -161,14 +161,6 @@ pub mod main {
         }
     }
     pub const ENTRY_MAIN: &str = "main";
-    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(source),
-            })
-    }
     pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
         device
             .create_pipeline_layout(
@@ -181,6 +173,14 @@ pub mod main {
                     push_constant_ranges: &[],
                 },
             )
+    }
+    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
     }
     const SHADER_STRING: &'static str = r#"
 @group(1) @binding(11) 

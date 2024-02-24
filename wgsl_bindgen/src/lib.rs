@@ -18,7 +18,7 @@
 //!
 //! ```no_run
 //! use miette::{IntoDiagnostic, Result};
-//! use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, WgslGlamTypeMap};
+//! use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, GlamWgslTypeMap};
 //!
 //! fn main() -> Result<()> {
 //!     WgslBindgenOptionBuilder::default()
@@ -26,10 +26,11 @@
 //!         .add_entry_point("src/shader/triangle.wgsl")
 //!         .skip_hash_check(true)
 //!         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-//!         .wgsl_type_map(WgslGlamTypeMap)
+//!         .wgsl_type_map(GlamWgslTypeMap)
 //!         .derive_serde(false)
+//!         .output_file("src/shader.rs")
 //!         .build()?
-//!         .generate("src/shader.rs")
+//!         .generate()
 //!         .into_diagnostic()
 //! }
 //! ```
@@ -37,16 +38,20 @@
 #[allow(dead_code, unused)]
 extern crate wgpu_types as wgpu;
 
+use bevy_util::SourceWithFullDependenciesResult;
 use bindgroup::{bind_groups_module, get_bind_group_data};
 use case::CaseExt;
+use derive_more::IsVariant;
 use naga::ShaderStage;
 use naga_util::module_to_source;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use quote_gen::{add_prelude_types_assertions, create_shader_raw_string_literal, RustModBuilder, MOD_REFERENCE_ROOT};
+use quote_gen::{
+  add_prelude_types_assertions, create_shader_raw_string_literal, RustModBuilder,
+  MOD_REFERENCE_ROOT,
+};
 use syn::{Ident, Index};
 use thiserror::Error;
-use derive_more::IsVariant;
 
 pub mod bevy_util;
 mod bindgroup;
@@ -88,31 +93,25 @@ pub enum CreateModuleError {
   DuplicateBinding { binding: u32 },
 }
 
-/// Options for configuring the generated bindings to work with additional dependencies.
-/// Use [WriteOptions::default] for only requiring WGPU itself.
-#[derive(Clone, Default)]
-pub(crate) struct WriteOptions {
-  /// Derive [encase::ShaderType](https://docs.rs/encase/latest/encase/trait.ShaderType.html#)
-  /// for user defined WGSL structs when `WgslTypeSerializeStrategy::Encase`.
-  /// else derive bytemuck
-  pub serialization_strategy: WgslTypeSerializeStrategy,
-
-  /// Derive [serde::Serialize](https://docs.rs/serde/1.0.159/serde/trait.Serialize.html)
-  /// and [serde::Deserialize](https://docs.rs/serde/1.0.159/serde/trait.Deserialize.html)
-  /// for user defined WGSL structs when `true`.
-  pub derive_serde: bool,
-
-  pub wgsl_type_map: Box<dyn WgslTypeMap + 'static>,
+pub(crate) struct WgslEntryResult<'a> {
+  mod_name: String,
+  naga_module: naga::Module,
+  source_including_deps: SourceWithFullDependenciesResult<'a>,
 }
 
 fn create_rust_bindings(
-  entries: Vec<(String, naga::Module)>,
-  options: &WriteOptions,
+  entries: Vec<WgslEntryResult<'_>>,
+  options: &WgslBindgenOption,
 ) -> Result<String, CreateModuleError> {
   let mut mod_builder = RustModBuilder::new(true);
   mod_builder.add(MOD_REFERENCE_ROOT, add_prelude_types_assertions(options));
 
-  for (mod_name, naga_module) in entries.iter() {
+  for entry in entries.iter() {
+    let WgslEntryResult {
+      mod_name,
+      naga_module,
+      ..
+    } = entry;
     let bind_group_data = get_bind_group_data(naga_module)?;
     let shader_stages = wgsl::shader_stages(naga_module);
 
@@ -131,21 +130,6 @@ fn create_rust_bindings(
     mod_builder.add(mod_name, compute_module(naga_module));
     mod_builder.add(mod_name, entry_point_constants(naga_module));
     mod_builder.add(mod_name, vertex_states(naga_module));
-
-    let shader_content = module_to_source(naga_module).unwrap();
-    let shader_raw_literal = create_shader_raw_string_literal(&shader_content);
-
-    let create_shader_module = quote! {
-        pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
-            let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(source)
-            })
-        }
-    };
-
-    mod_builder.add(mod_name, create_shader_module);
 
     let bind_group_layouts: Vec<_> = bind_group_data
       .keys()
@@ -167,12 +151,8 @@ fn create_rust_bindings(
         }
     };
 
-    let source_string = quote! {
-      const SHADER_STRING: &'static str = #shader_raw_literal;
-    };
-
     mod_builder.add(mod_name, create_pipeline_layout);
-    mod_builder.add(mod_name, source_string);
+    mod_builder.add(mod_name, shader_module(entry, options));
   }
 
   let output = mod_builder.generate();
@@ -187,6 +167,133 @@ fn pretty_print(tokens: &TokenStream) -> String {
 
 fn indexed_name_to_ident(name: &str, index: u32) -> Ident {
   Ident::new(&format!("{name}{index}"), Span::call_site())
+}
+
+fn shader_module_using_final_shader_string(entry: &WgslEntryResult) -> TokenStream {
+  let shader_content = module_to_source(&entry.naga_module).unwrap();
+  let shader_literal = create_shader_raw_string_literal(&shader_content);
+  let create_shader_module = quote! {
+      pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+          let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+          device.create_shader_module(wgpu::ShaderModuleDescriptor {
+              label: None,
+              source: wgpu::ShaderSource::Wgsl(source)
+          })
+      }
+  };
+  let shader_str_def = quote!(const SHADER_STRING: &'static str = #shader_literal;);
+
+  quote! {
+    #create_shader_module
+    #shader_str_def
+  }
+}
+
+fn shader_module_using_composer(
+  entry: &WgslEntryResult,
+  options: &WgslBindgenOption,
+) -> TokenStream {
+  let output_dir = options
+    .output_file
+    .as_ref()
+    .and_then(|output_file| output_file.parent().map(|p| p.to_path_buf()))
+    .unwrap_or_else(|| {
+      std::env::var("CARGO_MANIFEST_DIR")
+        .unwrap_or_else(|_| ".".into())
+        .into()
+    });
+
+  let get_relative_path = |file: &SourceFilePath| -> String {
+    let relative_path = pathdiff::diff_paths(file.as_path(), &output_dir)
+      .expect("failed to get relative path");
+    relative_path.to_str().unwrap().to_string()
+  };
+
+  let add_shader_modules_token_stream = entry
+    .source_including_deps
+    .full_dependencies
+    .iter()
+    .map(|dep| {
+      let relative_file_path = get_relative_path(&dep.file_path);
+      let as_name = dep.module_name.as_ref().map(|name| name.to_string());
+
+      let as_name_assignment = match as_name {
+        Some(as_name) => quote! { as_name: Some(#as_name.into()) },
+        None => quote!(),
+      };
+
+      quote! {
+        composer.add_composable_module(
+          naga_oil::compose::ComposableModuleDescriptor {
+            source: include_str!(#relative_file_path),
+            file_path: #relative_file_path,
+            language: naga_oil::compose::ShaderLanguage::Wgsl,
+            #as_name_assignment,
+            ..Default::default()
+          }
+        ).expect("failed to add composer module");
+      }
+    })
+    .collect::<Vec<_>>();
+
+  let entry_relative_path =
+    get_relative_path(&entry.source_including_deps.source_file.file_path);
+
+  quote! {
+    pub fn init_composer() -> naga_oil::compose::Composer {
+      #[allow(unused_mut)]
+      let mut composer = naga_oil::compose::Composer::default();
+      #(#add_shader_modules_token_stream)*
+      composer
+    }
+
+    pub fn make_naga_module(composer: &mut naga_oil::compose::Composer) -> wgpu::naga::Module {
+      composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+        source: include_str!(#entry_relative_path),
+        file_path: #entry_relative_path,
+        ..Default::default()
+      }).expect("failed to build naga module")
+    }
+
+    pub fn naga_module_to_string(module: &wgpu::naga::Module) -> String {
+        // Mini validation to get module info
+      let info = wgpu::naga::valid::Validator::new(
+        wgpu::naga::valid::ValidationFlags::empty(),
+        wgpu::naga::valid::Capabilities::all(),
+      )
+      .validate(&module);
+
+      // Write to wgsl
+      let info = info.unwrap();
+
+      wgpu::naga::back::wgsl::write_string(
+        &module,
+        &info,
+        wgpu::naga::back::wgsl::WriterFlags::empty(),
+      ).expect("failed to convert naga module to source")
+    }
+
+    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+      let mut composer = init_composer();
+      let module = make_naga_module(&mut composer);
+
+      let source = naga_module_to_string(&module);
+      let source = std::borrow::Cow::Owned(source);
+      device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: None,
+        source: wgpu::ShaderSource::Wgsl(source)
+      })
+    }
+  }
+}
+
+fn shader_module(entry: &WgslEntryResult, options: &WgslBindgenOption) -> TokenStream {
+  match options.shader_source_output_type {
+    WgslShaderSourceOutputType::FinalShaderString => {
+      shader_module_using_final_shader_string(entry)
+    }
+    WgslShaderSourceOutputType::Composer => shader_module_using_composer(entry, options),
+  }
 }
 
 fn compute_module(module: &naga::Module) -> TokenStream {
@@ -411,14 +518,25 @@ macro_rules! assert_tokens_eq {
 mod test {
   use indoc::indoc;
 
+  use self::bevy_util::source_file::SourceFile;
   use super::*;
 
   fn create_shader_module(
     source: &str,
-    options: WriteOptions,
+    options: WgslBindgenOption,
   ) -> Result<String, CreateModuleError> {
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    create_rust_bindings(vec![("test".into(), module)], &options)
+    let naga_module = naga::front::wgsl::parse_str(source).unwrap();
+    let dummy_source = SourceFile::create(SourceFilePath::new(""), None, "".into());
+    let entry = WgslEntryResult {
+      mod_name: "test".into(),
+      naga_module,
+      source_including_deps: SourceWithFullDependenciesResult {
+        full_dependencies: Default::default(),
+        source_file: &dummy_source,
+      },
+    };
+
+    create_rust_bindings(vec![entry], &options)
   }
 
   #[test]
@@ -428,7 +546,7 @@ mod test {
             fn fs_main() {}
         "#};
 
-    let actual = create_shader_module(source, WriteOptions::default()).unwrap();
+    let actual = create_shader_module(source, WgslBindgenOption::default()).unwrap();
 
     pretty_assertions::assert_eq!(
       indoc! {r##"
@@ -440,14 +558,6 @@ mod test {
                     #[allow(unused_imports)]
                     use super::{_root, _root::*};
                     pub const ENTRY_FS_MAIN: &str = "fs_main";
-                    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
-                        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-                        device
-                            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                                label: None,
-                                source: wgpu::ShaderSource::Wgsl(source),
-                            })
-                    }
                     pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
                         device
                             .create_pipeline_layout(
@@ -457,6 +567,14 @@ mod test {
                                     push_constant_ranges: &[],
                                 },
                             )
+                    }
+                    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+                        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+                        device
+                            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                                label: None,
+                                source: wgpu::ShaderSource::Wgsl(source),
+                            })
                     }
                     const SHADER_STRING: &'static str = r#"
                 @fragment 
@@ -488,7 +606,7 @@ mod test {
             fn fs_main() {}
         "#};
 
-    create_shader_module(source, WriteOptions::default()).unwrap();
+    create_shader_module(source, WgslBindgenOption::default()).unwrap();
   }
 
   #[test]
@@ -502,7 +620,7 @@ mod test {
             fn main() {}
         "#};
 
-    let result = create_shader_module(source, WriteOptions::default());
+    let result = create_shader_module(source, WgslBindgenOption::default());
     assert!(matches!(result, Err(CreateModuleError::NonConsecutiveBindGroups)));
   }
 
@@ -519,7 +637,7 @@ mod test {
             fn main() {}
         "#};
 
-    let result = create_shader_module(source, WriteOptions::default());
+    let result = create_shader_module(source, WgslBindgenOption::default());
     assert!(matches!(result, Err(CreateModuleError::DuplicateBinding { binding: 2 })));
   }
 

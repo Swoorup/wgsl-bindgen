@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use dyn_clone::DynClone;
+use enum_map::{enum_map, Enum, EnumMap};
 use proc_macro2::TokenStream;
 use quote::quote;
 use strum_macros::EnumIter;
@@ -9,7 +9,7 @@ use crate::{quote_gen::RustTypeInfo, WgslTypeSerializeStrategy};
 
 /// The `WgslType` enum represents various WGSL types, such as vectors and matrices.
 /// See [spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, EnumIter)]
+#[derive(Debug, Clone, Copy, Enum, Hash, PartialEq, Eq, EnumIter)]
 pub enum WgslType {
   Vec2i,
   Vec3i,
@@ -44,6 +44,7 @@ pub enum WgslType {
 }
 
 impl WgslType {
+  /// Returns the alignment and size of the WGSL type.
   pub const fn alignment_and_size(&self) -> (u8, usize) {
     use WgslType::*;
     match self {
@@ -76,6 +77,7 @@ impl WgslType {
     }
   }
 
+  /// Checks if the WGSL type is a vector.
   pub const fn is_vector(&self) -> bool {
     match self {
       WgslType::Vec2i
@@ -93,6 +95,8 @@ impl WgslType {
       _ => false,
     }
   }
+
+  /// Checks if the WGSL type is a matrix.
   pub const fn is_matrix(&self) -> bool {
     match self {
       WgslType::Mat2x2f
@@ -118,87 +122,68 @@ impl WgslType {
   }
 }
 
-/// A trait for mapping `WgslType` to `TokenStream`.
+pub type WgslTypeMap = EnumMap<WgslType, Option<TokenStream>>;
+
+/// A trait for building `WgslType` to `TokenStream` map.
 ///
-/// This trait is used to convert built-in WGSL types into their corresponding
+/// This map is used to convert built-in WGSL types into their corresponding
 /// representations in the generated Rust code. The specific format used for
 /// matrix and vector types can vary, and the generated types for the same WGSL
 /// type may differ in size or alignment.
 ///
-/// Implementations of this trait provide a `map` function that takes a
-/// `WgslType` and returns an `Option<TokenStream>`. The `TokenStream`
-/// represents the Rust code that corresponds to the WGSL type.
-pub trait WgslTypeMap: DynClone {
-  fn map(
-    &self,
-    serialize_strategy: WgslTypeSerializeStrategy,
-    wgsl_ty: WgslType,
-  ) -> Option<TokenStream>;
+/// Implementations of this trait provide a `build` function that takes a
+/// `WgslTypeSerializeStrategy` and returns an `WgslTypeMap`. 
+pub trait WgslTypeMapBuild {
+  /// Builds the `WgslTypeMap` based on the given serialization strategy.
+  fn build(&self, strategy: WgslTypeSerializeStrategy) -> WgslTypeMap;
 }
 
 /// Provides an extension method for `WgslTypeMap` to convert WGSL types to `RustTypeInfo`.
 pub(crate) trait WgslTypeMapExt {
-  fn map_as_rust_type_info(
-    &self,
-    serialize_strategy: WgslTypeSerializeStrategy,
-    wgsl_ty: WgslType,
-  ) -> Option<RustTypeInfo>;
+  /// Gets the `RustTypeInfo` for the given WGSL type.
+  fn get_rust_type_info(&self, wgsl_ty: WgslType) -> Option<RustTypeInfo>;
 }
 
-impl<T: ?Sized + WgslTypeMap> WgslTypeMapExt for T {
-  fn map_as_rust_type_info(
-    &self,
-    serialize_strategy: WgslTypeSerializeStrategy,
-    wgsl_ty: WgslType,
-  ) -> Option<RustTypeInfo> {
+impl WgslTypeMapExt for WgslTypeMap {
+  fn get_rust_type_info(&self, wgsl_ty: WgslType) -> Option<RustTypeInfo> {
     let (alignment_width, size) = wgsl_ty.alignment_and_size();
-    let ty = self.map(serialize_strategy, wgsl_ty)?;
+    let ty = self[wgsl_ty].as_ref()?.clone();
     let alignment = naga::proc::Alignment::from_width(alignment_width);
     Some(RustTypeInfo(ty, size, alignment))
   }
 }
 
-impl<T: WgslTypeMap + 'static> From<T> for Box<dyn WgslTypeMap> {
+impl<T: WgslTypeMapBuild + 'static> From<T> for Box<dyn WgslTypeMapBuild> {
   fn from(value: T) -> Self {
     Box::new(value)
   }
 }
 
-impl Default for Box<dyn WgslTypeMap> {
+impl Default for Box<dyn WgslTypeMapBuild> {
   fn default() -> Self {
     Box::new(WgslRustTypeMap)
-  }
-}
-
-impl Clone for Box<dyn WgslTypeMap> {
-  fn clone(&self) -> Self {
-    let r = self.as_ref();
-    dyn_clone::clone_box(&*r)
   }
 }
 
 /// Rust types like `[f32; 4]` or `[[f32; 4]; 4]`.
 #[derive(Clone)]
 pub struct WgslRustTypeMap;
-impl WgslTypeMap for WgslRustTypeMap {
-  fn map(&self, _: WgslTypeSerializeStrategy, _: WgslType) -> Option<TokenStream> {
-    None
+
+impl WgslTypeMapBuild for WgslRustTypeMap {
+  fn build(&self, _: WgslTypeSerializeStrategy) -> WgslTypeMap {
+    WgslTypeMap::default()
   }
 }
 
 /// `glam` types like `glam::Vec4` or `glam::Mat4`.
 /// Types not representable by `glam` like `mat2x3<f32>` will use the output from [WgslRustTypeMap::map].
 #[derive(Clone)]
-pub struct WgslGlamTypeMap;
+pub struct GlamWgslTypeMap;
 
-impl WgslTypeMap for WgslGlamTypeMap {
-  fn map(
-    &self,
-    serialize_strategy: WgslTypeSerializeStrategy,
-    wgsl_ty: WgslType,
-  ) -> Option<TokenStream> {
+impl WgslTypeMapBuild for GlamWgslTypeMap {
+  fn build(&self, serialize_strategy: WgslTypeSerializeStrategy) -> WgslTypeMap {
     let is_encase = serialize_strategy.is_encase();
-    match wgsl_ty {
+    enum_map! {
       WgslType::Vec2i if is_encase => Some(quote!(glam::IVec2)),
       WgslType::Vec3i if is_encase => Some(quote!(glam::IVec3)),
       WgslType::Vec4i if is_encase => Some(quote!(glam::IVec4)),
@@ -218,10 +203,11 @@ impl WgslTypeMap for WgslGlamTypeMap {
 
 /// `nalgebra` types like `nalgebra::SVector<f64, 4>` or `nalgebra::SMatrix<f32, 2, 3>`.
 #[derive(Clone)]
-pub struct WgslNalgebraTypeMap;
-impl WgslTypeMap for WgslNalgebraTypeMap {
-  fn map(&self, _: WgslTypeSerializeStrategy, wgsl_ty: WgslType) -> Option<TokenStream> {
-    match wgsl_ty {
+pub struct NalgebraWgslTypeMap;
+
+impl WgslTypeMapBuild for NalgebraWgslTypeMap {
+  fn build(&self, _: WgslTypeSerializeStrategy) -> WgslTypeMap {
+    enum_map! {
       WgslType::Vec2i => Some(quote!(nalgebra::SVector<i32, 2>)),
       WgslType::Vec3i => Some(quote!(nalgebra::SVector<i32, 3>)),
       WgslType::Vec4i => Some(quote!(nalgebra::SVector<i32, 4>)),

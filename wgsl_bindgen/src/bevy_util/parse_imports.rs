@@ -232,7 +232,7 @@ mod tests {
 
   #[test]
   fn test_parsing_imports_from_bevy_mesh_view_bindings() {
-    let contents = include_str!("../../tests/bevy_pbr_wgsl/mesh_view_bindings.wgsl");
+    let contents = include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl");
     let actual = parse_import_statements_iter(contents)
       .flat_map(|x| x.get_imported_paths())
       .collect::<Vec<_>>();

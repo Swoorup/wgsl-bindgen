@@ -1,6 +1,6 @@
 [package]
 name = "example"
-version = "0.6.6"
+version = "0.6.7"
 edition = "2021"
 
 [dependencies]
@@ -10,6 +10,7 @@ futures = "0.3"
 bytemuck = { version = "1.13", features = ["derive"] }
 encase = { version = "0.7.0", features = ["glam"] }
 glam = { version = "0.25.0", features = ["bytemuck"] }
+naga_oil = "0.13.0"
 
 [build-dependencies]
 wgsl_bindgen = { path = "../wgsl_bindgen" }

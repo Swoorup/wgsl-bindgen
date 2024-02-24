@@ -8,7 +8,7 @@ use syn::{Ident, Index};
 use super::rust_type;
 use crate::{
   bevy_util::demangle_splitting_mod_path_and_item, WgslTypeSerializeStrategy,
-  WriteOptions,
+  WgslBindgenOption,
 };
 
 #[derive(Clone)]
@@ -41,7 +41,7 @@ impl<'a> NagaToRustStructState<'a> {
   fn create_fold(
     naga_members: &'a [StructMember],
     naga_module: &'a naga::Module,
-    options: &'a WriteOptions,
+    options: &'a WgslBindgenOption,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> impl FnMut(NagaToRustStructState<'a>, &'a StructMember) -> NagaToRustStructState<'a>
@@ -143,7 +143,7 @@ impl<'a> RustStructMemberEntry<'a> {
   fn from_naga(
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
-    options: &'a WriteOptions,
+    options: &'a WgslBindgenOption,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> Vec<Self> {
@@ -168,7 +168,7 @@ pub struct RustStructBuilder<'a> {
   has_rts_array: bool,
   naga_module: &'a naga::Module,
   layout: naga::proc::TypeLayout,
-  options: &'a WriteOptions,
+  options: &'a WgslBindgenOption,
 }
 
 impl<'a> RustStructBuilder<'a> {
@@ -495,7 +495,7 @@ impl<'a> RustStructBuilder<'a> {
     naga_type: &'a naga::Type,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
-    options: &'a WriteOptions,
+    options: &'a WgslBindgenOption,
     layout: naga::proc::TypeLayout,
     is_directly_sharable: bool,
     is_host_sharable: bool,

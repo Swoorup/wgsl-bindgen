@@ -155,7 +155,7 @@ impl DependencyTree {
     );
 
     let possible_source_path = path_resolver
-      .generate_possible_paths()
+      .generate_best_possible_paths()
       .into_iter()
       .find(|(_, path)| path.is_file()); // make sure this is not reimporting itself
 

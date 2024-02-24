@@ -1,5 +1,5 @@
 use std::io::Write;
-use std::path::Path;
+use std::path::PathBuf;
 
 use derive_builder::Builder;
 use miette::Diagnostic;
@@ -10,8 +10,10 @@ use naga_oil::compose::{
 use thiserror::Error;
 
 use self::source_file::SourceFile;
-use crate::{bevy_util::*, WgslTypeMap, WgslTypeSerializeStrategy};
-use crate::{create_rust_bindings, CreateModuleError, SourceFilePath, WriteOptions};
+use crate::{
+  bevy_util::*, WgslEntryResult, WgslTypeMap, WgslTypeMapBuild, WgslTypeSerializeStrategy,
+};
+use crate::{create_rust_bindings, CreateModuleError, SourceFilePath};
 
 const PKG_VER: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -41,9 +43,22 @@ pub enum WgslBindgenError {
 
   #[error(transparent)]
   WriteOutputError(#[from] std::io::Error),
+
+  #[error("Output file is not specified. Maybe use `generate_string` instead")]
+  OutputFileNotSpecified,
 }
 
-#[derive(Default, Builder)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WgslShaderSourceOutputType {
+  /// Include the final shader string directly in the output
+  #[default]
+  FinalShaderString,
+
+  /// Use Composer including helper functions which will be executed on runtime
+  Composer,
+}
+
+#[derive(Debug, Default, Builder)]
 #[builder(
   setter(into),
   field(private),
@@ -52,40 +67,48 @@ pub enum WgslBindgenError {
 pub struct WgslBindgenOption {
   /// A vector of entry points to be added. Each entry point is represented as a `String`.
   #[builder(setter(each(name = "add_entry_point", into)))]
-  entry_points: Vec<String>,
+  pub entry_points: Vec<String>,
 
-  /// The root prefix if any applied to all shaders given as the entrypoints.
+  /// The root prefix/namespace if any applied to all shaders given as the entrypoints.
   #[builder(default, setter(strip_option, into))]
-  module_import_root: Option<String>,
+  pub module_import_root: Option<String>,
 
   /// A boolean flag indicating whether to emit a rerun-if-changed directive to Cargo. Defaults to `true`.
   #[builder(default = "true")]
-  emit_rerun_if_change: bool,
+  pub emit_rerun_if_change: bool,
 
   /// A boolean flag indicating whether to skip header comments. Enabling headers allows to not rerun if contents did not change.
   #[builder(default = "false")]
-  skip_header_comments: bool,
+  pub skip_header_comments: bool,
 
   /// A boolean flag indicating whether to skip the hash check. This will avoid reruns of bindings generation if
   /// entry shaders including their imports has not changed. Defaults to `false`.
   #[builder(default = "false")]
-  skip_hash_check: bool,
+  pub skip_hash_check: bool,
 
   /// Derive [encase::ShaderType](https://docs.rs/encase/latest/encase/trait.ShaderType.html#)
   /// for user defined WGSL structs when `WgslTypeSerializeStrategy::Encase`.
   /// else derive bytemuck
   #[builder(default)]
-  serialization_strategy: WgslTypeSerializeStrategy,
+  pub serialization_strategy: WgslTypeSerializeStrategy,
 
   /// Derive [serde::Serialize](https://docs.rs/serde/1.0.159/serde/trait.Serialize.html)
   /// and [serde::Deserialize](https://docs.rs/serde/1.0.159/serde/trait.Deserialize.html)
   /// for user defined WGSL structs when `true`.
   #[builder(default = "false")]
-  derive_serde: bool,
+  pub derive_serde: bool,
+
+  /// The type of output for the shader source. Defaults to `FinalShaderString`.
+  #[builder(default)]
+  pub shader_source_output_type: WgslShaderSourceOutputType,
 
   /// A mapping operation for WGSL built-in types. This is used to map WGSL built-in types to their corresponding representations.
-  #[builder(default, setter(into))]
-  wgsl_type_map: Box<dyn WgslTypeMap + 'static>,
+  #[builder(setter(custom))]
+  pub wgsl_type_map: WgslTypeMap,
+
+  /// The output file path for the generated Rust bindings. Defaults to `None`.
+  #[builder(default, setter(strip_option, into))]
+  pub output_file: Option<PathBuf>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -93,12 +116,20 @@ impl WgslBindgenOptionBuilder {
     let options = self.fallible_build()?;
     WGSLBindgen::new(options)
   }
+
+  pub fn wgsl_type_map(&mut self, map_build: impl WgslTypeMapBuild) -> &mut Self {
+    let serialization_strategy = self
+      .serialization_strategy
+      .expect("Serialization strategy must be set first");
+
+    self.wgsl_type_map = Some(map_build.build(serialization_strategy));
+    self
+  }
 }
 
 pub struct WGSLBindgen {
   dependency_tree: DependencyTree,
   options: WgslBindgenOption,
-  generate_options: WriteOptions,
   content_hash: String,
 }
 
@@ -114,7 +145,7 @@ impl WGSLBindgen {
         .collect(),
     )?;
 
-    let content_hash = Self::get_contents_hash(&dependency_tree);
+    let content_hash = Self::get_contents_hash(&options, &dependency_tree);
 
     if options.emit_rerun_if_change {
       for file in Self::iter_files_to_watch(&dependency_tree) {
@@ -122,17 +153,10 @@ impl WGSLBindgen {
       }
     }
 
-    let generate_options = WriteOptions {
-      serialization_strategy: options.serialization_strategy,
-      derive_serde: options.derive_serde,
-      wgsl_type_map: options.wgsl_type_map.clone(),
-    };
-
     Ok(Self {
       dependency_tree,
       options,
       content_hash,
-      generate_options,
     })
   }
 
@@ -143,9 +167,10 @@ impl WGSLBindgen {
       .map(|path| path.to_string())
   }
 
-  fn get_contents_hash(dep_tree: &DependencyTree) -> String {
+  fn get_contents_hash(options: &WgslBindgenOption, dep_tree: &DependencyTree) -> String {
     let mut hasher = blake3::Hasher::new();
 
+    hasher.update(format!("{:?}", options).as_bytes());
     hasher.update(PKG_VER.as_bytes());
 
     for SourceFile { content, .. } in dep_tree.parsed_files() {
@@ -157,7 +182,7 @@ impl WGSLBindgen {
 
   fn generate_naga_module_for_entry(
     entry: SourceWithFullDependenciesResult<'_>,
-  ) -> Result<(String, naga::Module), WgslBindgenError> {
+  ) -> Result<WgslEntryResult, WgslBindgenError> {
     let map_err = |err: ComposerError| WgslBindgenError::NagaModuleComposeError {
       entry: entry.source_file.file_path.to_string(),
       inner: err.inner,
@@ -166,7 +191,7 @@ impl WGSLBindgen {
     let mut composer = Composer::default();
     let source = entry.source_file;
 
-    for dependency in entry.full_dependencies {
+    for dependency in entry.full_dependencies.iter() {
       composer
         .add_composable_module(ComposableModuleDescriptor {
           source: &dependency.content,
@@ -186,12 +211,16 @@ impl WGSLBindgen {
       })
       .map_err(map_err)?;
 
-    Ok((source.file_path.file_prefix(), module))
+    Ok(WgslEntryResult {
+      mod_name: source.file_path.file_prefix(),
+      naga_module: module,
+      source_including_deps: entry,
+    })
   }
 
   pub fn generate_string(&self) -> Result<String, WgslBindgenError> {
     use std::fmt::Write;
-    let naga_modules = self
+    let entry_results = self
       .dependency_tree
       .get_source_files_with_full_dependencies()
       .into_iter()
@@ -209,14 +238,18 @@ impl WGSLBindgen {
       writeln!(&mut text).unwrap();
     }
 
-    let output = create_rust_bindings(naga_modules, &self.generate_options)?;
+    let output = create_rust_bindings(entry_results, &self.options)?;
     text += &output;
 
     Ok(text)
   }
 
-  pub fn generate(&self, output_file: impl AsRef<Path>) -> Result<(), WgslBindgenError> {
-    let output_path = output_file.as_ref();
+  pub fn generate(&self) -> Result<(), WgslBindgenError> {
+    let output_path = self
+      .options
+      .output_file
+      .as_ref()
+      .ok_or(WgslBindgenError::OutputFileNotSpecified)?;
 
     let old_content =
       std::fs::read_to_string(output_path).unwrap_or_else(|_| String::new());
