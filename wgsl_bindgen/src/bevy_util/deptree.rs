@@ -9,7 +9,8 @@ use super::{
   parse_imports::ImportStatement, source_file::SourceFile, ModulePathResolver,
 };
 use crate::{
-  FxIndexMap, FxIndexSet, ImportedPath, SourceFileDir, SourceFilePath, SourceModuleName,
+  AdditionalScanDirectory, FxIndexMap, FxIndexSet, ImportedPath, SourceFileDir,
+  SourceFilePath, SourceModuleName,
 };
 
 #[derive(Debug, Error, Diagnostic)]
@@ -87,7 +88,7 @@ pub struct SourceWithFullDependenciesResult<'a> {
 
 #[derive(Debug)]
 pub struct DependencyTree {
-  module_prefix: Option<String>,
+  resolver: ModulePathResolver,
   parsed_sources: FxIndexMap<SourceFilePath, SourceFile>,
   entry_points: FxIndexSet<SourceFilePath>,
 }
@@ -116,11 +117,14 @@ impl DependencyTree {
   /// A `Result` containing the built `DependencyTree` if successful, or a `DependencyTreeError`
   /// if an error occurred during the build process.
   pub fn try_build(
-    module_prefix: Option<String>,
+    entry_module_prefix: Option<String>,
     entry_points: Vec<SourceFilePath>, // path to entry points
+    additional_scan_dirs: Vec<AdditionalScanDirectory>,
   ) -> Result<Self, DependencyTreeError> {
+    let resolver = ModulePathResolver::new(entry_module_prefix, additional_scan_dirs);
+
     let mut tree = Self {
-      module_prefix,
+      resolver,
       parsed_sources: Default::default(),
       entry_points: Default::default(),
     };
@@ -147,15 +151,9 @@ impl DependencyTree {
     imported_path: &ImportedPath,
     limiter: &mut MaxRecursionLimiter,
   ) -> Result<(), DependencyTreeError> {
-    let path_resolver = ModulePathResolver::new(
-      self.module_prefix.as_deref(),
-      &entry_dir,
-      &imported_path,
-      parent_source_path,
-    );
-
-    let possible_source_path = path_resolver
-      .generate_best_possible_paths()
+    let possible_source_path = self
+      .resolver
+      .generate_best_possible_paths(&entry_dir, &imported_path, parent_source_path)
       .into_iter()
       .find(|(_, path)| path.is_file()); // make sure this is not reimporting itself
 

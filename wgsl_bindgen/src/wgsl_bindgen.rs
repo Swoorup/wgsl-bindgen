@@ -58,6 +58,28 @@ pub enum WgslShaderSourceOutputType {
   Composer,
 }
 
+/// A struct representing a directory to scan for additional source files.
+///
+/// This struct is used to represent a directory to scan for additional source files
+/// when generating Rust bindings for WGSL shaders. The `module_import_root` field
+/// is used to specify the root prefix or namespace that should be applied to all
+/// shaders given as the entrypoints, and the `directory` field is used to specify
+/// the directory to scan for additional source files.
+#[derive(Debug, Clone, Default)]
+pub struct AdditionalScanDirectory {
+  pub module_import_root: Option<String>,
+  pub directory: String,
+}
+
+impl From<(Option<&str>, &str)> for AdditionalScanDirectory {
+  fn from((module_import_root, directory): (Option<&str>, &str)) -> Self {
+    Self {
+      module_import_root: module_import_root.map(ToString::to_string),
+      directory: directory.to_string(),
+    }
+  }
+}
+
 #[derive(Debug, Default, Builder)]
 #[builder(
   setter(into),
@@ -109,6 +131,10 @@ pub struct WgslBindgenOption {
   /// The output file path for the generated Rust bindings. Defaults to `None`.
   #[builder(default, setter(strip_option, into))]
   pub output_file: Option<PathBuf>,
+
+  /// The additional set of directories to scan for source files.
+  #[builder(default, setter(into, each(name = "additional_scan_dir", into)))]
+  pub additional_scan_dirs: Vec<AdditionalScanDirectory>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -120,7 +146,7 @@ impl WgslBindgenOptionBuilder {
   pub fn wgsl_type_map(&mut self, map_build: impl WgslTypeMapBuild) -> &mut Self {
     let serialization_strategy = self
       .serialization_strategy
-      .expect("Serialization strategy must be set first");
+      .expect("Serialization strategy must be set before `wgs_type_map`");
 
     self.wgsl_type_map = Some(map_build.build(serialization_strategy));
     self
@@ -135,14 +161,17 @@ pub struct WGSLBindgen {
 
 impl WGSLBindgen {
   fn new(options: WgslBindgenOption) -> Result<Self, WgslBindgenError> {
+    let entry_points = options
+      .entry_points
+      .iter()
+      .cloned()
+      .map(SourceFilePath::new)
+      .collect();
+
     let dependency_tree = DependencyTree::try_build(
       options.module_import_root.clone(),
-      options
-        .entry_points
-        .iter()
-        .cloned()
-        .map(SourceFilePath::new)
-        .collect(),
+      entry_points,
+      options.additional_scan_dirs.clone(),
     )?;
 
     let content_hash = Self::get_contents_hash(&options, &dependency_tree);

@@ -56,6 +56,7 @@ fn build_bevy_deptree() -> DependencyTree {
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/wireframe.wgsl"),
     ],
+    vec![],
   )
   .into_diagnostic()
   .expect("build_bevy_deptree error")
@@ -121,6 +122,7 @@ fn test_example_wgsl_dep_tree() {
   let result = DependencyTree::try_build(
     None,
     vec![SourceFilePath::new("../example/src/shader/testbed.wgsl")],
+    vec![],
   )
   .unwrap();
 
@@ -138,7 +140,9 @@ fn test_example_wgsl_dep_tree() {
 fn test_bevy_mesh_wgsl_dependency_order() {
   let deptree = build_bevy_deptree();
   let deps = deptree
-    .get_full_dependency_for(&SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl"))
+    .get_full_dependency_for(&SourceFilePath::new(
+      "tests/shaders/bevy_pbr_wgsl/mesh.wgsl",
+    ))
     .into_iter()
     .collect::<Vec<_>>();
 

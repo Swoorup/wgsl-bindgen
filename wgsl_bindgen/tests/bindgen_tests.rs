@@ -27,6 +27,7 @@ fn test_bevy_bindgen() -> Result<()> {
 fn test_main_bindgen() -> Result<()> {
   let actual = WgslBindgenOptionBuilder::default()
     .add_entry_point("tests/shaders/basic/main.wgsl")
+    .additional_scan_dir((None, "tests/shaders/additional"))
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .wgsl_type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
