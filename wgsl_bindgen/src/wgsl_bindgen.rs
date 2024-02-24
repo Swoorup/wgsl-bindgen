@@ -25,7 +25,7 @@ const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 /// in `wgsl_bindgen`.
 #[derive(Debug, Error, Diagnostic)]
 pub enum WgslBindgenError {
-  #[error("All required fields need to be set upfront")]
+  #[error("All required fields need to be set upfront: {0}")]
   OptionBuilderError(#[from] WgslBindgenOptionBuilderError),
 
   #[error(transparent)]
