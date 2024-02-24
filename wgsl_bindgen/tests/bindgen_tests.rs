@@ -17,7 +17,7 @@ fn test_bevy_bindgen() -> Result<()> {
     .generate_string()
     .into_diagnostic()?;
 
-  let expected = include_str!("./expected/bindgen_bevy.out.rs");
+  let expected = include_str!("expected/bindgen_bevy.out.rs");
 
   assert_eq!(actual, expected);
   Ok(())
@@ -36,7 +36,7 @@ fn test_main_bindgen() -> Result<()> {
     .generate_string()
     .into_diagnostic()?;
 
-  let expected = include_str!("./expected/bindgen_main.out.rs");
+  let expected = include_str!("expected/bindgen_main.out.rs");
 
   assert_eq!(actual, expected);
   Ok(())

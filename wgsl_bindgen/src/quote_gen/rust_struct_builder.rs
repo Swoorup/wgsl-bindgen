@@ -462,6 +462,13 @@ impl<'a> RustStructBuilder<'a> {
       quote!()
     };
 
+    let ignore_case_tokens = 
+      if self.name.chars().next().unwrap().is_lowercase() {
+        quote!(#[allow(non_camel_case_types)])
+      } else {
+        quote!()
+      };
+
     let fields = self.build_fields();
     let struct_new_fn = self.build_fn_new();
     let init_struct = self.build_init_struct();
@@ -478,6 +485,7 @@ impl<'a> RustStructBuilder<'a> {
       };
 
     quote! {
+        #ignore_case_tokens
         #repr_c
         #[derive(#(#derives),*)]
         pub struct #struct_name_def {

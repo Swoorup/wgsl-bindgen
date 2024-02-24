@@ -123,12 +123,10 @@ pub fn get_import_statements<B: FromIterator<ImportStatement>>(content: &str) ->
 
 #[cfg(test)]
 mod tests {
-  use indexmap::IndexMap;
   use pretty_assertions::{assert_eq, assert_str_eq};
   use smallvec::{smallvec, SmallVec};
 
   use super::*;
-  use crate::ImportedPath;
 
   const TEST_IMPORTS: &'static str = r#"
 #import a::b::{c::{d, e}, f, g::{h as i, j}}
