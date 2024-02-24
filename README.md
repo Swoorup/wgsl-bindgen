@@ -9,7 +9,8 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 ## Features
 - Supports import syntax and many more features from naga oil flavour.
 - More strongly typed [bind group and bindings](#bind-groups) initialization
-- Shader module initialization
+- Shader module initialization using either embedded source string, or compose modules for extensibility.
+- Ability to add additional scan directories from elsewhere which is useful for shader unit testing.
 - Rust structs for vertex, storage, and uniform buffers
 - Conditionally derives for encase, bytemuck, and optionally serde
 - Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck

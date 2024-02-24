@@ -126,7 +126,7 @@ impl ModulePathResolver {
       ))
     }
 
-    dbg!(paths)
+    paths
   }
 }
 
