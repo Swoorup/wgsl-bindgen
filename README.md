@@ -8,6 +8,7 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 
 ## Features
 - Supports import syntax and many more features from naga oil flavour.
+- Bytemuck mode correctly adds padding for mat3x3, vec3. 
 - More strongly typed [bind group and bindings](#bind-groups) initialization
 - Shader module initialization using either embedded source string, or compose modules for extensibility.
 - Ability to add additional scan directories from elsewhere which is useful for shader unit testing.
@@ -32,14 +33,13 @@ Then, in your build.rs:
 use wgsl_bindgen::WgslBindgenOptionBuilder;
 
 fn main() {
-  let options = WgslBindgenOptionBuilder::default()
+  let bindgen = WgslBindgenOptionBuilder::default()
     .add_entry_point("src/pbr.wgsl")
     .add_entry_point("src/pfx.wgsl")
     .output_file("src/shader.rs")
     .build()
     .unwrap();
 
-  let bindgen = options.build().unwrap();
   bindgen.generate().unwrap();
 }
 ```
@@ -106,9 +106,10 @@ The goal is just to generate most of the tedious and error prone boilerplate req
 - Supports WGSL import syntax and many more features from naga oil flavour.
 - You can only choose either bytemuck or encase for serialization
 - Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
-- Bytemuck mode automatically adds padding for mat3x3, vec3, whereas original would fail at compile assertions.
+- Bytemuck mode correctly adds padding for mat3x3, vec3, whereas original would fail at compile assertions. 
+  (The fork was mostly born out of reason to use bytemuck and ensure it works in all cases instead of [refusing certain types](https://github.com/ScanMountGoat/wgsl_to_wgpu/pull/52).)
 - User can provide their own wgsl type mappings using `quote` library
-- Expect breaking changes
+- Expect small api surface breaking change.
 
 ## Publishing Crates
 The provided example project outputs the generated bindings to the `src/` directory for documentation purposes. 
