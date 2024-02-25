@@ -8,13 +8,13 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 
 ## Features
 - Supports import syntax and many more features from naga oil flavour.
-- Bytemuck mode correctly adds padding for mat3x3, vec3. 
+- BYOT - Bring your own types for wgsl matrix, vectors types. Bindgen automatically also include assertion to test alignment and sizes for your types.
+- Rust structs for vertex, storage, and uniform buffers
+- Either use encase or bytemuck derives, and optionally serde for generated structs.
+- Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
 - More strongly typed [bind group and bindings](#bind-groups) initialization
 - Shader module initialization using either embedded source string, or compose modules for extensibility.
-- Ability to add additional scan directories from elsewhere which is useful for shader unit testing.
-- Rust structs for vertex, storage, and uniform buffers
-- Conditionally derives for encase, bytemuck, and optionally serde
-- Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
+- Ability to add additional scan directories for shader imports useful for shader unit testing.
 
 ## Usage
 When enabling derives for crates like bytemuck, serde, or encase, these dependencies should also be added to the `Cargo.toml` with the appropriate derive features. See the provided [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for basic usage.
@@ -94,15 +94,13 @@ Organizing bind groups in this way can also help to better organize rendering re
 ## Limitations
 - It may be necessary to disable running this function for shaders with unsupported types or features.
 Please make an issue if any new or existing WGSL syntax is unsupported.
-- This library is not a rendering library and will not generate any high level abstractions like a material or scene graph. 
 The goal is just to generate most of the tedious and error prone boilerplate required to use WGSL shaders with wgpu.
-- The generated code will not prevent accidentally calling a function from an unrelated generated module.
 - Most but not all WGSL types are currently supported.
 - Vertex attributes using floating point types in WGSL like `vec2<f32>` are assumed to use float inputs instead of normalized attributes like unorm or snorm integers.
 - All textures are assumed to be filterable and all samplers are assumed to be filtering. This may lead to compatibility issues. This can usually be resolved by requesting the native only feature TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES.
 - It's possible to achieve slightly better performance than the generated code in some cases like avoiding redundant bind group bindings or adjusting resource shader stage visibility. This should be addressed by using some handwritten code where appropriate.
 
-## Differences from the [fork](https://github.com/ScanMountGoat/wgsl_to_wgpu/) 
+## Differences from the [wgsl_to_wgpu](https://github.com/ScanMountGoat/wgsl_to_wgpu/) 
 - Supports WGSL import syntax and many more features from naga oil flavour.
 - You can only choose either bytemuck or encase for serialization
 - Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 
