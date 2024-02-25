@@ -32,9 +32,10 @@ pub enum WgslBindgenError {
   #[diagnostic(transparent)]
   DependencyTreeError(#[from] DependencyTreeError),
 
-  #[error("Failed to compose modules with entry `{entry}`\n{inner}")]
+  #[error("Failed to compose modules with entry `{entry}`\n{msg}")]
   NagaModuleComposeError {
     entry: String,
+    msg: String,
     inner: naga_oil::compose::ComposerErrorInner,
   },
 
@@ -212,9 +213,13 @@ impl WGSLBindgen {
   fn generate_naga_module_for_entry(
     entry: SourceWithFullDependenciesResult<'_>,
   ) -> Result<WgslEntryResult, WgslBindgenError> {
-    let map_err = |err: ComposerError| WgslBindgenError::NagaModuleComposeError {
-      entry: entry.source_file.file_path.to_string(),
-      inner: err.inner,
+    let map_err = |composer: &Composer, err: ComposerError| {
+      let msg = err.emit_to_string(composer);
+      WgslBindgenError::NagaModuleComposeError {
+        entry: entry.source_file.file_path.to_string(),
+        inner: err.inner,
+        msg,
+      }
     };
 
     let mut composer = Composer::default();
@@ -229,7 +234,8 @@ impl WGSLBindgen {
           as_name: dependency.module_name.as_ref().map(|name| name.to_string()),
           ..Default::default()
         })
-        .map_err(map_err)?;
+        .map(|_| ())
+        .map_err(|err| map_err(&composer, err))?;
     }
 
     let module = composer
@@ -238,7 +244,7 @@ impl WGSLBindgen {
         file_path: &source.file_path.to_string(),
         ..Default::default()
       })
-      .map_err(map_err)?;
+      .map_err(|err| map_err(&composer, err))?;
 
     Ok(WgslEntryResult {
       mod_name: source.file_path.file_prefix(),
