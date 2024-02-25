@@ -138,7 +138,7 @@ pub struct WgslBindgenOption {
   pub additional_scan_dirs: Vec<AdditionalScanDirectory>,
 
   #[builder(default)]
-  pub capabilities: naga::valid::Capabilities,
+  pub capabilities: crate::Capabilities,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -214,7 +214,7 @@ impl WGSLBindgen {
   }
 
   fn generate_naga_module_for_entry(
-    capabilities: naga::valid::Capabilities,
+    capabilities: crate::Capabilities,
     entry: SourceWithFullDependenciesResult<'_>,
   ) -> Result<WgslEntryResult, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
