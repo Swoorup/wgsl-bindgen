@@ -136,6 +136,9 @@ pub struct WgslBindgenOption {
   /// The additional set of directories to scan for source files.
   #[builder(default, setter(into, each(name = "additional_scan_dir", into)))]
   pub additional_scan_dirs: Vec<AdditionalScanDirectory>,
+
+  #[builder(default)]
+  pub capabilities: naga::valid::Capabilities,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -211,6 +214,7 @@ impl WGSLBindgen {
   }
 
   fn generate_naga_module_for_entry(
+    capabilities: naga::valid::Capabilities,
     entry: SourceWithFullDependenciesResult<'_>,
   ) -> Result<WgslEntryResult, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
@@ -222,7 +226,7 @@ impl WGSLBindgen {
       }
     };
 
-    let mut composer = Composer::default();
+    let mut composer = Composer::default().with_capabilities(capabilities);
     let source = entry.source_file;
 
     for dependency in entry.full_dependencies.iter() {
@@ -255,11 +259,12 @@ impl WGSLBindgen {
 
   pub fn generate_string(&self) -> Result<String, WgslBindgenError> {
     use std::fmt::Write;
+    let capabilities = self.options.capabilities;
     let entry_results = self
       .dependency_tree
       .get_source_files_with_full_dependencies()
       .into_iter()
-      .map(Self::generate_naga_module_for_entry)
+      .map(|it| Self::generate_naga_module_for_entry(capabilities, it))
       .collect::<Result<Vec<_>, _>>()?;
 
     let mut text = String::new();
