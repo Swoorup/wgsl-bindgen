@@ -6,9 +6,10 @@ use quote::quote;
 use syn::{Ident, Index};
 
 use super::rust_type;
+use crate::bevy_util::demangle;
 use crate::{
-  bevy_util::demangle_splitting_mod_path_and_item, WgslTypeSerializeStrategy,
-  WgslBindgenOption,
+  bevy_util::demangle_splitting_mod_path_and_item, WgslBindgenOption,
+  WgslTypeSerializeStrategy,
 };
 
 #[derive(Clone)]
@@ -190,52 +191,51 @@ impl<'a> RustStructBuilder<'a> {
     self.members.iter().any(|m| m.padding.is_some())
   }
 
+  fn ty_param_use(&self) -> TokenStream {
+    if self.uses_generics_for_rts() {
+      quote!(<N>)
+    } else {
+      quote!()
+    }
+  }
+
+  fn ty_param_def(&self) -> TokenStream {
+    if self.uses_generics_for_rts() {
+      quote!(<const N: usize>)
+    } else {
+      quote!()
+    }
+  }
+
   fn struct_name_in_usage_fragment(&self) -> TokenStream {
     let ident = self.name_ident();
-
-    if self.uses_generics_for_rts() {
-      quote!(#ident<N>)
-    } else {
-      quote!(#ident)
-    }
+    let ty_param_use = self.ty_param_use();
+    quote!(#ident #ty_param_use)
   }
 
   fn struct_name_in_definition_fragment(&self) -> TokenStream {
     let ident = self.name_ident();
-
-    if self.uses_generics_for_rts() {
-      quote!(#ident<const N: usize>)
-    } else {
-      quote!(#ident)
-    }
+    let ty_param_def = self.ty_param_def();
+    quote!(#ident #ty_param_def)
   }
 
   fn init_struct_name_in_usage_fragment(&self) -> TokenStream {
     let name = format!("{}Init", self.name);
     let ident = Ident::new(&name, Span::call_site());
-    if self.uses_generics_for_rts() {
-      quote!(#ident<N>)
-    } else {
-      quote!(#ident)
-    }
+    let ty_param_use = self.ty_param_use();
+    quote!(#ident #ty_param_use)
   }
 
   fn init_struct_name_in_definition_fragment(&self) -> TokenStream {
     let name = format!("{}Init", self.name);
     let ident = Ident::new(&name, Span::call_site());
-    if self.uses_generics_for_rts() {
-      quote!(#ident<const N: usize>)
-    } else {
-      quote!(#ident)
-    }
+    let ty_param_def = self.ty_param_def();
+    quote!(#ident #ty_param_def)
   }
 
   fn impl_trait_for_fragment(&self) -> TokenStream {
-    if self.uses_generics_for_rts() {
-      quote!(impl<const N:usize>)
-    } else {
-      quote!(impl)
-    }
+    let ty_param_def = self.ty_param_def();
+    quote!(impl #ty_param_def)
   }
 
   fn build_init_struct(&self) -> TokenStream {
@@ -244,10 +244,10 @@ impl<'a> RustStructBuilder<'a> {
     }
 
     let impl_fragment = self.impl_trait_for_fragment();
-    let struct_name_usage = self.struct_name_in_usage_fragment();
+    let struct_name_in_usage = self.struct_name_in_usage_fragment();
     let struct_name = self.name_ident();
     let init_struct_name_def = self.init_struct_name_in_definition_fragment();
-    let init_struct_name_usage = self.init_struct_name_in_usage_fragment();
+    let init_struct_name_in_usage = self.init_struct_name_in_usage_fragment();
 
     let mut init_struct_members = vec![];
     let mut mem_assignments = vec![];
@@ -270,16 +270,16 @@ impl<'a> RustStructBuilder<'a> {
         #(#init_struct_members),*
       }
 
-      #impl_fragment #init_struct_name_usage {
-        pub const fn const_into(&self) -> #struct_name_usage {
+      #impl_fragment #init_struct_name_in_usage {
+        pub const fn const_into(&self) -> #struct_name_in_usage {
           #struct_name {
             #(#mem_assignments),*
           }
         }
       }
 
-      #impl_fragment From<#init_struct_name_usage> for #struct_name_usage {
-        fn from(data: #init_struct_name_usage) -> Self {
+      #impl_fragment From<#init_struct_name_in_usage> for #struct_name_in_usage {
+        fn from(data: #init_struct_name_in_usage) -> Self {
           data.const_into()
         }
       }
@@ -287,7 +287,7 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn build_fn_new(&self) -> TokenStream {
-    let struct_name_usage = self.struct_name_in_usage_fragment();
+    let struct_name_in_usage = self.struct_name_in_usage_fragment();
     let impl_fragment = self.impl_trait_for_fragment();
 
     let mut non_padding_members = Vec::new();
@@ -303,16 +303,30 @@ impl<'a> RustStructBuilder<'a> {
       }
     }
 
-    quote! {
-      #impl_fragment #struct_name_usage {
-        pub fn new(
-          #(#non_padding_members),*
-        ) -> Self {
-          Self {
-            #(#member_assignments),*
+    match self.options.short_constructor {
+      Some(max_param_length) if self.members.len() <= max_param_length as usize => {
+        let struct_name = self.name_ident();
+        let ty_param_def = self.ty_param_def();
+        quote! {
+          #[allow(non_snake_case)]
+          pub const fn #struct_name #ty_param_def(#(#non_padding_members),*) -> #struct_name_in_usage {
+            #struct_name {
+              #(#member_assignments),*
+            }
           }
         }
       }
+      _ => quote! {
+        #impl_fragment #struct_name_in_usage {
+          pub const fn new(
+            #(#non_padding_members),*
+          ) -> Self {
+            Self {
+              #(#member_assignments),*
+            }
+          }
+        }
+      },
     }
   }
 
@@ -330,12 +344,12 @@ impl<'a> RustStructBuilder<'a> {
            naga_type,
            padding,
          }| {
-          let doc = if self.is_directly_shareable() {
+          let doc_comment = if self.is_directly_shareable() {
             let offset = member.offset;
             let size = naga_type.inner.size(gctx);
             let ty_name = naga_type.inner.to_wgsl(&gctx);
-            let doc =
-              format!(" size: {}, offset: 0x{:X}, type: `{}`", size, offset, ty_name);
+            let ty_name = demangle(&ty_name);
+            let doc = format!(" size: {size}, offset: 0x{offset:X}, type: `{ty_name}`");
 
             quote!(#[doc = #doc])
           } else {
@@ -353,7 +367,7 @@ impl<'a> RustStructBuilder<'a> {
           };
 
           let mut qs = vec![quote! {
-            #doc
+            #doc_comment
             #runtime_size_attribute
             pub #name: #rust_type
           }];
@@ -434,7 +448,7 @@ impl<'a> RustStructBuilder<'a> {
 
   pub fn build(&self) -> TokenStream {
     let struct_name_def = self.struct_name_in_definition_fragment();
-    let struct_name_usage = self.struct_name_in_usage_fragment();
+    let struct_name_in_usage = self.struct_name_in_usage_fragment();
     let impl_fragment = self.impl_trait_for_fragment();
 
     // Assume types used in global variables are host shareable and require validation.
@@ -462,12 +476,11 @@ impl<'a> RustStructBuilder<'a> {
       quote!()
     };
 
-    let ignore_case_tokens = 
-      if self.name.chars().next().unwrap().is_lowercase() {
-        quote!(#[allow(non_camel_case_types)])
-      } else {
-        quote!()
-      };
+    let ignore_case_tokens = if self.name.chars().next().unwrap().is_lowercase() {
+      quote!(#[allow(non_camel_case_types)])
+    } else {
+      quote!()
+    };
 
     let fields = self.build_fields();
     let struct_new_fn = self.build_fn_new();
@@ -477,8 +490,8 @@ impl<'a> RustStructBuilder<'a> {
     let unsafe_bytemuck_pod_impl =
       if self.options.serialization_strategy == WgslTypeSerializeStrategy::Bytemuck {
         quote! {
-          unsafe #impl_fragment bytemuck::Zeroable for #struct_name_usage {}
-          unsafe #impl_fragment bytemuck::Pod for #struct_name_usage {}
+          unsafe #impl_fragment bytemuck::Zeroable for #struct_name_in_usage {}
+          unsafe #impl_fragment bytemuck::Pod for #struct_name_in_usage {}
         }
       } else {
         quote!()

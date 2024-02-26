@@ -577,7 +577,7 @@ mod test {
                             })
                     }
                     const SHADER_STRING: &'static str = r#"
-                @fragment
+                @fragment 
                 fn fs_main() {
                     return;
                 }

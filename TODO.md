@@ -1,7 +1,7 @@
 # Rough ideas. 
 
+* Treat `_pad` as padding members and automatically initiallize it in init struct
 * Allow injecting dynamic shader defines at runtime
-* Allow injecting scan directory for module paths
 * Allow generation directly from source files.
 * proc_macro as an option instead of build.rs. We need proc_macro::tracked* feature?
 

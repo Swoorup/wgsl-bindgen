@@ -10,6 +10,7 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 - Supports import syntax and many more features from naga oil flavour.
 - BYOT - Bring your own types for wgsl matrix, vectors types. Bindgen automatically also include assertion to test alignment and sizes for your types.
 - Rust structs for vertex, storage, and uniform buffers
+- Generates either new or enum-like short constructors to ease creating the generated types, especially ones that require to be padded when using with bytemuck.
 - Either use encase or bytemuck derives, and optionally serde for generated structs.
 - Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
 - More strongly typed [bind group and bindings](#bind-groups) initialization
@@ -100,7 +101,7 @@ The goal is just to generate most of the tedious and error prone boilerplate req
 - All textures are assumed to be filterable and all samplers are assumed to be filtering. This may lead to compatibility issues. This can usually be resolved by requesting the native only feature TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES.
 - It's possible to achieve slightly better performance than the generated code in some cases like avoiding redundant bind group bindings or adjusting resource shader stage visibility. This should be addressed by using some handwritten code where appropriate.
 
-## Differences from the [wgsl_to_wgpu](https://github.com/ScanMountGoat/wgsl_to_wgpu/) 
+## Differences from the [wgsl_to_wgpu](https://github.com/ScanMountGoat/wgsl_to_wgpu/) fork.
 - Supports WGSL import syntax and many more features from naga oil flavour.
 - You can only choose either bytemuck or encase for serialization
 - Bytemuck mode supports Runtime-Sized-Array as generic const array in rust. 

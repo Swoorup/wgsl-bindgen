@@ -10,6 +10,7 @@ fn main() -> Result<()> {
         .wgsl_type_map(GlamWgslTypeMap)
         .derive_serde(false)
         .output_file("src/shader.rs")
+        .short_constructor(2)
         .shader_source_output_type(WgslShaderSourceOutputType::Composer)
         .build()?
         .generate()

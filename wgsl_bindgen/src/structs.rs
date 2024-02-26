@@ -247,7 +247,7 @@ mod tests {
               pub c: f32,
           }
           impl Scalars {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self { a, b, c }
             }
           }
@@ -259,7 +259,7 @@ mod tests {
               pub c: [u32; 4],
           }
           impl VectorsU32 {
-            pub fn new(a: [u32; 2], b: [u32; 4], c: [u32; 4]) -> Self {
+            pub const fn new(a: [u32; 2], b: [u32; 4], c: [u32; 4]) -> Self {
                 Self { a, b, c }
             }
           }
@@ -271,7 +271,7 @@ mod tests {
               pub c: [i32; 4],
           }
           impl VectorsI32 {
-            pub fn new(a: [i32; 2], b: [i32; 4], c: [i32; 4]) -> Self {
+            pub const fn new(a: [i32; 2], b: [i32; 4], c: [i32; 4]) -> Self {
                 Self { a, b, c }
             }
           }
@@ -283,7 +283,7 @@ mod tests {
               pub c: [f32; 4],
           }
           impl VectorsF32 {
-            pub fn new(a: [f32; 2], b: [f32; 4], c: [f32; 4]) -> Self {
+            pub const fn new(a: [f32; 2], b: [f32; 4], c: [f32; 4]) -> Self {
                 Self { a, b, c }
             }
           }
@@ -295,7 +295,7 @@ mod tests {
               pub c: [f64; 4],
           }
           impl VectorsF64 {
-            pub fn new(a: [f64; 2], b: [f64; 4], c: [f64; 4]) -> Self {
+            pub const fn new(a: [f64; 2], b: [f64; 4], c: [f64; 4]) -> Self {
                 Self { a, b, c }
             }
           }
@@ -313,7 +313,7 @@ mod tests {
               pub i: [[f32; 2]; 2],
           }
           impl MatricesF32 {
-            pub fn new(
+            pub const fn new(
                 a: [[f32; 4]; 4],
                 b: [[f32; 4]; 4],
                 c: [[f32; 2]; 4],
@@ -341,7 +341,7 @@ mod tests {
               pub i: [[f64; 2]; 2],
           }
           impl MatricesF64 {
-            pub fn new(
+            pub const fn new(
                 a: [[f64; 4]; 4],
                 b: [[f64; 4]; 4],
                 c: [[f64; 2]; 4],
@@ -363,7 +363,7 @@ mod tests {
               pub c: [[[f32; 4]; 4]; 512],
           }
           impl StaticArrays {
-            pub fn new(a: [u32; 5], b: [f32; 3], c: [[[f32; 4]; 4]; 512]) -> Self {
+            pub const fn new(a: [u32; 5], b: [f32; 3], c: [[[f32; 4]; 4]; 512]) -> Self {
                 Self { a, b, c }
             }
           }
@@ -374,7 +374,7 @@ mod tests {
               pub b: MatricesF64,
           }
           impl Nested {
-            pub fn new(a: MatricesF32, b: MatricesF64) -> Self {
+            pub const fn new(a: MatricesF32, b: MatricesF64) -> Self {
                 Self { a, b }
             }
           }
@@ -465,7 +465,7 @@ mod tests {
             pub c: f32,
         }
         impl Scalars {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self { a, b, c }
             }
         }
@@ -477,7 +477,7 @@ mod tests {
             pub c: glam::UVec4,
         }
         impl VectorsU32 {
-            pub fn new(a: glam::UVec2, b: glam::UVec3, c: glam::UVec4) -> Self {
+            pub const fn new(a: glam::UVec2, b: glam::UVec3, c: glam::UVec4) -> Self {
                 Self { a, b, c }
             }
         }
@@ -489,7 +489,7 @@ mod tests {
             pub c: glam::IVec4,
         }
         impl VectorsI32 {
-            pub fn new(a: glam::IVec2, b: glam::IVec3, c: glam::IVec4) -> Self {
+            pub const fn new(a: glam::IVec2, b: glam::IVec3, c: glam::IVec4) -> Self {
                 Self { a, b, c }
             }
         }
@@ -501,7 +501,7 @@ mod tests {
             pub c: glam::Vec4,
         }
         impl VectorsF32 {
-            pub fn new(a: glam::Vec2, b: glam::Vec3A, c: glam::Vec4) -> Self {
+            pub const fn new(a: glam::Vec2, b: glam::Vec3A, c: glam::Vec4) -> Self {
                 Self { a, b, c }
             }
         }
@@ -519,7 +519,7 @@ mod tests {
             pub i: glam::Mat2,
         }
         impl MatricesF32 {
-            pub fn new(
+            pub const fn new(
                 a: glam::Mat4,
                 b: [[f32; 4]; 4],
                 c: [[f32; 2]; 4],
@@ -541,7 +541,7 @@ mod tests {
             pub c: [glam::Mat4; 512],
         }
         impl StaticArrays {
-            pub fn new(a: [u32; 5], b: [f32; 3], c: [glam::Mat4; 512]) -> Self {
+            pub const fn new(a: [u32; 5], b: [f32; 3], c: [glam::Mat4; 512]) -> Self {
                 Self { a, b, c }
             }
         }
@@ -552,7 +552,7 @@ mod tests {
             pub b: VectorsF32,
         }
         impl Nested {
-            pub fn new(a: MatricesF32, b: VectorsF32) -> Self {
+            pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
                 Self { a, b }
             }
         }
@@ -643,7 +643,7 @@ mod tests {
               pub c: f32,
           }
           impl Scalars {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self { a, b, c }
             }
           }
@@ -655,7 +655,7 @@ mod tests {
               pub c: nalgebra::SVector<u32, 4>,
           }
           impl VectorsU32 {
-            pub fn new(
+            pub const fn new(
               a: nalgebra::SVector<u32, 2>,
               b: nalgebra::SVector<u32, 3>,
               c: nalgebra::SVector<u32, 4>,
@@ -671,7 +671,7 @@ mod tests {
               pub c: nalgebra::SVector<i32, 4>,
           }
           impl VectorsI32 {
-            pub fn new(
+            pub const fn new(
               a: nalgebra::SVector<i32, 2>,
               b: nalgebra::SVector<i32, 3>,
               c: nalgebra::SVector<i32, 4>,
@@ -687,7 +687,7 @@ mod tests {
               pub c: nalgebra::SVector<f32, 4>,
           }
           impl VectorsF32 {
-            pub fn new(
+            pub const fn new(
               a: nalgebra::SVector<f32, 2>,
               b: nalgebra::SVector<f32, 3>,
               c: nalgebra::SVector<f32, 4>,
@@ -709,7 +709,7 @@ mod tests {
               pub i: nalgebra::SMatrix<f32, 2, 2>,
           }
           impl MatricesF32 {
-            pub fn new(
+            pub const fn new(
                 a: nalgebra::SMatrix<f32, 4, 4>,
                 b: nalgebra::SMatrix<f32, 3, 4>,
                 c: nalgebra::SMatrix<f32, 2, 4>,
@@ -731,7 +731,7 @@ mod tests {
               pub c: [nalgebra::SMatrix<f32, 4, 4>; 512],
           }
           impl StaticArrays {
-            pub fn new(
+            pub const fn new(
               a: [u32; 5],
               b: [f32; 3],
               c: [nalgebra::SMatrix<f32, 4, 4>; 512],
@@ -746,7 +746,7 @@ mod tests {
               pub b: VectorsF32,
           }
           impl Nested {
-            pub fn new(a: MatricesF32, b: VectorsF32) -> Self {
+            pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
                 Self { a, b }
             }
           }
@@ -799,7 +799,7 @@ mod tests {
               pub c: f32,
           }
           impl Input0 {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self { a, b, c }
             }
           }
@@ -810,7 +810,7 @@ mod tests {
               pub b: f32,
           }
           impl Nested {
-            pub fn new(a: Input0, b: f32) -> Self {
+            pub const fn new(a: Input0, b: f32) -> Self {
                 Self { a, b }
             }
           }
@@ -872,7 +872,7 @@ mod tests {
               pub c: f32,
           }
           impl Input0 {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self { a, b, c }
             }
           }
@@ -891,7 +891,7 @@ mod tests {
               pub b: f32,
           }
           impl Nested {
-            pub fn new(a: Input0, b: f32) -> Self {
+            pub const fn new(a: Input0, b: f32) -> Self {
                 Self { a, b }
             }
           }
@@ -947,7 +947,7 @@ mod tests {
               pub c: f32,
           }
           impl Input0 {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self { a, b, c }
             }
           }
@@ -998,7 +998,7 @@ mod tests {
               pub c: f32,
           }
           impl Input0 {
-              pub fn new(a: u32, b: i32, c: f32) -> Self {
+              pub const fn new(a: u32, b: i32, c: f32) -> Self {
                   Self { a, b, c }
               }
           }
@@ -1068,7 +1068,7 @@ mod tests {
             pub _pad_c: [u8; 0x20 - core::mem::size_of::<f32>()],
         }
         impl Input0 {
-            pub fn new(a: u32, b: i32, c: f32) -> Self {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self {
                     a,
                     _pad_a: [0; 0x8 - core::mem::size_of::<u32>()],
@@ -1120,7 +1120,7 @@ mod tests {
             pub a: f32,
         }
         impl Inner {
-            pub fn new(a: f32) -> Self {
+            pub const fn new(a: f32) -> Self {
                 Self { a }
             }
         }
@@ -1137,7 +1137,7 @@ mod tests {
             pub inner: Inner,
         }
         impl Outer {
-            pub fn new(inner: Inner) -> Self {
+            pub const fn new(inner: Inner) -> Self {
                 Self { inner }
             }
         }
@@ -1184,7 +1184,7 @@ mod tests {
               pub numi: i32,
           }
           impl Atomics {
-            pub fn new(num: u32, numi: i32) -> Self {
+            pub const fn new(num: u32, numi: i32) -> Self {
                 Self { num, numi }
             }
           }
@@ -1228,7 +1228,7 @@ mod tests {
               pub the_array: Vec<u32>,
           }
           impl RtsStruct {
-            pub fn new(other_data: i32, the_array: Vec<u32>) -> Self {
+            pub const fn new(other_data: i32, the_array: Vec<u32>) -> Self {
                 Self { other_data, the_array }
             }
           }
@@ -1261,7 +1261,7 @@ mod tests {
             pub the_array: [u32; N]
         }
         impl<const N:usize> RtsStruct<N> {
-            pub fn new(other_data: i32, the_array: [u32; N]) -> Self {
+            pub const fn new(other_data: i32, the_array: [u32; N]) -> Self {
                 Self { other_data, the_array }
             }
         }
@@ -1332,7 +1332,7 @@ mod tests {
             pub a: [[f32; 4]; 3],
         }
         impl UniformsData {
-            pub fn new(a: [[f32; 4]; 3]) -> Self {
+            pub const fn new(a: [[f32; 4]; 3]) -> Self {
                 Self { a }
             }
         }
@@ -1379,7 +1379,7 @@ mod tests {
             pub centered_mvp: glam::Mat3A,
         }
         impl UniformsData {
-            pub fn new(centered_mvp: glam::Mat3A) -> Self {
+            pub const fn new(centered_mvp: glam::Mat3A) -> Self {
                 Self { centered_mvp }
             }
         }
@@ -1434,7 +1434,7 @@ mod tests {
             pub d: [[f32; 4]; 3],
         }
         impl MatricesF32 {
-            pub fn new(
+            pub const fn new(
                 a: [[f32; 4]; 4],
                 b: [[f32; 4]; 4],
                 c: [[f32; 2]; 4],
@@ -1451,6 +1451,52 @@ mod tests {
             assert!(std::mem::offset_of!(MatricesF32, c) == 128);
             assert!(std::mem::offset_of!(MatricesF32, d) == 160);
             assert!(std::mem::size_of::<MatricesF32>() == 208);
+        };
+      },
+      actual
+    );
+  }
+
+  #[test]
+  fn write_shorter_constructor() {
+    let source = indoc! {r#"
+        struct Uniform {
+            position_data: vec2<f32>,
+        };
+        @group(0) @binding(0) var<uniform> u: Uniform;
+      "#};
+
+    let module = naga::front::wgsl::parse_str(source).unwrap();
+
+    let structs = structs(
+      &module,
+      &WgslBindgenOption {
+        serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
+        wgsl_type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        short_constructor: Some(1),
+        ..Default::default()
+      },
+    );
+    let actual = quote!(#(#structs)*);
+
+    assert_tokens_eq!(
+      quote! {
+        #[repr(C, align(8))]
+        #[derive(Debug, PartialEq, Clone, Copy)]
+        pub struct Uniform {
+            /// size: 8, offset: 0x0, type: `vec2<f32>`
+            pub position_data: [f32; 2],
+        }
+
+        #[allow(non_snake_case)]
+        pub const fn Uniform(position_data: [f32; 2]) -> Uniform {
+            Uniform { position_data }
+        }
+        unsafe impl bytemuck::Zeroable for Uniform {}
+        unsafe impl bytemuck::Pod for Uniform {}
+        const _: () = {
+            assert!(std::mem::offset_of!(Uniform, position_data) == 0);
+            assert!(std::mem::size_of:: < Uniform > () == 8);
         };
       },
       actual

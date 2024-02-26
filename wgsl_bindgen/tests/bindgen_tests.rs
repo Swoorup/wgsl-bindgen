@@ -1,8 +1,6 @@
 use miette::{IntoDiagnostic, Result};
 use pretty_assertions::assert_eq;
-use wgsl_bindgen::{
-  GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderIRCapabilities, WgslTypeSerializeStrategy
-};
+use wgsl_bindgen::*;
 
 #[test]
 fn test_bevy_bindgen() -> Result<()> {

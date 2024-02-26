@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use derive_builder::Builder;
 use miette::Diagnostic;
+pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 use naga_oil::compose::{
   ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor,
   ShaderLanguage,
@@ -14,7 +15,6 @@ use crate::{
   bevy_util::*, WgslEntryResult, WgslTypeMap, WgslTypeMapBuild, WgslTypeSerializeStrategy,
 };
 use crate::{create_rust_bindings, CreateModuleError, SourceFilePath};
-pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 
 const PKG_VER: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -138,9 +138,15 @@ pub struct WgslBindgenOption {
   #[builder(default, setter(into, each(name = "additional_scan_dir", into)))]
   pub additional_scan_dirs: Vec<AdditionalScanDirectory>,
 
+  /// [wgpu::naga::valid::Capabilities](https://docs.rs/wgpu/latest/wgpu/naga/valid/struct.Capabilities.html)
   /// The capabilities of naga to support. Defaults to `None`.
   #[builder(default, setter(strip_option))]
   pub ir_capabilities: Option<WgslShaderIRCapabilities>,
+
+  /// Whether to generate short constructor similar to enums instead of `new`, if parameters are below the specified threshold
+  /// Defaults to `None`
+  #[builder(default, setter(strip_option, into))]
+  pub short_constructor: Option<i32>,
 }
 
 impl WgslBindgenOptionBuilder {

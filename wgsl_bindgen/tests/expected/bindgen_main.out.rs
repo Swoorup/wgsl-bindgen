@@ -25,7 +25,7 @@ pub mod main {
         pub _pad_width: [u8; 0x10 - core::mem::size_of::<f32>()],
     }
     impl Style {
-        pub fn new(color: glam::Vec4, width: f32) -> Self {
+        pub const fn new(color: glam::Vec4, width: f32) -> Self {
             Self {
                 color,
                 width,

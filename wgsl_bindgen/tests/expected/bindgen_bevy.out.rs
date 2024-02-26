@@ -25,7 +25,10 @@ pub mod bevy_pbr {
             pub world_normal: glam::Vec3A,
         }
         impl MeshVertexOutput {
-            pub fn new(world_position: glam::Vec4, world_normal: glam::Vec3A) -> Self {
+            pub const fn new(
+                world_position: glam::Vec4,
+                world_normal: glam::Vec3A,
+            ) -> Self {
                 Self {
                     world_position,
                     world_normal,
@@ -61,7 +64,7 @@ pub mod bevy_pbr {
                 pub _pad_alpha_cutoff: [u8; 0x10 - core::mem::size_of::<f32>()],
             }
             impl StandardMaterial {
-                pub fn new(
+                pub const fn new(
                     base_color: glam::Vec4,
                     emissive: glam::Vec4,
                     perceptual_roughness: f32,
@@ -160,7 +163,7 @@ pub mod bevy_pbr {
             pub _pad_height: [u8; 0x10 - core::mem::size_of::<f32>()],
         }
         impl View {
-            pub fn new(
+            pub const fn new(
                 view_proj: glam::Mat4,
                 inverse_view_proj: glam::Mat4,
                 view: glam::Mat4,
@@ -254,7 +257,7 @@ pub mod bevy_pbr {
             pub _pad_shadow_normal_bias: [u8; 0xC - core::mem::size_of::<f32>()],
         }
         impl DirectionalLight {
-            pub fn new(
+            pub const fn new(
                 view_projection: glam::Mat4,
                 color: glam::Vec4,
                 direction_to_light: glam::Vec3A,
@@ -319,7 +322,7 @@ pub mod bevy_pbr {
         #[repr(C, align(16))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct Lights {
-            /// size: 112, offset: 0x0, type: `array<DirectionalLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX, 1>`
+            /// size: 112, offset: 0x0, type: `array<bevy_pbr::mesh_view_types::DirectionalLight, 1>`
             pub directional_lights: [_root::bevy_pbr::mesh_view_types::DirectionalLight; 1],
             /// size: 16, offset: 0x70, type: `vec4<f32>`
             pub ambient_color: glam::Vec4,
@@ -335,7 +338,7 @@ pub mod bevy_pbr {
                 - core::mem::size_of::<i32>()],
         }
         impl Lights {
-            pub fn new(
+            pub const fn new(
                 directional_lights: [_root::bevy_pbr::mesh_view_types::DirectionalLight; 1],
                 ambient_color: glam::Vec4,
                 cluster_dimensions: [u32; 4],
@@ -414,7 +417,7 @@ pub mod bevy_pbr {
             pub spot_light_tan_angle: f32,
         }
         impl PointLight {
-            pub fn new(
+            pub const fn new(
                 light_custom_data: glam::Vec4,
                 color_inverse_square_range: glam::Vec4,
                 position_radius: glam::Vec4,
@@ -448,11 +451,13 @@ pub mod bevy_pbr {
         };
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct PointLights<const N: usize> {
-            /// size: 64, offset: 0x0, type: `array<PointLightX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX>`
+            /// size: 64, offset: 0x0, type: `array<bevy_pbr::mesh_view_types::PointLight>`
             pub data: [_root::bevy_pbr::mesh_view_types::PointLight; N],
         }
         impl<const N: usize> PointLights<N> {
-            pub fn new(data: [_root::bevy_pbr::mesh_view_types::PointLight; N]) -> Self {
+            pub const fn new(
+                data: [_root::bevy_pbr::mesh_view_types::PointLight; N],
+            ) -> Self {
                 Self { data }
             }
         }
@@ -468,7 +473,7 @@ pub mod bevy_pbr {
             pub data: [u32; N],
         }
         impl<const N: usize> ClusterLightIndexLists<N> {
-            pub fn new(data: [u32; N]) -> Self {
+            pub const fn new(data: [u32; N]) -> Self {
                 Self { data }
             }
         }
@@ -484,7 +489,7 @@ pub mod bevy_pbr {
             pub data: [[u32; 4]; N],
         }
         impl<const N: usize> ClusterOffsetsAndCounts<N> {
-            pub fn new(data: [[u32; 4]; N]) -> Self {
+            pub const fn new(data: [[u32; 4]; N]) -> Self {
                 Self { data }
             }
         }
@@ -513,7 +518,7 @@ pub mod bevy_pbr {
             pub _pad_flags: [u8; 0x10 - core::mem::size_of::<u32>()],
         }
         impl Mesh {
-            pub fn new(
+            pub const fn new(
                 model: glam::Mat4,
                 inverse_transpose_model: glam::Mat4,
                 flags: u32,
