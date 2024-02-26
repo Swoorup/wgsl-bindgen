@@ -1,7 +1,7 @@
 use miette::{IntoDiagnostic, Result};
 use pretty_assertions::assert_eq;
 use wgsl_bindgen::{
-  WgslBindgenOptionBuilder, GlamWgslTypeMap, WgslTypeSerializeStrategy,
+  GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderIRCapabilities, WgslTypeSerializeStrategy
 };
 
 #[test]
@@ -32,6 +32,7 @@ fn test_main_bindgen() -> Result<()> {
     .wgsl_type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
+    .ir_capabilities(WgslShaderIRCapabilities::PUSH_CONSTANT)
     .build()?
     .generate_string()
     .into_diagnostic()?;

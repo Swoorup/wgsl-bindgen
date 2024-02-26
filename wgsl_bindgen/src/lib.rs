@@ -67,7 +67,6 @@ mod wgsl_type;
 pub use types::*;
 pub use wgsl_bindgen::*;
 pub use wgsl_type::*;
-pub use naga::valid::Capabilities;
 
 /// Enum representing the possible serialization strategies for WGSL types.
 ///

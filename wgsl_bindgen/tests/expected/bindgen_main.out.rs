@@ -15,6 +15,51 @@ mod _root {
 pub mod main {
     #[allow(unused_imports)]
     use super::{_root, _root::*};
+    #[repr(C, align(16))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct Style {
+        /// size: 16, offset: 0x0, type: `vec4<f32>`
+        pub color: glam::Vec4,
+        /// size: 4, offset: 0x10, type: `f32`
+        pub width: f32,
+        pub _pad_width: [u8; 0x10 - core::mem::size_of::<f32>()],
+    }
+    impl Style {
+        pub fn new(color: glam::Vec4, width: f32) -> Self {
+            Self {
+                color,
+                width,
+                _pad_width: [0; 0x10 - core::mem::size_of::<f32>()],
+            }
+        }
+    }
+    unsafe impl bytemuck::Zeroable for Style {}
+    unsafe impl bytemuck::Pod for Style {}
+    const _: () = {
+        assert!(std::mem::offset_of!(Style, color) == 0);
+        assert!(std::mem::offset_of!(Style, width) == 16);
+        assert!(std::mem::size_of:: < Style > () == 32);
+    };
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct StyleInit {
+        pub color: glam::Vec4,
+        pub width: f32,
+    }
+    impl StyleInit {
+        pub const fn const_into(&self) -> Style {
+            Style {
+                color: self.color,
+                width: self.width,
+                _pad_width: [0; 0x10 - core::mem::size_of::<f32>()],
+            }
+        }
+    }
+    impl From<StyleInit> for Style {
+        fn from(data: StyleInit) -> Self {
+            data.const_into()
+        }
+    }
     pub mod bind_groups {
         #[derive(Debug)]
         pub struct BindGroup0(wgpu::BindGroup);
@@ -183,16 +228,24 @@ pub mod main {
             })
     }
     const SHADER_STRING: &'static str = r#"
+struct Style {
+    color: vec4<f32>,
+    width: f32,
+}
+
 @group(1) @binding(11) 
 var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
 @group(0) @binding(0) 
 var<storage, read_write> buffer: array<f32>;
+var<push_constant> const_style: Style;
 
 @compute @workgroup_size(1, 1, 1) 
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
-    let _e8 = buffer[id.x];
-    buffer[id.x] = (_e8 * (2f * _e5));
+    let _e11 = const_style.color.w;
+    let _e15 = const_style.width;
+    let _e17 = buffer[id.x];
+    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
     return;
 }
 "#;
