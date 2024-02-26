@@ -14,6 +14,7 @@ use crate::{
   bevy_util::*, WgslEntryResult, WgslTypeMap, WgslTypeMapBuild, WgslTypeSerializeStrategy,
 };
 use crate::{create_rust_bindings, CreateModuleError, SourceFilePath};
+pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 
 const PKG_VER: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -136,8 +137,9 @@ pub struct WgslBindgenOption {
   #[builder(default, setter(into, each(name = "additional_scan_dir", into)))]
   pub additional_scan_dirs: Vec<AdditionalScanDirectory>,
 
-  #[builder(default)]
-  pub capabilities: crate::Capabilities,
+  /// The capabilities of naga to support. Defaults to `None`.
+  #[builder(default, setter(strip_option))]
+  pub ir_capabilities: Option<WgslShaderIRCapabilities>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -213,7 +215,7 @@ impl WGSLBindgen {
   }
 
   fn generate_naga_module_for_entry(
-    capabilities: crate::Capabilities,
+    ir_capabilities: Option<WgslShaderIRCapabilities>,
     entry: SourceWithFullDependenciesResult<'_>,
   ) -> Result<WgslEntryResult, WgslBindgenError> {
     let map_err = |err: ComposerError| WgslBindgenError::NagaModuleComposeError {
@@ -221,7 +223,10 @@ impl WGSLBindgen {
       inner: err.inner,
     };
 
-    let mut composer = Composer::default().with_capabilities(capabilities);
+    let mut composer = match ir_capabilities {
+      Some(ir_capabilities) => Composer::default().with_capabilities(ir_capabilities),
+      _ => Composer::default(),
+    };
     let source = entry.source_file;
 
     for dependency in entry.full_dependencies.iter() {
@@ -253,12 +258,12 @@ impl WGSLBindgen {
 
   pub fn generate_string(&self) -> Result<String, WgslBindgenError> {
     use std::fmt::Write;
-    let capabilities = self.options.capabilities;
+    let ir_capabilities = self.options.ir_capabilities;
     let entry_results = self
       .dependency_tree
       .get_source_files_with_full_dependencies()
       .into_iter()
-      .map(|it| Self::generate_naga_module_for_entry(capabilities, it))
+      .map(|it| Self::generate_naga_module_for_entry(ir_capabilities, it))
       .collect::<Result<Vec<_>, _>>()?;
 
     let mut text = String::new();
