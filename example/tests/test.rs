@@ -1,5 +1,7 @@
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, bytemuck::Zeroable, bytemuck::Pod, encase::ShaderType)]
+#[derive(
+    Debug, Default, Copy, Clone, PartialEq, bytemuck::Zeroable, bytemuck::Pod, encase::ShaderType,
+)]
 pub struct TestStruct {
     pub a: f32,
     pub b: glam::Vec2, // encase correctly knows this is 8 bytes aligned

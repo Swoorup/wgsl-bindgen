@@ -1,4 +1,5 @@
-use std::{borrow::Cow, usize};
+use std::borrow::Cow;
+use std::usize;
 
 use naga::StructMember;
 use proc_macro2::{Span, TokenStream};
@@ -6,11 +7,8 @@ use quote::quote;
 use syn::{Ident, Index};
 
 use super::rust_type;
-use crate::bevy_util::demangle;
-use crate::{
-  bevy_util::demangle_splitting_mod_path_and_item, WgslBindgenOption,
-  WgslTypeSerializeStrategy,
-};
+use crate::bevy_util::{demangle, demangle_splitting_mod_path_and_item};
+use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
 #[derive(Clone)]
 pub struct RustStructMemberEntryPadding {
@@ -308,7 +306,6 @@ impl<'a> RustStructBuilder<'a> {
         let struct_name = self.name_ident();
         let ty_param_def = self.ty_param_def();
         quote! {
-          #[allow(non_snake_case)]
           pub const fn #struct_name #ty_param_def(#(#non_padding_members),*) -> #struct_name_in_usage {
             #struct_name {
               #(#member_assignments),*
@@ -476,12 +473,6 @@ impl<'a> RustStructBuilder<'a> {
       quote!()
     };
 
-    let ignore_case_tokens = if self.name.chars().next().unwrap().is_lowercase() {
-      quote!(#[allow(non_camel_case_types)])
-    } else {
-      quote!()
-    };
-
     let fields = self.build_fields();
     let struct_new_fn = self.build_fn_new();
     let init_struct = self.build_init_struct();
@@ -498,7 +489,6 @@ impl<'a> RustStructBuilder<'a> {
       };
 
     quote! {
-        #ignore_case_tokens
         #repr_c
         #[derive(#(#derives),*)]
         pub struct #struct_name_def {

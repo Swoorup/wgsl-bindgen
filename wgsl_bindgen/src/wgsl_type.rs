@@ -1,16 +1,15 @@
 use std::fmt::Debug;
 
-use enum_map::{enum_map, Enum, EnumMap};
-use proc_macro2::TokenStream;
-use quote::quote;
+use derive_more::{From, IsVariant};
 use strum_macros::EnumIter;
 
-use crate::{quote_gen::RustTypeInfo, WgslTypeSerializeStrategy};
+use crate::quote_gen::RustTypeInfo;
+use crate::WgslTypeMap;
 
-/// The `WgslType` enum represents various WGSL types, such as vectors and matrices.
+/// The `WgslType` enum represents various WGSL vectors.
 /// See [spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
-#[derive(Debug, Clone, Copy, Enum, Hash, PartialEq, Eq, EnumIter)]
-pub enum WgslType {
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, EnumIter)]
+pub enum WgslVecType {
   Vec2i,
   Vec3i,
   Vec4i,
@@ -23,6 +22,12 @@ pub enum WgslType {
   Vec2h,
   Vec3h,
   Vec4h,
+}
+
+/// The `WgslType` enum represents various Wgsl matrices.
+/// See [spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
+#[derive(Debug, From, Clone, Copy, Hash, PartialEq, Eq, EnumIter)]
+pub enum WgslMatType {
   Mat2x2f,
   Mat2x3f,
   Mat2x4f,
@@ -43,10 +48,13 @@ pub enum WgslType {
   Mat4x4h,
 }
 
-impl WgslType {
-  /// Returns the alignment and size of the WGSL type.
-  pub const fn alignment_and_size(&self) -> (u8, usize) {
-    use WgslType::*;
+pub(crate) trait WgslTypeAlignmentAndSize {
+  fn alignment_and_size(&self) -> (u8, usize);
+}
+
+impl WgslTypeAlignmentAndSize for WgslVecType {
+  fn alignment_and_size(&self) -> (u8, usize) {
+    use WgslVecType::*;
     match self {
       Vec2i | Vec2u | Vec2f => (8, 8),
       Vec2h => (4, 4),
@@ -54,7 +62,14 @@ impl WgslType {
       Vec3h => (8, 6),
       Vec4i | Vec4u | Vec4f => (16, 16),
       Vec4h => (8, 8),
+    }
+  }
+}
 
+impl WgslTypeAlignmentAndSize for WgslMatType {
+  fn alignment_and_size(&self) -> (u8, usize) {
+    use WgslMatType::*;
+    match self {
       // AlignOf(vecR), SizeOf(array<vecR, C>)
       Mat2x2f => (8, 16),
       Mat2x2h => (4, 8),
@@ -76,157 +91,49 @@ impl WgslType {
       Mat4x4h => (8, 32),
     }
   }
-
-  /// Checks if the WGSL type is a vector.
-  pub const fn is_vector(&self) -> bool {
-    match self {
-      WgslType::Vec2i
-      | WgslType::Vec3i
-      | WgslType::Vec4i
-      | WgslType::Vec2u
-      | WgslType::Vec3u
-      | WgslType::Vec4u
-      | WgslType::Vec2f
-      | WgslType::Vec3f
-      | WgslType::Vec4f
-      | WgslType::Vec2h
-      | WgslType::Vec3h
-      | WgslType::Vec4h => true,
-      _ => false,
-    }
-  }
-
-  /// Checks if the WGSL type is a matrix.
-  pub const fn is_matrix(&self) -> bool {
-    match self {
-      WgslType::Mat2x2f
-      | WgslType::Mat2x3f
-      | WgslType::Mat2x4f
-      | WgslType::Mat3x2f
-      | WgslType::Mat3x3f
-      | WgslType::Mat3x4f
-      | WgslType::Mat4x2f
-      | WgslType::Mat4x3f
-      | WgslType::Mat4x4f
-      | WgslType::Mat2x2h
-      | WgslType::Mat2x3h
-      | WgslType::Mat2x4h
-      | WgslType::Mat3x2h
-      | WgslType::Mat3x3h
-      | WgslType::Mat3x4h
-      | WgslType::Mat4x2h
-      | WgslType::Mat4x3h
-      | WgslType::Mat4x4h => true,
-      _ => false,
-    }
-  }
 }
 
-pub type WgslTypeMap = EnumMap<WgslType, Option<TokenStream>>;
-
-/// A trait for building `WgslType` to `TokenStream` map.
-///
-/// This map is used to convert built-in WGSL types into their corresponding
-/// representations in the generated Rust code. The specific format used for
-/// matrix and vector types can vary, and the generated types for the same WGSL
-/// type may differ in size or alignment.
-///
-/// Implementations of this trait provide a `build` function that takes a
-/// `WgslTypeSerializeStrategy` and returns an `WgslTypeMap`. 
-pub trait WgslTypeMapBuild {
-  /// Builds the `WgslTypeMap` based on the given serialization strategy.
-  fn build(&self, strategy: WgslTypeSerializeStrategy) -> WgslTypeMap;
+pub(crate) trait WgslBuiltInMappedType {
+  fn get_mapped_type(&self, type_map: &WgslTypeMap) -> Option<RustTypeInfo>;
 }
 
-/// Provides an extension method for `WgslTypeMap` to convert WGSL types to `RustTypeInfo`.
-pub(crate) trait WgslTypeMapExt {
-  /// Gets the `RustTypeInfo` for the given WGSL type.
-  fn get_rust_type_info(&self, wgsl_ty: WgslType) -> Option<RustTypeInfo>;
-}
-
-impl WgslTypeMapExt for WgslTypeMap {
-  fn get_rust_type_info(&self, wgsl_ty: WgslType) -> Option<RustTypeInfo> {
-    let (alignment_width, size) = wgsl_ty.alignment_and_size();
-    let ty = self[wgsl_ty].as_ref()?.clone();
+impl<T> WgslBuiltInMappedType for T
+where
+  T: WgslTypeAlignmentAndSize + Copy,
+  WgslType: From<T>,
+{
+  fn get_mapped_type(&self, type_map: &WgslTypeMap) -> Option<RustTypeInfo> {
+    let (alignment_width, size) = self.alignment_and_size();
+    let wgsl_ty = WgslType::from(*self);
+    let ty = type_map.get(&wgsl_ty)?.clone();
     let alignment = naga::proc::Alignment::from_width(alignment_width);
     Some(RustTypeInfo(ty, size, alignment))
   }
 }
 
-impl<T: WgslTypeMapBuild + 'static> From<T> for Box<dyn WgslTypeMapBuild> {
-  fn from(value: T) -> Self {
-    Box::new(value)
-  }
+/// The `WgslType` enum represents various WGSL types, such as vectors and matrices.
+/// See [spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
+#[derive(Debug, From, Clone, Hash, PartialEq, Eq, IsVariant)]
+pub enum WgslType {
+  Vector(WgslVecType),
+  Matrix(WgslMatType),
+  Struct { fully_qualified_name: String },
 }
 
-impl Default for Box<dyn WgslTypeMapBuild> {
-  fn default() -> Self {
-    Box::new(WgslRustTypeMap)
-  }
-}
-
-/// Rust types like `[f32; 4]` or `[[f32; 4]; 4]`.
-#[derive(Clone)]
-pub struct WgslRustTypeMap;
-
-impl WgslTypeMapBuild for WgslRustTypeMap {
-  fn build(&self, _: WgslTypeSerializeStrategy) -> WgslTypeMap {
-    WgslTypeMap::default()
-  }
-}
-
-/// `glam` types like `glam::Vec4` or `glam::Mat4`.
-/// Types not representable by `glam` like `mat2x3<f32>` will use the output from [WgslRustTypeMap::map].
-#[derive(Clone)]
-pub struct GlamWgslTypeMap;
-
-impl WgslTypeMapBuild for GlamWgslTypeMap {
-  fn build(&self, serialize_strategy: WgslTypeSerializeStrategy) -> WgslTypeMap {
-    let is_encase = serialize_strategy.is_encase();
-    enum_map! {
-      WgslType::Vec2i if is_encase => Some(quote!(glam::IVec2)),
-      WgslType::Vec3i if is_encase => Some(quote!(glam::IVec3)),
-      WgslType::Vec4i if is_encase => Some(quote!(glam::IVec4)),
-      WgslType::Vec2u if is_encase => Some(quote!(glam::UVec2)),
-      WgslType::Vec3u if is_encase => Some(quote!(glam::UVec3)),
-      WgslType::Vec4u if is_encase => Some(quote!(glam::UVec4)),
-      WgslType::Vec2f if is_encase => Some(quote!(glam::Vec2)),
-      WgslType::Vec3f => Some(quote!(glam::Vec3A)),
-      WgslType::Vec4f => Some(quote!(glam::Vec4)),
-      WgslType::Mat2x2f if is_encase => Some(quote!(glam::Mat2)),
-      WgslType::Mat3x3f => Some(quote!(glam::Mat3A)),
-      WgslType::Mat4x4f => Some(quote!(glam::Mat4)),
-      _ => None,
-    }
-  }
-}
-
-/// `nalgebra` types like `nalgebra::SVector<f64, 4>` or `nalgebra::SMatrix<f32, 2, 3>`.
-#[derive(Clone)]
-pub struct NalgebraWgslTypeMap;
-
-impl WgslTypeMapBuild for NalgebraWgslTypeMap {
-  fn build(&self, _: WgslTypeSerializeStrategy) -> WgslTypeMap {
-    enum_map! {
-      WgslType::Vec2i => Some(quote!(nalgebra::SVector<i32, 2>)),
-      WgslType::Vec3i => Some(quote!(nalgebra::SVector<i32, 3>)),
-      WgslType::Vec4i => Some(quote!(nalgebra::SVector<i32, 4>)),
-      WgslType::Vec2u => Some(quote!(nalgebra::SVector<u32, 2>)),
-      WgslType::Vec3u => Some(quote!(nalgebra::SVector<u32, 3>)),
-      WgslType::Vec4u => Some(quote!(nalgebra::SVector<u32, 4>)),
-      WgslType::Vec2f => Some(quote!(nalgebra::SVector<f32, 2>)),
-      WgslType::Vec3f => Some(quote!(nalgebra::SVector<f32, 3>)),
-      WgslType::Vec4f => Some(quote!(nalgebra::SVector<f32, 4>)),
-      WgslType::Mat2x2f => Some(quote!(nalgebra::SMatrix<f32, 2, 2>)),
-      WgslType::Mat2x3f => Some(quote!(nalgebra::SMatrix<f32, 3, 2>)),
-      WgslType::Mat2x4f => Some(quote!(nalgebra::SMatrix<f32, 4, 2>)),
-      WgslType::Mat3x2f => Some(quote!(nalgebra::SMatrix<f32, 2, 3>)),
-      WgslType::Mat3x3f => Some(quote!(nalgebra::SMatrix<f32, 3, 3>)),
-      WgslType::Mat3x4f => Some(quote!(nalgebra::SMatrix<f32, 4, 3>)),
-      WgslType::Mat4x2f => Some(quote!(nalgebra::SMatrix<f32, 2, 4>)),
-      WgslType::Mat4x3f => Some(quote!(nalgebra::SMatrix<f32, 3, 4>)),
-      WgslType::Mat4x4f => Some(quote!(nalgebra::SMatrix<f32, 4, 4>)),
-      _ => None,
+impl WgslType {
+  pub(crate) fn get_mapped_type(
+    &self,
+    type_map: &WgslTypeMap,
+    size: usize,
+    alignment: naga::proc::Alignment,
+  ) -> Option<RustTypeInfo> {
+    match self {
+      WgslType::Vector(vec_ty) => vec_ty.get_mapped_type(type_map),
+      WgslType::Matrix(mat_ty) => mat_ty.get_mapped_type(type_map),
+      WgslType::Struct { .. } => {
+        let ty = type_map.get(self)?.clone();
+        Some(RustTypeInfo(ty, size, alignment))
+      }
     }
   }
 }

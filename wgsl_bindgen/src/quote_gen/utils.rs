@@ -46,16 +46,6 @@ pub(crate) struct RustSourceItem {
 }
 
 impl RustSourceItem {
-  /// Creates a `RustSourceItem` from a mangled name and token stream.
-  ///
-  /// # Arguments
-  ///
-  /// * `name` - The mangled name of the item.
-  /// * `item` - The token stream representing the item.
-  ///
-  /// # Returns
-  ///
-  /// The created `RustSourceItem`.
   pub fn from_mangled(name: &str, item: TokenStream) -> Self {
     let (mod_path, name) = demangle_splitting_mod_path_and_item(name);
 

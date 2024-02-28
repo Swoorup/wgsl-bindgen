@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use naga::{Handle, Type};
 use proc_macro2::TokenStream;
 
-use crate::{
-  quote_gen::{RustSourceItem, RustStructBuilder},
-  WgslBindgenOption, WgslTypeSerializeStrategy,
-};
+use crate::bevy_util::demangle;
+use crate::quote_gen::{RustSourceItem, RustStructBuilder};
+use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
 pub fn structs_items(
   module: &naga::Module,
@@ -41,19 +40,28 @@ pub fn structs_items(
           .any(|e| e.function.arguments.iter().any(|a| a.ty == *h))
         || global_variable_types.contains(h)
     })
-    .filter_map(|(t_handle, t)| {
-      if let naga::TypeInner::Struct { members, .. } = &t.inner {
-        let rust_struct = rust_struct(
-          t,
-          members,
-          &layouter,
-          t_handle,
-          module,
-          options,
-          &global_variable_types,
-        );
+    .filter_map(|(t_handle, ty)| {
+      if let naga::TypeInner::Struct { members, .. } = &ty.inner {
+        let demangled_name = demangle(ty.name.as_ref().unwrap());
 
-        Some(RustSourceItem::from_mangled(t.name.as_ref().unwrap(), rust_struct))
+        // skip if using custom struct mapping
+        if options.type_map.contains_key(&crate::WgslType::Struct {
+          fully_qualified_name: demangled_name.into(),
+        }) {
+          None
+        } else {
+          let rust_struct = rust_struct(
+            ty,
+            members,
+            &layouter,
+            t_handle,
+            module,
+            options,
+            &global_variable_types,
+          );
+
+          Some(RustSourceItem::from_mangled(ty.name.as_ref().unwrap(), rust_struct))
+        }
       } else {
         None
       }
@@ -449,7 +457,7 @@ mod tests {
     let structs = structs(
       &module,
       &WgslBindgenOption {
-        wgsl_type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -627,7 +635,7 @@ mod tests {
     let structs = structs(
       &module,
       &WgslBindgenOption {
-        wgsl_type_map: NalgebraWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        type_map: NalgebraWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -783,7 +791,7 @@ mod tests {
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Encase,
         derive_serde: false,
-        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        type_map: RustWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -848,7 +856,7 @@ mod tests {
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Encase,
         derive_serde: true,
-        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        type_map: RustWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -931,7 +939,7 @@ mod tests {
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         derive_serde: false,
-        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        type_map: RustWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );
@@ -982,7 +990,7 @@ mod tests {
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         derive_serde: false,
-        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        type_map: RustWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );
@@ -1046,7 +1054,7 @@ mod tests {
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
         derive_serde: false,
-        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        type_map: RustWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );
@@ -1169,7 +1177,7 @@ mod tests {
     let structs = structs(
       &module,
       &WgslBindgenOption {
-        wgsl_type_map: NalgebraWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
+        type_map: NalgebraWgslTypeMap.build(WgslTypeSerializeStrategy::Encase),
         ..Default::default()
       },
     );
@@ -1364,7 +1372,7 @@ mod tests {
       &module,
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
-        wgsl_type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );
@@ -1413,7 +1421,7 @@ mod tests {
       &module,
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
-        wgsl_type_map: WgslRustTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        type_map: RustWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         ..Default::default()
       },
     );
@@ -1472,7 +1480,7 @@ mod tests {
       &module,
       &WgslBindgenOption {
         serialization_strategy: WgslTypeSerializeStrategy::Bytemuck,
-        wgsl_type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
+        type_map: GlamWgslTypeMap.build(WgslTypeSerializeStrategy::Bytemuck),
         short_constructor: Some(1),
         ..Default::default()
       },
@@ -1488,7 +1496,6 @@ mod tests {
             pub position_data: [f32; 2],
         }
 
-        #[allow(non_snake_case)]
         pub const fn Uniform(position_data: [f32; 2]) -> Uniform {
             Uniform { position_data }
         }

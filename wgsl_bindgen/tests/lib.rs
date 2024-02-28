@@ -1,2 +1,2 @@
-mod deptree_tests;
 mod bindgen_tests;
+mod deptree_tests;

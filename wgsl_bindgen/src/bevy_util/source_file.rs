@@ -2,10 +2,8 @@ use smallvec::SmallVec;
 
 use super::parse_imports;
 use super::parse_imports::ImportStatement;
-use crate::{
-  types::{FxIndexSet, SourceFilePath},
-  ImportedPath, SourceModuleName,
-};
+use crate::types::{FxIndexSet, SourceFilePath};
+use crate::{ImportedPath, SourceModuleName};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
@@ -63,7 +61,8 @@ mod tests {
     let source = SourceFile::create(
       source_path,
       module_name,
-      include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl").to_owned(),
+      include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl")
+        .to_owned(),
     );
     let actual = source.get_imported_paths();
 

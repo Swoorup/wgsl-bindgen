@@ -4,3 +4,4 @@ tab_spaces = 2
 max_width=90
 fn_call_width=80
 group_imports="StdExternalCrate"
+imports_granularity = "Module"

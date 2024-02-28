@@ -9,8 +9,10 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 ## Features
 - Supports import syntax and many more features from naga oil flavour.
 - BYOT - Bring your own types for wgsl matrix, vectors types. Bindgen automatically also include assertion to test alignment and sizes for your types.
+- Override struct types from your crate, which is handy for small primitive types.
 - Rust structs for vertex, storage, and uniform buffers
 - Generates either new or enum-like short constructors to ease creating the generated types, especially ones that require to be padded when using with bytemuck.
+- Final shader source can either as be a single embedded string, or naga_oil with embedded string or instead specified with directory containing the entry source for hot reloading.
 - Either use encase or bytemuck derives, and optionally serde for generated structs.
 - Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
 - More strongly typed [bind group and bindings](#bind-groups) initialization
@@ -124,7 +126,7 @@ fn main() -> Result<()> {
         .add_entry_point("src/shader/testbed.wgsl")
         .add_entry_point("src/shader/triangle.wgsl")
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-        .wgsl_type_map(GlamWgslTypeMap)
+        .type_map(GlamWgslTypeMap)
         .derive_serde(false)
         .output_file("src/shader.rs")
         .build()?

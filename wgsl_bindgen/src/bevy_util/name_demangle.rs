@@ -33,7 +33,7 @@ pub fn escape_os_path(path: &str) -> String {
   path.replace("\"", "")
 }
 
-/// Converts 
+/// Converts
 ///   * "\"../types\"::RtsStruct" => "types::RtsStruct"
 ///   * "../more-shader-files/reachme" => "reachme"
 pub fn make_valid_rust_import(value: &str) -> String {

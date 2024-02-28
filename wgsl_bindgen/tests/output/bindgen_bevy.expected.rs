@@ -1,4 +1,4 @@
-#[allow(unused)]
+#![allow(unused, non_snake_case, non_camel_case_types)]
 mod _root {
     pub use super::*;
     const _: () = {
@@ -13,10 +13,8 @@ mod _root {
     };
 }
 pub mod bevy_pbr {
-    #[allow(unused_imports)]
     use super::{_root, _root::*};
     pub mod mesh_vertex_output {
-        #[allow(unused_imports)]
         use super::{_root, _root::*};
         #[repr(C)]
         #[derive(Debug, PartialEq, Clone, Copy)]
@@ -39,10 +37,8 @@ pub mod bevy_pbr {
         unsafe impl bytemuck::Pod for MeshVertexOutput {}
     }
     pub mod pbr {
-        #[allow(unused_imports)]
         use super::{_root, _root::*};
         pub mod types {
-            #[allow(unused_imports)]
             use super::{_root, _root::*};
             #[repr(C, align(16))]
             #[derive(Debug, PartialEq, Clone, Copy)]
@@ -136,7 +132,6 @@ pub mod bevy_pbr {
         }
     }
     pub mod mesh_view_types {
-        #[allow(unused_imports)]
         use super::{_root, _root::*};
         #[repr(C, align(16))]
         #[derive(Debug, PartialEq, Clone, Copy)]
@@ -504,7 +499,6 @@ pub mod bevy_pbr {
         pub const DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT: u32 = 1u32;
     }
     pub mod mesh_types {
-        #[allow(unused_imports)]
         use super::{_root, _root::*};
         #[repr(C, align(16))]
         #[derive(Debug, PartialEq, Clone, Copy)]
@@ -564,18 +558,15 @@ pub mod bevy_pbr {
         pub const MESH_FLAGS_SHADOW_RECEIVER_BIT: u32 = 1u32;
     }
     pub mod utils {
-        #[allow(unused_imports)]
         use super::{_root, _root::*};
         pub const PI: f32 = 3.1415927f32;
     }
 }
 pub mod pbr {
-    #[allow(unused_imports)]
     use super::{_root, _root::*};
     pub mod bind_groups {
         #[derive(Debug)]
         pub struct BindGroup0(wgpu::BindGroup);
-        #[allow(non_snake_case)]
         #[derive(Debug)]
         pub struct BindGroupLayout0<'a> {
             pub view: wgpu::BufferBinding<'a>,
@@ -760,7 +751,6 @@ pub mod pbr {
         }
         #[derive(Debug)]
         pub struct BindGroup1(wgpu::BindGroup);
-        #[allow(non_snake_case)]
         #[derive(Debug)]
         pub struct BindGroupLayout1<'a> {
             pub material: wgpu::BufferBinding<'a>,
@@ -813,7 +803,6 @@ pub mod pbr {
         }
         #[derive(Debug)]
         pub struct BindGroup2(wgpu::BindGroup);
-        #[allow(non_snake_case)]
         #[derive(Debug)]
         pub struct BindGroupLayout2<'a> {
             pub mesh: wgpu::BufferBinding<'a>,

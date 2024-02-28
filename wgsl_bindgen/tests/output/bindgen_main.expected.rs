@@ -1,4 +1,4 @@
-#[allow(unused)]
+#![allow(unused, non_snake_case, non_camel_case_types)]
 mod _root {
     pub use super::*;
     const _: () = {
@@ -13,7 +13,6 @@ mod _root {
     };
 }
 pub mod main {
-    #[allow(unused_imports)]
     use super::{_root, _root::*};
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
@@ -63,7 +62,6 @@ pub mod main {
     pub mod bind_groups {
         #[derive(Debug)]
         pub struct BindGroup0(wgpu::BindGroup);
-        #[allow(non_snake_case)]
         #[derive(Debug)]
         pub struct BindGroupLayout0<'a> {
             pub buffer: wgpu::BufferBinding<'a>,
@@ -118,7 +116,6 @@ pub mod main {
         }
         #[derive(Debug)]
         pub struct BindGroup1(wgpu::BindGroup);
-        #[allow(non_snake_case)]
         #[derive(Debug)]
         pub struct BindGroupLayout1<'a> {
             pub ONE: wgpu::BufferBinding<'a>,
@@ -219,34 +216,79 @@ pub mod main {
                 },
             )
     }
-    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
+    pub fn init_composer(
+        entry_dir_path: &std::path::Path,
+    ) -> Result<naga_oil::compose::Composer, std::io::Error> {
+        let mut composer = naga_oil::compose::Composer::default();
+        let mut source_path = entry_dir_path.to_path_buf();
+        source_path.push("bindings.wgsl");
+        let source = std::fs::read_to_string(&source_path)?;
+        composer
+            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+                source: &source,
+                file_path: source_path.to_str().unwrap(),
+                language: naga_oil::compose::ShaderLanguage::Wgsl,
+                as_name: Some("bindings".into()),
+                ..Default::default()
+            })
+            .expect("failed to add composer module");
+        let mut source_path = entry_dir_path.to_path_buf();
+        source_path.push("../additional/types.wgsl");
+        let source = std::fs::read_to_string(&source_path)?;
+        composer
+            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+                source: &source,
+                file_path: source_path.to_str().unwrap(),
+                language: naga_oil::compose::ShaderLanguage::Wgsl,
+                as_name: Some("types".into()),
+                ..Default::default()
+            })
+            .expect("failed to add composer module");
+        Ok(composer)
+    }
+    pub fn make_naga_module(
+        entry_dir_path: &std::path::Path,
+        composer: &mut naga_oil::compose::Composer,
+    ) -> Result<wgpu::naga::Module, std::io::Error> {
+        let mut source_path = entry_dir_path.to_path_buf();
+        source_path.push("main.wgsl");
+        let source = std::fs::read_to_string(&source_path)?;
+        let module = composer
+            .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+                source: &source,
+                file_path: source_path.to_str().unwrap(),
+                ..Default::default()
+            })
+            .expect("failed to build naga module");
+        Ok(module)
+    }
+    pub fn naga_module_to_string(module: &wgpu::naga::Module) -> String {
+        let info = wgpu::naga::valid::Validator::new(
+                wgpu::naga::valid::ValidationFlags::empty(),
+                wgpu::naga::valid::Capabilities::all(),
+            )
+            .validate(&module);
+        let info = info.unwrap();
+        wgpu::naga::back::wgsl::write_string(
+                &module,
+                &info,
+                wgpu::naga::back::wgsl::WriterFlags::empty(),
+            )
+            .expect("failed to convert naga module to source")
+    }
+    pub fn create_shader_module(
+        entry_dir_path: &std::path::Path,
+        device: &wgpu::Device,
+    ) -> Result<wgpu::ShaderModule, std::io::Error> {
+        let mut composer = init_composer(entry_dir_path)?;
+        let module = make_naga_module(entry_dir_path, &mut composer)?;
+        let source = naga_module_to_string(&module);
+        let source = std::borrow::Cow::Owned(source);
+        let module = device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(source),
-            })
+            });
+        Ok(module)
     }
-    const SHADER_STRING: &'static str = r#"
-struct Style {
-    color: vec4<f32>,
-    width: f32,
-}
-
-@group(1) @binding(11) 
-var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
-@group(0) @binding(0) 
-var<storage, read_write> buffer: array<f32>;
-var<push_constant> const_style: Style;
-
-@compute @workgroup_size(1, 1, 1) 
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
-    let _e11 = const_style.color.w;
-    let _e15 = const_style.width;
-    let _e17 = buffer[id.x];
-    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
-    return;
-}
-"#;
 }

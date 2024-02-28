@@ -4,9 +4,12 @@ use quote::{quote, ToTokens};
 use strum::IntoEnumIterator;
 use syn::Index;
 
+use crate::bevy_util::demangle;
+use crate::quote_gen::demangle_and_qualify;
+use crate::wgsl_type::WgslBuiltInMappedType;
 use crate::{
-  quote_gen::demangle_and_qualify, WgslTypeSerializeStrategy, WgslType, WgslTypeMapExt,
-  WgslBindgenOption,
+  WgslBindgenOption, WgslMatType, WgslType, WgslTypeAlignmentAndSize,
+  WgslTypeSerializeStrategy, WgslVecType,
 };
 
 #[derive(Debug, Clone)]
@@ -34,26 +37,32 @@ impl ToTokens for RustTypeInfo {
   }
 }
 
-pub(crate) fn add_prelude_types_assertions(options: &WgslBindgenOption) -> TokenStream {
+pub(crate) fn add_custom_vector_matrix_assertions(
+  options: &WgslBindgenOption,
+) -> TokenStream {
   if options.serialization_strategy.is_encase() {
     return quote!();
   }
 
-  let assertions = WgslType::iter()
-    .filter_map(|built_in| {
-      let ty = options
-        .wgsl_type_map
-        .get_rust_type_info(built_in)?;
-      let size_after_alignment = ty.size_after_alignment()?;
+  fn build_assert_for(
+    options: &WgslBindgenOption,
+    ty: impl WgslTypeAlignmentAndSize + Into<WgslType> + WgslBuiltInMappedType,
+  ) -> Option<TokenStream> {
+    let ty = ty.get_mapped_type(&options.type_map)?;
+    let size_after_alignment = ty.size_after_alignment()?;
 
-      let alignment = Index::from(ty.alignment_value());
-      let size_after_alignment = Index::from(size_after_alignment);
+    let alignment = Index::from(ty.alignment_value());
+    let size_after_alignment = Index::from(size_after_alignment);
 
-      Some(quote! {
-        assert!(std::mem::size_of::<#ty>() == #size_after_alignment);
-        assert!(std::mem::align_of::<#ty>() == #alignment);
-      })
+    Some(quote! {
+      assert!(std::mem::size_of::<#ty>() == #size_after_alignment);
+      assert!(std::mem::align_of::<#ty>() == #alignment);
     })
+  }
+
+  let assertions = WgslVecType::iter()
+    .filter_map(|ty| build_assert_for(options, ty))
+    .chain(WgslMatType::iter().filter_map(|ty| build_assert_for(options, ty)))
     .collect::<Vec<_>>();
 
   quote! {
@@ -116,44 +125,9 @@ fn get_stride_and_padding(
   }
 }
 
-fn map_naga_vec_type(
-  size: VectorSize,
-  scalar: Scalar,
-  alignment: naga::proc::Alignment,
-) -> Option<WgslType> {
-  use ScalarKind::*;
-  use VectorSize::*;
-
-  use crate::WgslType::*;
-  let built_in_ty = match (size, scalar.kind, scalar.width) {
-    (Bi, Sint, 4) => Some(Vec2i),
-    (Tri, Sint, 4) => Some(Vec3i),
-    (Quad, Sint, 4) => Some(Vec4i),
-    (Bi, Uint, 4) => Some(Vec2u),
-    (Tri, Uint, 4) => Some(Vec3u),
-    (Quad, Uint, 4) => Some(Vec4u),
-    (Bi, Float, 4) => Some(Vec2f),
-    (Tri, Float, 4) => Some(Vec3f),
-    (Quad, Float, 4) => Some(Vec4f),
-    (Bi, Float, 2) => Some(Vec2h),
-    (Tri, Float, 2) => Some(Vec3h),
-    (Quad, Float, 2) => Some(Vec4h),
-    _ => None,
-  };
-
-  // validate assumptions about alignment and size
-  if let Some(ty) = built_in_ty {
-    let expected_size_after_alignment =
-      alignment.round_up(size as u32 * scalar.width as u32);
-    assert_alignment_and_size(ty, alignment, expected_size_after_alignment);
-  }
-
-  built_in_ty
-}
-
 #[inline]
 fn assert_alignment_and_size(
-  ty: WgslType,
+  ty: impl WgslTypeAlignmentAndSize + std::fmt::Debug,
   expected_alignment: naga::proc::Alignment,
   expected_size_after_alignment: u32,
 ) {
@@ -172,46 +146,78 @@ fn assert_alignment_and_size(
   );
 }
 
+fn map_naga_vec_type(
+  size: VectorSize,
+  scalar: Scalar,
+  alignment: naga::proc::Alignment,
+  options: &WgslBindgenOption,
+) -> Option<RustTypeInfo> {
+  use ScalarKind::*;
+  use VectorSize::*;
+
+  use crate::WgslVecType::*;
+  let ty = match (size, scalar.kind, scalar.width) {
+    (Bi, Sint, 4) => Vec2i,
+    (Tri, Sint, 4) => Vec3i,
+    (Quad, Sint, 4) => Vec4i,
+    (Bi, Uint, 4) => Vec2u,
+    (Tri, Uint, 4) => Vec3u,
+    (Quad, Uint, 4) => Vec4u,
+    (Bi, Float, 4) => Vec2f,
+    (Tri, Float, 4) => Vec3f,
+    (Quad, Float, 4) => Vec4f,
+    (Bi, Float, 2) => Vec2h,
+    (Tri, Float, 2) => Vec3h,
+    (Quad, Float, 2) => Vec4h,
+    _ => return None,
+  };
+
+  // validate assumptions about alignment and size
+  let expected_size_after_alignment =
+    alignment.round_up(size as u32 * scalar.width as u32);
+  assert_alignment_and_size(ty, alignment, expected_size_after_alignment);
+
+  ty.get_mapped_type(&options.type_map)
+}
+
 fn map_naga_mat_type(
   columns: VectorSize,
   rows: VectorSize,
   scalar: Scalar,
   alignment: naga::proc::Alignment,
-) -> Option<WgslType> {
+  options: &WgslBindgenOption,
+) -> Option<RustTypeInfo> {
   use ScalarKind::*;
   use VectorSize::*;
 
-  use crate::WgslType::*;
-  let built_in_ty = match (columns, rows, scalar.kind, scalar.width) {
-    (Bi, Bi, Float, 4) => Some(Mat2x2f),
-    (Bi, Bi, Float, 2) => Some(Mat2x2h),
-    (Tri, Bi, Float, 4) => Some(Mat3x2f),
-    (Tri, Bi, Float, 2) => Some(Mat3x2h),
-    (Quad, Bi, Float, 4) => Some(Mat4x2f),
-    (Quad, Bi, Float, 2) => Some(Mat4x2h),
-    (Bi, Tri, Float, 4) => Some(Mat2x3f),
-    (Bi, Tri, Float, 2) => Some(Mat2x3h),
-    (Tri, Tri, Float, 4) => Some(Mat3x3f),
-    (Tri, Tri, Float, 2) => Some(Mat3x3h),
-    (Quad, Tri, Float, 4) => Some(Mat4x3f),
-    (Quad, Tri, Float, 2) => Some(Mat4x3h),
-    (Bi, Quad, Float, 4) => Some(Mat2x4f),
-    (Bi, Quad, Float, 2) => Some(Mat2x4h),
-    (Tri, Quad, Float, 4) => Some(Mat3x4f),
-    (Tri, Quad, Float, 2) => Some(Mat3x4h),
-    (Quad, Quad, Float, 4) => Some(Mat4x4f),
-    (Quad, Quad, Float, 2) => Some(Mat4x4h),
-    _ => None,
+  use crate::WgslMatType::*;
+  let ty = match (columns, rows, scalar.kind, scalar.width) {
+    (Bi, Bi, Float, 4) => Mat2x2f,
+    (Bi, Bi, Float, 2) => Mat2x2h,
+    (Tri, Bi, Float, 4) => Mat3x2f,
+    (Tri, Bi, Float, 2) => Mat3x2h,
+    (Quad, Bi, Float, 4) => Mat4x2f,
+    (Quad, Bi, Float, 2) => Mat4x2h,
+    (Bi, Tri, Float, 4) => Mat2x3f,
+    (Bi, Tri, Float, 2) => Mat2x3h,
+    (Tri, Tri, Float, 4) => Mat3x3f,
+    (Tri, Tri, Float, 2) => Mat3x3h,
+    (Quad, Tri, Float, 4) => Mat4x3f,
+    (Quad, Tri, Float, 2) => Mat4x3h,
+    (Bi, Quad, Float, 4) => Mat2x4f,
+    (Bi, Quad, Float, 2) => Mat2x4h,
+    (Tri, Quad, Float, 4) => Mat3x4f,
+    (Tri, Quad, Float, 2) => Mat3x4h,
+    (Quad, Quad, Float, 4) => Mat4x4f,
+    (Quad, Quad, Float, 2) => Mat4x4h,
+    _ => return None,
   };
 
   // validate assumptions about alignment and size
-  if let Some(ty) = built_in_ty {
-    let expected_vec_r_size = alignment.round_up(rows as u32 * scalar.width as u32);
-    let expected_size_after_alignment = expected_vec_r_size * columns as u32;
-    assert_alignment_and_size(ty, alignment, expected_size_after_alignment);
-  }
-
-  built_in_ty
+  let expected_vec_r_size = alignment.round_up(rows as u32 * scalar.width as u32);
+  let expected_size_after_alignment = expected_vec_r_size * columns as u32;
+  assert_alignment_and_size(ty, alignment, expected_size_after_alignment);
+  ty.get_mapped_type(&options.type_map)
 }
 
 pub(crate) fn rust_type(
@@ -227,19 +233,16 @@ pub(crate) fn rust_type(
 
   let alignment = type_layout.alignment;
 
-  let create_rust_type = |ty: WgslType| -> Option<RustTypeInfo> {
-    let info = options
-      .wgsl_type_map
-      .get_rust_type_info(ty)?;
-    assert!(alignment == info.alignment);
-    Some(info)
+  let with_validation = |ty: RustTypeInfo| -> Option<RustTypeInfo> {
+    assert!(alignment == ty.alignment);
+    Some(ty)
   };
 
   match &ty.inner {
     naga::TypeInner::Scalar(scalar) => rust_scalar_type(scalar, alignment),
     naga::TypeInner::Vector { size, scalar } => {
       let rust_type =
-        map_naga_vec_type(*size, *scalar, alignment).and_then(create_rust_type);
+        map_naga_vec_type(*size, *scalar, alignment, options).and_then(with_validation);
       if let Some(ty) = rust_type {
         ty
       } else {
@@ -256,8 +259,8 @@ pub(crate) fn rust_type(
       rows,
       scalar,
     } => {
-      let rust_type =
-        map_naga_mat_type(*columns, *rows, *scalar, alignment).and_then(create_rust_type);
+      let rust_type = map_naga_mat_type(*columns, *rows, *scalar, alignment, options)
+        .and_then(with_validation);
 
       if let Some(ty) = rust_type {
         ty
@@ -315,8 +318,18 @@ pub(crate) fn rust_type(
       span: _,
     } => {
       // TODO: Support structs?
-      let name = demangle_and_qualify(ty.name.as_ref().unwrap());
-      RustTypeInfo(name, type_layout.size as usize, alignment)
+      let name_str = ty.name.as_ref().unwrap();
+      let name = demangle_and_qualify(name_str);
+      let size = type_layout.size as usize;
+
+      // custom map struct
+      let mapped_type = WgslType::Struct {
+        fully_qualified_name: demangle(name_str).into(),
+      }
+      .get_mapped_type(&options.type_map, size, alignment)
+      .unwrap_or(RustTypeInfo(name, size, alignment));
+
+      mapped_type
     }
     naga::TypeInner::BindingArray { base: _, size: _ } => todo!(),
     naga::TypeInner::AccelerationStructure => todo!(),

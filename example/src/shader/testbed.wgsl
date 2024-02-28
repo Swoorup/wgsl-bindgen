@@ -6,8 +6,8 @@
 
 @group(2) @binding(1)
 // TODO: Fix this, I think the bug is in naga_oil.
-// var<storage> rts: array<reachme::RtsStruct>;
-var<storage> rts: reachme::RtsStruct;
+// var<storage> rts: array<reachme::rtsStruct>;
+var<storage> rts: reachme::rtsStruct;
 
 @group(2) @binding(2)
 var<storage> a: Scalars;

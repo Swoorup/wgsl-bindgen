@@ -1,5 +1,7 @@
 // https://github.com/LucentFlux/naga-to-tokenstream/blob/main/src/lib.rs#L26
-pub fn module_to_source(module: &naga::Module) -> Result<String, naga::back::wgsl::Error> {
+pub fn module_to_source(
+  module: &naga::Module,
+) -> Result<String, naga::back::wgsl::Error> {
   // Clone since we sometimes modify things
   #[allow(unused_mut)]
   let mut module = module.clone();

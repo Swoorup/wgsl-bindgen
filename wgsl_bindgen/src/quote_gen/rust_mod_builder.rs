@@ -6,7 +6,8 @@ use smallvec::SmallVec;
 use syn::Ident;
 use thiserror::Error;
 
-use super::{constants::MOD_REFERENCE_ROOT, RustSourceItem};
+use super::constants::MOD_REFERENCE_ROOT;
+use super::RustSourceItem;
 use crate::quote_gen::constants::mod_reference_root;
 
 #[derive(Debug, Error, Diagnostic)]
@@ -130,7 +131,7 @@ impl RustModBuilderConfig {
         RustMod {
           name: mod_name.into(),
           is_public: false,
-          module_attributes: quote!(#[allow(unused)]),
+          module_attributes: quote!(),
           initial_contents: quote! {pub use super::*;},
           ..Default::default()
         }
@@ -140,7 +141,6 @@ impl RustModBuilderConfig {
           is_public: true,
           module_attributes: quote!(),
           initial_contents: quote! {
-            #[allow(unused_imports)]
             use super::{#root, #root::*};
           },
           ..Default::default()
@@ -286,18 +286,15 @@ mod tests {
     assert_tokens_eq!(
       actual,
       quote! {
-        #[allow(unused)]
         mod _root {
           pub use super::*;
         }
         pub mod a {
-          #[allow(unused_imports)]
           use super::{_root, _root::*};
           struct B {
               a: a::b::A,
           }
           pub mod b {
-              #[allow(unused_imports)]
               use super::{_root, _root::*};
               struct A;
           }

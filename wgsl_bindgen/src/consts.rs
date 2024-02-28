@@ -2,7 +2,8 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
-use crate::{bevy_util::demangle_splitting_mod_path_and_item, quote_gen::RustSourceItem};
+use crate::bevy_util::demangle_splitting_mod_path_and_item;
+use crate::quote_gen::RustSourceItem;
 
 pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
   // Create matching Rust constants for WGSl constants.

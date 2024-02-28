@@ -26,7 +26,7 @@
 //!         .add_entry_point("src/shader/triangle.wgsl")
 //!         .skip_hash_check(true)
 //!         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-//!         .wgsl_type_map(GlamWgslTypeMap)
+//!         .type_map(GlamWgslTypeMap)
 //!         .derive_serde(false)
 //!         .output_file("src/shader.rs")
 //!         .build()?
@@ -47,13 +47,14 @@ use naga_util::module_to_source;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use quote_gen::{
-  add_prelude_types_assertions, create_shader_raw_string_literal, RustModBuilder,
+  add_custom_vector_matrix_assertions, create_shader_raw_string_literal, RustModBuilder,
   MOD_REFERENCE_ROOT,
 };
 use syn::{Ident, Index};
 use thiserror::Error;
 
 pub mod bevy_util;
+mod bindgen;
 mod bindgroup;
 mod consts;
 mod naga_util;
@@ -61,11 +62,10 @@ mod quote_gen;
 mod structs;
 mod types;
 mod wgsl;
-mod wgsl_bindgen;
 mod wgsl_type;
 
+pub use bindgen::*;
 pub use types::*;
-pub use wgsl_bindgen::*;
 pub use wgsl_type::*;
 
 /// Enum representing the possible serialization strategies for WGSL types.
@@ -104,7 +104,7 @@ fn create_rust_bindings(
   options: &WgslBindgenOption,
 ) -> Result<String, CreateModuleError> {
   let mut mod_builder = RustModBuilder::new(true);
-  mod_builder.add(MOD_REFERENCE_ROOT, add_prelude_types_assertions(options));
+  mod_builder.add(MOD_REFERENCE_ROOT, add_custom_vector_matrix_assertions(options));
 
   for entry in entries.iter() {
     let WgslEntryResult {
@@ -155,14 +155,17 @@ fn create_rust_bindings(
     mod_builder.add(mod_name, shader_module(entry, options));
   }
 
-  let output = mod_builder.generate();
+  let mod_token_stream = mod_builder.generate();
+  let output = quote! {
+    #![allow(unused, non_snake_case, non_camel_case_types)]
+    #mod_token_stream
+  };
   Ok(pretty_print(&output))
 }
 
 fn pretty_print(tokens: &TokenStream) -> String {
   let file = syn::parse_file(&tokens.to_string()).unwrap();
   prettyplease::unparse(&file)
-  // tokens.to_string()
 }
 
 fn indexed_name_to_ident(name: &str, index: u32) -> Ident {
@@ -192,7 +195,11 @@ fn shader_module_using_final_shader_string(entry: &WgslEntryResult) -> TokenStre
 fn shader_module_using_composer(
   entry: &WgslEntryResult,
   options: &WgslBindgenOption,
+  use_composer_with_path: bool,
 ) -> TokenStream {
+  let entry_source_path = entry.source_including_deps.source_file.file_path.as_path();
+  let entry_source_dir = entry_source_path.parent().unwrap();
+
   let output_dir = options
     .output_file
     .as_ref()
@@ -203,18 +210,21 @@ fn shader_module_using_composer(
         .into()
     });
 
-  let get_relative_path = |file: &SourceFilePath| -> String {
-    let relative_path = pathdiff::diff_paths(file.as_path(), &output_dir)
-      .expect("failed to get relative path");
+  fn get_path_relative_to(
+    file: &std::path::Path,
+    relative_to: &std::path::Path,
+  ) -> String {
+    let relative_path =
+      pathdiff::diff_paths(file, relative_to).expect("failed to get relative path");
+
     relative_path.to_str().unwrap().to_string()
-  };
+  }
 
   let add_shader_modules_token_stream = entry
     .source_including_deps
     .full_dependencies
     .iter()
     .map(|dep| {
-      let relative_file_path = get_relative_path(&dep.file_path);
       let as_name = dep.module_name.as_ref().map(|name| name.to_string());
 
       let as_name_assignment = match as_name {
@@ -222,39 +232,95 @@ fn shader_module_using_composer(
         None => quote!(),
       };
 
-      quote! {
-        composer.add_composable_module(
-          naga_oil::compose::ComposableModuleDescriptor {
-            source: include_str!(#relative_file_path),
-            file_path: #relative_file_path,
-            language: naga_oil::compose::ShaderLanguage::Wgsl,
-            #as_name_assignment,
-            ..Default::default()
-          }
-        ).expect("failed to add composer module");
+      if !use_composer_with_path {
+        let relative_file_path = get_path_relative_to(&dep.file_path, &output_dir);
+        quote! {
+          composer.add_composable_module(
+            naga_oil::compose::ComposableModuleDescriptor {
+              source: include_str!(#relative_file_path),
+              file_path: #relative_file_path,
+              language: naga_oil::compose::ShaderLanguage::Wgsl,
+              #as_name_assignment,
+              ..Default::default()
+            }
+          ).expect("failed to add composer module");
+        }
+      } else {
+        let relative_file_path = get_path_relative_to(&dep.file_path, entry_source_dir);
+
+        quote! {
+          let mut source_path = entry_dir_path.to_path_buf();
+          source_path.push(#relative_file_path);
+          let source = std::fs::read_to_string(&source_path)?;
+
+          composer.add_composable_module(
+            naga_oil::compose::ComposableModuleDescriptor {
+              source: &source,
+              file_path: source_path.to_str().unwrap(),
+              language: naga_oil::compose::ShaderLanguage::Wgsl,
+              #as_name_assignment,
+              ..Default::default()
+            }
+          ).expect("failed to add composer module");
+        }
       }
     })
     .collect::<Vec<_>>();
 
-  let entry_relative_path =
-    get_relative_path(&entry.source_including_deps.source_file.file_path);
-
-  quote! {
-    pub fn init_composer() -> naga_oil::compose::Composer {
-      #[allow(unused_mut)]
-      let mut composer = naga_oil::compose::Composer::default();
-      #(#add_shader_modules_token_stream)*
-      composer
+  let init_composer = if !use_composer_with_path {
+    quote! {
+      pub fn init_composer() -> naga_oil::compose::Composer {
+        let mut composer = naga_oil::compose::Composer::default();
+        #(#add_shader_modules_token_stream)*
+        composer
+      }
     }
-
-    pub fn make_naga_module(composer: &mut naga_oil::compose::Composer) -> wgpu::naga::Module {
-      composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-        source: include_str!(#entry_relative_path),
-        file_path: #entry_relative_path,
-        ..Default::default()
-      }).expect("failed to build naga module")
+  } else {
+    quote! {
+      pub fn init_composer(
+        entry_dir_path: &std::path::Path
+      ) -> Result<naga_oil::compose::Composer, std::io::Error> {
+        let mut composer = naga_oil::compose::Composer::default();
+        #(#add_shader_modules_token_stream)*
+        Ok(composer)
+      }
     }
+  };
 
+  let make_naga_module = if !use_composer_with_path {
+    let shader_file_path = get_path_relative_to(&entry_source_path, &output_dir);
+    quote! {
+      pub fn make_naga_module(composer: &mut naga_oil::compose::Composer) -> wgpu::naga::Module {
+        composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+          source: include_str!(#shader_file_path),
+          file_path: #shader_file_path,
+          ..Default::default()
+        }).expect("failed to build naga module")
+      }
+    }
+  } else {
+    let relative_file_path = get_path_relative_to(&entry_source_path, entry_source_dir);
+    quote! {
+      pub fn make_naga_module(
+        entry_dir_path: &std::path::Path,
+        composer: &mut naga_oil::compose::Composer
+      ) -> Result<wgpu::naga::Module, std::io::Error> {
+        let mut source_path = entry_dir_path.to_path_buf();
+        source_path.push(#relative_file_path);
+
+        let source = std::fs::read_to_string(&source_path)?;
+        let module = composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+          source: &source,
+          file_path: source_path.to_str().unwrap(),
+          ..Default::default()
+        }).expect("failed to build naga module");
+
+        Ok(module)
+      }
+    }
+  };
+
+  let naga_module_to_string = quote! {
     pub fn naga_module_to_string(module: &wgpu::naga::Module) -> String {
         // Mini validation to get module info
       let info = wgpu::naga::valid::Validator::new(
@@ -272,27 +338,80 @@ fn shader_module_using_composer(
         wgpu::naga::back::wgsl::WriterFlags::empty(),
       ).expect("failed to convert naga module to source")
     }
+  };
 
-    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
-      let mut composer = init_composer();
-      let module = make_naga_module(&mut composer);
+  let init_composer_stmt = if use_composer_with_path {
+    quote!(init_composer(entry_dir_path)?)
+  } else {
+    quote!(init_composer())
+  };
 
-      let source = naga_module_to_string(&module);
-      let source = std::borrow::Cow::Owned(source);
+  let make_naga_module_stmt = if use_composer_with_path {
+    quote!(make_naga_module(entry_dir_path, &mut composer)?)
+  } else {
+    quote!(make_naga_module(&mut composer))
+  };
+
+  let create_shader_module_params = if use_composer_with_path {
+    quote!(entry_dir_path: &std::path::Path, device: &wgpu::Device)
+  } else {
+    quote!(device: &wgpu::Device)
+  };
+
+  let create_shader_module_ret_ty = if use_composer_with_path {
+    quote!(Result<wgpu::ShaderModule, std::io::Error>)
+  } else {
+    quote!(wgpu::ShaderModule)
+  };
+
+  let create_shader_module_ret_stmt = if use_composer_with_path {
+    quote! {
+      let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: None,
+        source: wgpu::ShaderSource::Wgsl(source)
+      });
+      Ok(module)
+    }
+  } else {
+    quote! {
       device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: None,
         source: wgpu::ShaderSource::Wgsl(source)
       })
     }
+  };
+
+  let create_shader_module = quote! {
+    pub fn create_shader_module(#create_shader_module_params) -> #create_shader_module_ret_ty {
+      let mut composer = #init_composer_stmt;
+      let module = #make_naga_module_stmt;
+
+      let source = naga_module_to_string(&module);
+      let source = std::borrow::Cow::Owned(source);
+
+      #create_shader_module_ret_stmt
+    }
+  };
+
+  quote! {
+    #init_composer
+    #make_naga_module
+    #naga_module_to_string
+    #create_shader_module
   }
 }
 
 fn shader_module(entry: &WgslEntryResult, options: &WgslBindgenOption) -> TokenStream {
-  match options.shader_source_output_type {
-    WgslShaderSourceOutputType::FinalShaderString => {
+  match options.shader_source_type {
+    WgslShaderSourceType::UseSingleString => {
       shader_module_using_final_shader_string(entry)
     }
-    WgslShaderSourceOutputType::Composer => shader_module_using_composer(entry, options),
+    WgslShaderSourceType::UseComposerWithIncludeStr => {
+      shader_module_using_composer(entry, options, false)
+    }
+    WgslShaderSourceType::UseComposerWithPath => {
+      shader_module_using_composer(entry, options, true)
+    }
   }
 }
 
@@ -550,12 +669,11 @@ mod test {
 
     pretty_assertions::assert_eq!(
       indoc! {r##"
-                #[allow(unused)]
+                #![allow(unused, non_snake_case, non_camel_case_types)]
                 mod _root {
                     pub use super::*;
                 }
                 pub mod test {
-                    #[allow(unused_imports)]
                     use super::{_root, _root::*};
                     pub const ENTRY_FS_MAIN: &str = "fs_main";
                     pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {

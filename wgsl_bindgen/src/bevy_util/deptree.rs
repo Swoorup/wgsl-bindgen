@@ -5,9 +5,9 @@ use smallvec::SmallVec;
 use thiserror::Error;
 use DependencyTreeError::*;
 
-use super::{
-  parse_imports::ImportStatement, source_file::SourceFile, ModulePathResolver,
-};
+use super::parse_imports::ImportStatement;
+use super::source_file::SourceFile;
+use super::ModulePathResolver;
 use crate::{
   AdditionalScanDirectory, FxIndexMap, FxIndexSet, ImportedPath, SourceFileDir,
   SourceFilePath, SourceModuleName,
