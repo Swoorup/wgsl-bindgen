@@ -35,7 +35,7 @@ fn test_main_bindgen() -> Result<()> {
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
     .ir_capabilities(WgslShaderIRCapabilities::PUSH_CONSTANT)
-    .shader_source_type(WgslShaderSourceType::UseComposerWithPath)
+    .shader_source_type(WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr)
     .output_file("tests/output/bindgen_main.actual.rs")
     .build()?
     .generate()

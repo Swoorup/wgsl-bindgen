@@ -127,7 +127,7 @@ fn create_rust_bindings(
     mod_builder.add(mod_name, bind_groups_module(&bind_group_data, shader_stages));
     mod_builder.add(mod_name, vertex_struct_methods(naga_module));
 
-    mod_builder.add(mod_name, compute_module(naga_module));
+    mod_builder.add(mod_name, compute_module(naga_module, options.shader_source_type));
     mod_builder.add(mod_name, entry_point_constants(naga_module));
     mod_builder.add(mod_name, vertex_states(naga_module));
 
@@ -381,8 +381,18 @@ fn shader_module_using_composer(
     }
   };
 
-  let create_shader_module = quote! {
-    pub fn create_shader_module(#create_shader_module_params) -> #create_shader_module_ret_ty {
+  let create_shader_module_fn_name = if use_composer_with_path {
+    quote!(create_shader_module_from_dir)
+  } else {
+    quote!(create_shader_module)
+  };
+
+  quote! {
+    #init_composer
+    #make_naga_module
+    #naga_module_to_string
+
+    pub fn #create_shader_module_fn_name(#create_shader_module_params) -> #create_shader_module_ret_ty {
       let mut composer = #init_composer_stmt;
       let module = #make_naga_module_stmt;
 
@@ -391,13 +401,6 @@ fn shader_module_using_composer(
 
       #create_shader_module_ret_stmt
     }
-  };
-
-  quote! {
-    #init_composer
-    #make_naga_module
-    #naga_module_to_string
-    #create_shader_module
   }
 }
 
@@ -412,21 +415,48 @@ fn shader_module(entry: &WgslEntryResult, options: &WgslBindgenOption) -> TokenS
     WgslShaderSourceType::UseComposerWithPath => {
       shader_module_using_composer(entry, options, true)
     }
+    WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr => {
+      let shader_module_with_include_str = shader_module_using_final_shader_string(entry);
+      let shader_module_with_path = shader_module_using_composer(entry, options, true);
+
+      quote! {
+        #shader_module_with_include_str
+        #shader_module_with_path
+      }
+    }
   }
 }
 
-fn compute_module(module: &naga::Module) -> TokenStream {
+fn compute_module(
+  module: &naga::Module,
+  source_type: WgslShaderSourceType,
+) -> TokenStream {
   let entry_points: Vec<_> = module
     .entry_points
     .iter()
     .filter_map(|e| {
       if e.stage == naga::ShaderStage::Compute {
         let workgroup_size_constant = workgroup_size(e);
-        let create_pipeline = create_compute_pipeline(e);
+        let create_pipeline_fns = match source_type {
+          WgslShaderSourceType::UseSingleString
+          | WgslShaderSourceType::UseComposerWithIncludeStr => {
+            create_compute_pipeline(e, false)
+          }
+          WgslShaderSourceType::UseComposerWithPath => create_compute_pipeline(e, true),
+          WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr => {
+            let inner_with_include_str = create_compute_pipeline(e, false);
+            let inner_with_path = create_compute_pipeline(e, true);
+
+            quote! {
+              #inner_with_include_str
+              #inner_with_path
+            }
+          }
+        };
 
         Some(quote! {
             #workgroup_size_constant
-            #create_pipeline
+            #create_pipeline_fns
         })
       } else {
         None
@@ -446,23 +476,54 @@ fn compute_module(module: &naga::Module) -> TokenStream {
   }
 }
 
-fn create_compute_pipeline(e: &naga::EntryPoint) -> TokenStream {
+fn create_compute_pipeline(e: &naga::EntryPoint, uses_shader_path: bool) -> TokenStream {
   // Compute pipeline creation has few parameters and can be generated.
-  let pipeline_name =
-    Ident::new(&format!("create_{}_pipeline", e.name), Span::call_site());
+  let pipeline_name_str = if uses_shader_path {
+    format!("create_{}_pipeline_from_dir", e.name)
+  } else {
+    format!("create_{}_pipeline", e.name)
+  };
+
+  let pipeline_name = Ident::new(&pipeline_name_str, Span::call_site());
   let entry_point = &e.name;
   // TODO: Include a user supplied module name in the label?
   let label = format!("Compute Pipeline {}", e.name);
+
+  let invoke_create_shader_module_fn = if uses_shader_path {
+    quote!(super::create_shader_module_from_dir(entry_dir_path, device)?)
+  } else {
+    quote!(super::create_shader_module(device))
+  };
+
+  let params = if uses_shader_path {
+    quote!(entry_dir_path: &std::path::Path, device: &wgpu::Device)
+  } else {
+    quote!(device: &wgpu::Device)
+  };
+
+  let ret_type = if uses_shader_path {
+    quote!(Result<wgpu::ComputePipeline, std::io::Error>)
+  } else {
+    quote!(wgpu::ComputePipeline)
+  };
+
+  let ret_stmt = if uses_shader_path {
+    quote!(Ok(pipeline))
+  } else {
+    quote!(pipeline)
+  };
+
   quote! {
-      pub fn #pipeline_name(device: &wgpu::Device) -> wgpu::ComputePipeline {
-          let module = super::create_shader_module(device);
+      pub fn #pipeline_name(#params) -> #ret_type {
+          let module = #invoke_create_shader_module_fn;
           let layout = super::create_pipeline_layout(device);
-          device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+          let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
               label: Some(#label),
               layout: Some(&layout),
               module: &module,
               entry_point: #entry_point,
-          })
+          });
+          #ret_stmt
       }
   }
 }
@@ -1009,7 +1070,7 @@ mod test {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = compute_module(&module);
+    let actual = compute_module(&module, WgslShaderSourceType::UseSingleString);
 
     assert_tokens_eq!(quote!(), actual);
   }
@@ -1028,7 +1089,7 @@ mod test {
     };
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = compute_module(&module);
+    let actual = compute_module(&module, WgslShaderSourceType::UseSingleString);
 
     assert_tokens_eq!(
       quote! {
@@ -1037,7 +1098,7 @@ mod test {
               pub fn create_main1_pipeline(device: &wgpu::Device) -> wgpu::ComputePipeline {
                   let module = super::create_shader_module(device);
                   let layout = super::create_pipeline_layout(device);
-                  device
+                  let pipeline = device
                       .create_compute_pipeline(
                           &wgpu::ComputePipelineDescriptor {
                               label: Some("Compute Pipeline main1"),
@@ -1045,13 +1106,14 @@ mod test {
                               module: &module,
                               entry_point: "main1",
                           },
-                      )
+                      );
+                  pipeline
               }
               pub const MAIN2_WORKGROUP_SIZE: [u32; 3] = [256, 1, 1];
               pub fn create_main2_pipeline(device: &wgpu::Device) -> wgpu::ComputePipeline {
                   let module = super::create_shader_module(device);
                   let layout = super::create_pipeline_layout(device);
-                  device
+                  let pipeline = device
                       .create_compute_pipeline(
                           &wgpu::ComputePipelineDescriptor {
                               label: Some("Compute Pipeline main2"),
@@ -1059,7 +1121,8 @@ mod test {
                               module: &module,
                               entry_point: "main2",
                           },
-                      )
+                      );
+                  pipeline
               }
           }
       },

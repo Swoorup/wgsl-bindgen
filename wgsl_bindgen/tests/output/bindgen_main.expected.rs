@@ -191,7 +191,7 @@ pub mod main {
         pub fn create_main_pipeline(device: &wgpu::Device) -> wgpu::ComputePipeline {
             let module = super::create_shader_module(device);
             let layout = super::create_pipeline_layout(device);
-            device
+            let pipeline = device
                 .create_compute_pipeline(
                     &wgpu::ComputePipelineDescriptor {
                         label: Some("Compute Pipeline main"),
@@ -199,7 +199,25 @@ pub mod main {
                         module: &module,
                         entry_point: "main",
                     },
-                )
+                );
+            pipeline
+        }
+        pub fn create_main_pipeline_from_dir(
+            entry_dir_path: &std::path::Path,
+            device: &wgpu::Device,
+        ) -> Result<wgpu::ComputePipeline, std::io::Error> {
+            let module = super::create_shader_module_from_dir(entry_dir_path, device)?;
+            let layout = super::create_pipeline_layout(device);
+            let pipeline = device
+                .create_compute_pipeline(
+                    &wgpu::ComputePipelineDescriptor {
+                        label: Some("Compute Pipeline main"),
+                        layout: Some(&layout),
+                        module: &module,
+                        entry_point: "main",
+                    },
+                );
+            Ok(pipeline)
         }
     }
     pub const ENTRY_MAIN: &str = "main";
@@ -216,6 +234,36 @@ pub mod main {
                 },
             )
     }
+    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    const SHADER_STRING: &'static str = r#"
+struct Style {
+    color: vec4<f32>,
+    width: f32,
+}
+
+@group(1) @binding(11) 
+var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
+@group(0) @binding(0) 
+var<storage, read_write> buffer: array<f32>;
+var<push_constant> const_style: Style;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
+    let _e11 = const_style.color.w;
+    let _e15 = const_style.width;
+    let _e17 = buffer[id.x];
+    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
+    return;
+}
+"#;
     pub fn init_composer(
         entry_dir_path: &std::path::Path,
     ) -> Result<naga_oil::compose::Composer, std::io::Error> {
@@ -276,7 +324,7 @@ pub mod main {
             )
             .expect("failed to convert naga module to source")
     }
-    pub fn create_shader_module(
+    pub fn create_shader_module_from_dir(
         entry_dir_path: &std::path::Path,
         device: &wgpu::Device,
     ) -> Result<wgpu::ShaderModule, std::io::Error> {

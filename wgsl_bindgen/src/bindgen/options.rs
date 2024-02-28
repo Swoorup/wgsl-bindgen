@@ -19,6 +19,9 @@ pub enum WgslShaderSourceType {
   /// Use Composer with shader path relative to executing directory, including helper functions which will be executed on runtime
   /// This is useful for hot-reloading
   UseComposerWithPath,
+
+  /// Use both `UseSingleString` and `UseComposerWithPath` option.
+  UseBothComposerWithPathAndIncludeStr,
 }
 
 /// A struct representing a directory to scan for additional source files.
@@ -258,6 +261,7 @@ impl WgslBindgenOptionBuilder {
     self
   }
 
+  /// Adds custom struct mappings to the type map.
   pub fn custom_struct_mapping(
     &mut self,
     mappings: impl IntoIterator<Item = impl Into<CustomStructMapping>>,

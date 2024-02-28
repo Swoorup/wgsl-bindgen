@@ -13,7 +13,7 @@ fn main() -> Result<()> {
         .derive_serde(false)
         .output_file("src/shader.rs")
         .short_constructor(2)
-        .shader_source_type(WgslShaderSourceType::UseComposerWithIncludeStr)
+        .shader_source_type(WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr)
         .build()?
         .generate()
         .into_diagnostic()
