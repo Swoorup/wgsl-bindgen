@@ -1104,7 +1104,7 @@ mod tests {
             pub c: f32,
         }
         impl Input0Init {
-            pub const fn const_into(&self) -> Input0 {
+            pub const fn build(&self) -> Input0 {
                 Input0 {
                     a: self.a,
                     _pad_a: [0; 0x8 - core::mem::size_of::<u32>()],
@@ -1117,7 +1117,7 @@ mod tests {
         }
         impl From<Input0Init> for Input0 {
             fn from(data: Input0Init) -> Self {
-                data.const_into()
+                data.build()
             }
         }
 

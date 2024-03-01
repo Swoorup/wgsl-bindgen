@@ -269,7 +269,7 @@ impl<'a> RustStructBuilder<'a> {
       }
 
       #impl_fragment #init_struct_name_in_usage {
-        pub const fn const_into(&self) -> #struct_name_in_usage {
+        pub const fn build(&self) -> #struct_name_in_usage {
           #struct_name {
             #(#mem_assignments),*
           }
@@ -278,7 +278,7 @@ impl<'a> RustStructBuilder<'a> {
 
       #impl_fragment From<#init_struct_name_in_usage> for #struct_name_in_usage {
         fn from(data: #init_struct_name_in_usage) -> Self {
-          data.const_into()
+          data.build()
         }
       }
     }

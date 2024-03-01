@@ -11,9 +11,13 @@ fn main() -> Result<()> {
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
         .type_map(GlamWgslTypeMap)
         .derive_serde(false)
-        .output_file("src/shader.rs")
+        .output("src/shader.rs")
         .short_constructor(2)
-        .shader_source_type(WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr)
+        .shader_source_type(
+            WgslShaderSourceType::UseComposerWithPath
+                | WgslShaderSourceType::UseComposerEmbed
+                | WgslShaderSourceType::UseEmbed,
+        )
         .build()?
         .generate()
         .into_diagnostic()

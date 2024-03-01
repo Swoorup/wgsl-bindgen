@@ -28,7 +28,7 @@
 //!         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
 //!         .type_map(GlamWgslTypeMap)
 //!         .derive_serde(false)
-//!         .output_file("src/shader.rs")
+//!         .output("src/shader.rs".to_string())
 //!         .build()?
 //!         .generate()
 //!         .into_diagnostic()
@@ -43,13 +43,9 @@ use bindgroup::{bind_groups_module, get_bind_group_data};
 use case::CaseExt;
 use derive_more::IsVariant;
 use naga::ShaderStage;
-use naga_util::module_to_source;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use quote_gen::{
-  add_custom_vector_matrix_assertions, create_shader_raw_string_literal, RustModBuilder,
-  MOD_REFERENCE_ROOT,
-};
+use quote_gen::{add_custom_vector_matrix_assertions, RustModBuilder};
 use syn::{Ident, Index};
 use thiserror::Error;
 
@@ -59,6 +55,8 @@ mod bindgroup;
 mod consts;
 mod naga_util;
 mod quote_gen;
+mod shader_module;
+mod shader_registry;
 mod structs;
 mod types;
 mod wgsl;
@@ -104,7 +102,6 @@ fn create_rust_bindings(
   options: &WgslBindgenOption,
 ) -> Result<String, CreateModuleError> {
   let mut mod_builder = RustModBuilder::new(true);
-  mod_builder.add(MOD_REFERENCE_ROOT, add_custom_vector_matrix_assertions(options));
 
   for entry in entries.iter() {
     let WgslEntryResult {
@@ -124,10 +121,14 @@ fn create_rust_bindings(
       .add_items(mod_name, consts::consts_items(naga_module))
       .unwrap();
 
-    mod_builder.add(mod_name, bind_groups_module(&bind_group_data, shader_stages));
     mod_builder.add(mod_name, vertex_struct_methods(naga_module));
 
-    mod_builder.add(mod_name, compute_module(naga_module, options.shader_source_type));
+    mod_builder.add(mod_name, bind_groups_module(&bind_group_data, shader_stages));
+
+    mod_builder.add(
+      mod_name,
+      shader_module::compute_module(naga_module, options.shader_source_type),
+    );
     mod_builder.add(mod_name, entry_point_constants(naga_module));
     mod_builder.add(mod_name, vertex_states(naga_module));
 
@@ -152,14 +153,21 @@ fn create_rust_bindings(
     };
 
     mod_builder.add(mod_name, create_pipeline_layout);
-    mod_builder.add(mod_name, shader_module(entry, options));
+    mod_builder.add(mod_name, shader_module::shader_module(entry, options));
   }
 
   let mod_token_stream = mod_builder.generate();
+  let shader_registry =
+    shader_registry::build_shader_registry(&entries, options.shader_source_type);
+  let assertions = add_custom_vector_matrix_assertions(options);
   let output = quote! {
     #![allow(unused, non_snake_case, non_camel_case_types)]
+
+    #shader_registry
+    #assertions
     #mod_token_stream
   };
+
   Ok(pretty_print(&output))
 }
 
@@ -170,370 +178,6 @@ fn pretty_print(tokens: &TokenStream) -> String {
 
 fn indexed_name_to_ident(name: &str, index: u32) -> Ident {
   Ident::new(&format!("{name}{index}"), Span::call_site())
-}
-
-fn shader_module_using_final_shader_string(entry: &WgslEntryResult) -> TokenStream {
-  let shader_content = module_to_source(&entry.naga_module).unwrap();
-  let shader_literal = create_shader_raw_string_literal(&shader_content);
-  let create_shader_module = quote! {
-      pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
-          let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-          device.create_shader_module(wgpu::ShaderModuleDescriptor {
-              label: None,
-              source: wgpu::ShaderSource::Wgsl(source)
-          })
-      }
-  };
-  let shader_str_def = quote!(const SHADER_STRING: &'static str = #shader_literal;);
-
-  quote! {
-    #create_shader_module
-    #shader_str_def
-  }
-}
-
-fn shader_module_using_composer(
-  entry: &WgslEntryResult,
-  options: &WgslBindgenOption,
-  use_composer_with_path: bool,
-) -> TokenStream {
-  let entry_source_path = entry.source_including_deps.source_file.file_path.as_path();
-  let entry_source_dir = entry_source_path.parent().unwrap();
-
-  let output_dir = options
-    .output_file
-    .as_ref()
-    .and_then(|output_file| output_file.parent().map(|p| p.to_path_buf()))
-    .unwrap_or_else(|| {
-      std::env::var("CARGO_MANIFEST_DIR")
-        .unwrap_or_else(|_| ".".into())
-        .into()
-    });
-
-  fn get_path_relative_to(
-    file: &std::path::Path,
-    relative_to: &std::path::Path,
-  ) -> String {
-    let relative_path =
-      pathdiff::diff_paths(file, relative_to).expect("failed to get relative path");
-
-    relative_path.to_str().unwrap().to_string()
-  }
-
-  let add_shader_modules_token_stream = entry
-    .source_including_deps
-    .full_dependencies
-    .iter()
-    .map(|dep| {
-      let as_name = dep.module_name.as_ref().map(|name| name.to_string());
-
-      let as_name_assignment = match as_name {
-        Some(as_name) => quote! { as_name: Some(#as_name.into()) },
-        None => quote!(),
-      };
-
-      if !use_composer_with_path {
-        let relative_file_path = get_path_relative_to(&dep.file_path, &output_dir);
-        quote! {
-          composer.add_composable_module(
-            naga_oil::compose::ComposableModuleDescriptor {
-              source: include_str!(#relative_file_path),
-              file_path: #relative_file_path,
-              language: naga_oil::compose::ShaderLanguage::Wgsl,
-              #as_name_assignment,
-              ..Default::default()
-            }
-          ).expect("failed to add composer module");
-        }
-      } else {
-        let relative_file_path = get_path_relative_to(&dep.file_path, entry_source_dir);
-
-        quote! {
-          let mut source_path = entry_dir_path.to_path_buf();
-          source_path.push(#relative_file_path);
-          let source = std::fs::read_to_string(&source_path)?;
-
-          composer.add_composable_module(
-            naga_oil::compose::ComposableModuleDescriptor {
-              source: &source,
-              file_path: source_path.to_str().unwrap(),
-              language: naga_oil::compose::ShaderLanguage::Wgsl,
-              #as_name_assignment,
-              ..Default::default()
-            }
-          ).expect("failed to add composer module");
-        }
-      }
-    })
-    .collect::<Vec<_>>();
-
-  let init_composer = if !use_composer_with_path {
-    quote! {
-      pub fn init_composer() -> naga_oil::compose::Composer {
-        let mut composer = naga_oil::compose::Composer::default();
-        #(#add_shader_modules_token_stream)*
-        composer
-      }
-    }
-  } else {
-    quote! {
-      pub fn init_composer(
-        entry_dir_path: &std::path::Path
-      ) -> Result<naga_oil::compose::Composer, std::io::Error> {
-        let mut composer = naga_oil::compose::Composer::default();
-        #(#add_shader_modules_token_stream)*
-        Ok(composer)
-      }
-    }
-  };
-
-  let make_naga_module = if !use_composer_with_path {
-    let shader_file_path = get_path_relative_to(&entry_source_path, &output_dir);
-    quote! {
-      pub fn make_naga_module(composer: &mut naga_oil::compose::Composer) -> wgpu::naga::Module {
-        composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-          source: include_str!(#shader_file_path),
-          file_path: #shader_file_path,
-          ..Default::default()
-        }).expect("failed to build naga module")
-      }
-    }
-  } else {
-    let relative_file_path = get_path_relative_to(&entry_source_path, entry_source_dir);
-    quote! {
-      pub fn make_naga_module(
-        entry_dir_path: &std::path::Path,
-        composer: &mut naga_oil::compose::Composer
-      ) -> Result<wgpu::naga::Module, std::io::Error> {
-        let mut source_path = entry_dir_path.to_path_buf();
-        source_path.push(#relative_file_path);
-
-        let source = std::fs::read_to_string(&source_path)?;
-        let module = composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-          source: &source,
-          file_path: source_path.to_str().unwrap(),
-          ..Default::default()
-        }).expect("failed to build naga module");
-
-        Ok(module)
-      }
-    }
-  };
-
-  let naga_module_to_string = quote! {
-    pub fn naga_module_to_string(module: &wgpu::naga::Module) -> String {
-        // Mini validation to get module info
-      let info = wgpu::naga::valid::Validator::new(
-        wgpu::naga::valid::ValidationFlags::empty(),
-        wgpu::naga::valid::Capabilities::all(),
-      )
-      .validate(&module);
-
-      // Write to wgsl
-      let info = info.unwrap();
-
-      wgpu::naga::back::wgsl::write_string(
-        &module,
-        &info,
-        wgpu::naga::back::wgsl::WriterFlags::empty(),
-      ).expect("failed to convert naga module to source")
-    }
-  };
-
-  let init_composer_stmt = if use_composer_with_path {
-    quote!(init_composer(entry_dir_path)?)
-  } else {
-    quote!(init_composer())
-  };
-
-  let make_naga_module_stmt = if use_composer_with_path {
-    quote!(make_naga_module(entry_dir_path, &mut composer)?)
-  } else {
-    quote!(make_naga_module(&mut composer))
-  };
-
-  let create_shader_module_params = if use_composer_with_path {
-    quote!(entry_dir_path: &std::path::Path, device: &wgpu::Device)
-  } else {
-    quote!(device: &wgpu::Device)
-  };
-
-  let create_shader_module_ret_ty = if use_composer_with_path {
-    quote!(Result<wgpu::ShaderModule, std::io::Error>)
-  } else {
-    quote!(wgpu::ShaderModule)
-  };
-
-  let create_shader_module_ret_stmt = if use_composer_with_path {
-    quote! {
-      let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(source)
-      });
-      Ok(module)
-    }
-  } else {
-    quote! {
-      device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(source)
-      })
-    }
-  };
-
-  let create_shader_module_fn_name = if use_composer_with_path {
-    quote!(create_shader_module_from_dir)
-  } else {
-    quote!(create_shader_module)
-  };
-
-  quote! {
-    #init_composer
-    #make_naga_module
-    #naga_module_to_string
-
-    pub fn #create_shader_module_fn_name(#create_shader_module_params) -> #create_shader_module_ret_ty {
-      let mut composer = #init_composer_stmt;
-      let module = #make_naga_module_stmt;
-
-      let source = naga_module_to_string(&module);
-      let source = std::borrow::Cow::Owned(source);
-
-      #create_shader_module_ret_stmt
-    }
-  }
-}
-
-fn shader_module(entry: &WgslEntryResult, options: &WgslBindgenOption) -> TokenStream {
-  match options.shader_source_type {
-    WgslShaderSourceType::UseSingleString => {
-      shader_module_using_final_shader_string(entry)
-    }
-    WgslShaderSourceType::UseComposerWithIncludeStr => {
-      shader_module_using_composer(entry, options, false)
-    }
-    WgslShaderSourceType::UseComposerWithPath => {
-      shader_module_using_composer(entry, options, true)
-    }
-    WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr => {
-      let shader_module_with_include_str = shader_module_using_final_shader_string(entry);
-      let shader_module_with_path = shader_module_using_composer(entry, options, true);
-
-      quote! {
-        #shader_module_with_include_str
-        #shader_module_with_path
-      }
-    }
-  }
-}
-
-fn compute_module(
-  module: &naga::Module,
-  source_type: WgslShaderSourceType,
-) -> TokenStream {
-  let entry_points: Vec<_> = module
-    .entry_points
-    .iter()
-    .filter_map(|e| {
-      if e.stage == naga::ShaderStage::Compute {
-        let workgroup_size_constant = workgroup_size(e);
-        let create_pipeline_fns = match source_type {
-          WgslShaderSourceType::UseSingleString
-          | WgslShaderSourceType::UseComposerWithIncludeStr => {
-            create_compute_pipeline(e, false)
-          }
-          WgslShaderSourceType::UseComposerWithPath => create_compute_pipeline(e, true),
-          WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr => {
-            let inner_with_include_str = create_compute_pipeline(e, false);
-            let inner_with_path = create_compute_pipeline(e, true);
-
-            quote! {
-              #inner_with_include_str
-              #inner_with_path
-            }
-          }
-        };
-
-        Some(quote! {
-            #workgroup_size_constant
-            #create_pipeline_fns
-        })
-      } else {
-        None
-      }
-    })
-    .collect();
-
-  if entry_points.is_empty() {
-    // Don't include empty modules.
-    quote!()
-  } else {
-    quote! {
-        pub mod compute {
-            #(#entry_points)*
-        }
-    }
-  }
-}
-
-fn create_compute_pipeline(e: &naga::EntryPoint, uses_shader_path: bool) -> TokenStream {
-  // Compute pipeline creation has few parameters and can be generated.
-  let pipeline_name_str = if uses_shader_path {
-    format!("create_{}_pipeline_from_dir", e.name)
-  } else {
-    format!("create_{}_pipeline", e.name)
-  };
-
-  let pipeline_name = Ident::new(&pipeline_name_str, Span::call_site());
-  let entry_point = &e.name;
-  // TODO: Include a user supplied module name in the label?
-  let label = format!("Compute Pipeline {}", e.name);
-
-  let invoke_create_shader_module_fn = if uses_shader_path {
-    quote!(super::create_shader_module_from_dir(entry_dir_path, device)?)
-  } else {
-    quote!(super::create_shader_module(device))
-  };
-
-  let params = if uses_shader_path {
-    quote!(entry_dir_path: &std::path::Path, device: &wgpu::Device)
-  } else {
-    quote!(device: &wgpu::Device)
-  };
-
-  let ret_type = if uses_shader_path {
-    quote!(Result<wgpu::ComputePipeline, std::io::Error>)
-  } else {
-    quote!(wgpu::ComputePipeline)
-  };
-
-  let ret_stmt = if uses_shader_path {
-    quote!(Ok(pipeline))
-  } else {
-    quote!(pipeline)
-  };
-
-  quote! {
-      pub fn #pipeline_name(#params) -> #ret_type {
-          let module = #invoke_create_shader_module_fn;
-          let layout = super::create_pipeline_layout(device);
-          let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-              label: Some(#label),
-              layout: Some(&layout),
-              module: &module,
-              entry_point: #entry_point,
-          });
-          #ret_stmt
-      }
-  }
-}
-
-fn workgroup_size(e: &naga::EntryPoint) -> TokenStream {
-  // Use Index to avoid specifying the type on literals.
-  let name =
-    Ident::new(&format!("{}_WORKGROUP_SIZE", e.name.to_uppercase()), Span::call_site());
-  let [x, y, z] = e.workgroup_size.map(|s| Index::from(s as usize));
-  quote!(pub const #name: [u32; 3] = [#x, #y, #z];)
 }
 
 fn vertex_struct_methods(module: &naga::Module) -> TokenStream {
@@ -716,7 +360,7 @@ mod test {
       },
     };
 
-    create_rust_bindings(vec![entry], &options)
+    Ok(create_rust_bindings(vec![entry], &options)?)
   }
 
   #[test]
@@ -731,6 +375,25 @@ mod test {
     pretty_assertions::assert_eq!(
       indoc! {r##"
                 #![allow(unused, non_snake_case, non_camel_case_types)]
+                #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+                pub enum ShaderRegistry {
+                    Test,
+                }
+                impl ShaderRegistry {
+                    pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+                        match self {
+                            Self::Test => test::create_pipeline_layout(device),
+                        }
+                    }
+                    pub fn create_shader_module_embed_source(
+                        &self,
+                        device: &wgpu::Device,
+                    ) -> wgpu::ShaderModule {
+                        match self {
+                            Self::Test => test::create_shader_module_embed_source(device),
+                        }
+                    }
+                }
                 mod _root {
                     pub use super::*;
                 }
@@ -747,7 +410,9 @@ mod test {
                                 },
                             )
                     }
-                    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+                    pub fn create_shader_module_embed_source(
+                        device: &wgpu::Device,
+                    ) -> wgpu::ShaderModule {
                         let source = std::borrow::Cow::Borrowed(SHADER_STRING);
                         device
                             .create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -1055,74 +720,6 @@ mod test {
                       step_mode,
                       attributes: &VertexInput0::VERTEX_ATTRIBUTES,
                   }
-              }
-          }
-      },
-      actual
-    );
-  }
-
-  #[test]
-  fn write_compute_module_empty() {
-    let source = indoc! {r#"
-            @vertex
-            fn main() {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = compute_module(&module, WgslShaderSourceType::UseSingleString);
-
-    assert_tokens_eq!(quote!(), actual);
-  }
-
-  #[test]
-  fn write_compute_module_multiple_entries() {
-    let source = indoc! {r#"
-            @compute
-            @workgroup_size(1,2,3)
-            fn main1() {}
-
-            @compute
-            @workgroup_size(256)
-            fn main2() {}
-        "#
-    };
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = compute_module(&module, WgslShaderSourceType::UseSingleString);
-
-    assert_tokens_eq!(
-      quote! {
-          pub mod compute {
-              pub const MAIN1_WORKGROUP_SIZE: [u32; 3] = [1, 2, 3];
-              pub fn create_main1_pipeline(device: &wgpu::Device) -> wgpu::ComputePipeline {
-                  let module = super::create_shader_module(device);
-                  let layout = super::create_pipeline_layout(device);
-                  let pipeline = device
-                      .create_compute_pipeline(
-                          &wgpu::ComputePipelineDescriptor {
-                              label: Some("Compute Pipeline main1"),
-                              layout: Some(&layout),
-                              module: &module,
-                              entry_point: "main1",
-                          },
-                      );
-                  pipeline
-              }
-              pub const MAIN2_WORKGROUP_SIZE: [u32; 3] = [256, 1, 1];
-              pub fn create_main2_pipeline(device: &wgpu::Device) -> wgpu::ComputePipeline {
-                  let module = super::create_shader_module(device);
-                  let layout = super::create_pipeline_layout(device);
-                  let pipeline = device
-                      .create_compute_pipeline(
-                          &wgpu::ComputePipelineDescriptor {
-                              label: Some("Compute Pipeline main2"),
-                              layout: Some(&layout),
-                              module: &module,
-                              entry_point: "main2",
-                          },
-                      );
-                  pipeline
               }
           }
       },

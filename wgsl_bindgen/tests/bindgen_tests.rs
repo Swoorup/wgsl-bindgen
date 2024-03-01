@@ -13,7 +13,7 @@ fn test_bevy_bindgen() -> Result<()> {
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output_file("tests/output/bindgen_bevy.actual.rs")
+    .output("tests/output/bindgen_bevy.actual.rs".to_string())
     .build()?
     .generate()
     .into_diagnostic()?;
@@ -35,8 +35,10 @@ fn test_main_bindgen() -> Result<()> {
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
     .ir_capabilities(WgslShaderIRCapabilities::PUSH_CONSTANT)
-    .shader_source_type(WgslShaderSourceType::UseBothComposerWithPathAndIncludeStr)
-    .output_file("tests/output/bindgen_main.actual.rs")
+    .shader_source_type(
+      WgslShaderSourceType::UseEmbed | WgslShaderSourceType::UseComposerWithPath,
+    )
+    .output("tests/output/bindgen_main.actual.rs".to_string())
     .build()?
     .generate()
     .into_diagnostic()?;
