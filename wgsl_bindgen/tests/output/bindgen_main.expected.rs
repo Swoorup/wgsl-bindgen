@@ -1,16 +1,49 @@
 #![allow(unused, non_snake_case, non_camel_case_types)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderRegistry {
+    Main,
+}
+impl ShaderRegistry {
+    pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+        match self {
+            Self::Main => main::create_pipeline_layout(device),
+        }
+    }
+    pub fn create_shader_module_embed_source(
+        &self,
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        match self {
+            Self::Main => main::create_shader_module_embed_source(device),
+        }
+    }
+    pub fn create_shader_module_from_path(
+        &self,
+        device: &wgpu::Device,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> wgpu::ShaderModule {
+        match self {
+            Self::Main => main::create_shader_module_from_path(device, shader_defs),
+        }
+    }
+    pub fn shader_files(&self) -> &[&str] {
+        match self {
+            Self::Main => main::SHADER_FILES,
+        }
+    }
+}
+const _: () = {
+    assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
+    assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
+    assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
+    assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
+    assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
+    assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
+    assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
+    assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
+};
 mod _root {
     pub use super::*;
-    const _: () = {
-        assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
-        assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
-        assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
-        assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
-        assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
-        assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
-        assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
-        assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
-    };
 }
 pub mod main {
     use super::{_root, _root::*};
@@ -46,7 +79,7 @@ pub mod main {
         pub width: f32,
     }
     impl StyleInit {
-        pub const fn const_into(&self) -> Style {
+        pub const fn build(&self) -> Style {
             Style {
                 color: self.color,
                 width: self.width,
@@ -56,7 +89,7 @@ pub mod main {
     }
     impl From<StyleInit> for Style {
         fn from(data: StyleInit) -> Self {
-            data.const_into()
+            data.build()
         }
     }
     pub mod bind_groups {
@@ -188,27 +221,12 @@ pub mod main {
     }
     pub mod compute {
         pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
-        pub fn create_main_pipeline(device: &wgpu::Device) -> wgpu::ComputePipeline {
-            let module = super::create_shader_module(device);
-            let layout = super::create_pipeline_layout(device);
-            let pipeline = device
-                .create_compute_pipeline(
-                    &wgpu::ComputePipelineDescriptor {
-                        label: Some("Compute Pipeline main"),
-                        layout: Some(&layout),
-                        module: &module,
-                        entry_point: "main",
-                    },
-                );
-            pipeline
-        }
-        pub fn create_main_pipeline_from_dir(
-            entry_dir_path: &std::path::Path,
+        pub fn create_main_pipeline_embed_source(
             device: &wgpu::Device,
-        ) -> Result<wgpu::ComputePipeline, std::io::Error> {
-            let module = super::create_shader_module_from_dir(entry_dir_path, device)?;
+        ) -> wgpu::ComputePipeline {
+            let module = super::create_shader_module_embed_source(device);
             let layout = super::create_pipeline_layout(device);
-            let pipeline = device
+            device
                 .create_compute_pipeline(
                     &wgpu::ComputePipelineDescriptor {
                         label: Some("Compute Pipeline main"),
@@ -216,8 +234,26 @@ pub mod main {
                         module: &module,
                         entry_point: "main",
                     },
-                );
-            Ok(pipeline)
+                )
+        }
+        pub fn create_main_pipeline_from_path(
+            device: &wgpu::Device,
+            shader_defs: std::collections::HashMap<
+                String,
+                naga_oil::compose::ShaderDefValue,
+            >,
+        ) -> wgpu::ComputePipeline {
+            let module = super::create_shader_module_from_path(device, shader_defs);
+            let layout = super::create_pipeline_layout(device);
+            device
+                .create_compute_pipeline(
+                    &wgpu::ComputePipelineDescriptor {
+                        label: Some("Compute Pipeline main"),
+                        layout: Some(&layout),
+                        module: &module,
+                        entry_point: "main",
+                    },
+                )
         }
     }
     pub const ENTRY_MAIN: &str = "main";
@@ -234,7 +270,9 @@ pub mod main {
                 },
             )
     }
-    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
         let source = std::borrow::Cow::Borrowed(SHADER_STRING);
         device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -264,79 +302,81 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     return;
 }
 "#;
-    pub fn init_composer(
-        entry_dir_path: &std::path::Path,
-    ) -> Result<naga_oil::compose::Composer, std::io::Error> {
-        let mut composer = naga_oil::compose::Composer::default();
-        let mut source_path = entry_dir_path.to_path_buf();
-        source_path.push("bindings.wgsl");
-        let source = std::fs::read_to_string(&source_path)?;
+    pub const SHADER_ENTRY_FILE: &str = include_file_path::include_file_path!(
+        "../shaders/basic/main.wgsl"
+    );
+    pub const BINDINGS_FILE: &str = include_file_path::include_file_path!(
+        "../shaders/basic/bindings.wgsl"
+    );
+    pub const TYPES_FILE: &str = include_file_path::include_file_path!(
+        "../shaders/additional/types.wgsl"
+    );
+    pub const SHADER_FILES: &[&str] = &[SHADER_ENTRY_FILE, BINDINGS_FILE, TYPES_FILE];
+    pub fn load_shader_modules_from_path(
+        composer: &mut naga_oil::compose::Composer,
+        shader_defs: &std::collections::HashMap<
+            String,
+            naga_oil::compose::ShaderDefValue,
+        >,
+    ) {
         composer
             .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &source,
-                file_path: source_path.to_str().unwrap(),
+                source: &std::fs::read_to_string(BINDINGS_FILE).unwrap(),
+                file_path: "../shaders/basic/bindings.wgsl",
                 language: naga_oil::compose::ShaderLanguage::Wgsl,
+                shader_defs: shader_defs.clone(),
                 as_name: Some("bindings".into()),
                 ..Default::default()
             })
             .expect("failed to add composer module");
-        let mut source_path = entry_dir_path.to_path_buf();
-        source_path.push("../additional/types.wgsl");
-        let source = std::fs::read_to_string(&source_path)?;
         composer
             .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &source,
-                file_path: source_path.to_str().unwrap(),
+                source: &std::fs::read_to_string(TYPES_FILE).unwrap(),
+                file_path: "../shaders/additional/types.wgsl",
                 language: naga_oil::compose::ShaderLanguage::Wgsl,
+                shader_defs: shader_defs.clone(),
                 as_name: Some("types".into()),
                 ..Default::default()
             })
             .expect("failed to add composer module");
-        Ok(composer)
     }
-    pub fn make_naga_module(
-        entry_dir_path: &std::path::Path,
+    pub fn load_naga_module_from_path(
         composer: &mut naga_oil::compose::Composer,
-    ) -> Result<wgpu::naga::Module, std::io::Error> {
-        let mut source_path = entry_dir_path.to_path_buf();
-        source_path.push("main.wgsl");
-        let source = std::fs::read_to_string(&source_path)?;
-        let module = composer
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> wgpu::naga::Module {
+        composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: &source,
-                file_path: source_path.to_str().unwrap(),
+                source: &std::fs::read_to_string(SHADER_ENTRY_FILE).unwrap(),
+                file_path: "../shaders/basic/main.wgsl",
+                shader_defs,
                 ..Default::default()
             })
-            .expect("failed to build naga module");
-        Ok(module)
+            .expect("failed to build naga module")
     }
-    pub fn naga_module_to_string(module: &wgpu::naga::Module) -> String {
+    pub fn create_shader_module_from_path(
+        device: &wgpu::Device,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> wgpu::ShaderModule {
+        let mut composer = naga_oil::compose::Composer::default();
+        load_shader_modules_from_path(&mut composer, &shader_defs);
+        let module = load_naga_module_from_path(&mut composer, shader_defs);
         let info = wgpu::naga::valid::Validator::new(
                 wgpu::naga::valid::ValidationFlags::empty(),
                 wgpu::naga::valid::Capabilities::all(),
             )
-            .validate(&module);
-        let info = info.unwrap();
-        wgpu::naga::back::wgsl::write_string(
+            .validate(&module)
+            .unwrap();
+        let shader_string = wgpu::naga::back::wgsl::write_string(
                 &module,
                 &info,
                 wgpu::naga::back::wgsl::WriterFlags::empty(),
             )
-            .expect("failed to convert naga module to source")
-    }
-    pub fn create_shader_module_from_dir(
-        entry_dir_path: &std::path::Path,
-        device: &wgpu::Device,
-    ) -> Result<wgpu::ShaderModule, std::io::Error> {
-        let mut composer = init_composer(entry_dir_path)?;
-        let module = make_naga_module(entry_dir_path, &mut composer)?;
-        let source = naga_module_to_string(&module);
-        let source = std::borrow::Cow::Owned(source);
-        let module = device
+            .expect("failed to convert naga module to source");
+        let source = std::borrow::Cow::Owned(shader_string);
+        device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(source),
-            });
-        Ok(module)
+            })
     }
 }

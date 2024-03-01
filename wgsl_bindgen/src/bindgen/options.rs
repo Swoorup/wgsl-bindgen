@@ -1,27 +1,30 @@
 use std::path::PathBuf;
 
 use derive_builder::Builder;
+use derive_more::IsVariant;
+use enumflags2::{bitflags, BitFlags};
 pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 use crate::{WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy};
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+/// An enum representing the source type that will be generated for the output.
+#[bitflags(default = UseEmbed)]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IsVariant)]
 pub enum WgslShaderSourceType {
-  /// Include the final shader string directly in the output
-  #[default]
-  UseSingleString,
+  /// Preparse the shader modules and embed the final shader string in the output.
+  /// This option skips the naga_oil dependency in the output, and but doesn't allow shader defines.
+  UseEmbed = 0b0001,
 
-  /// Use Composer with include str, including helper functions which will be executed on runtime
-  UseComposerWithIncludeStr,
+  /// Use Composer with embedded strings for each shader module,
+  /// This option allows shader defines and but doesn't allow hot-reloading.
+  UseComposerEmbed = 0b0010,
 
-  /// Use Composer with shader path relative to executing directory, including helper functions which will be executed on runtime
-  /// This is useful for hot-reloading
-  UseComposerWithPath,
-
-  /// Use both `UseSingleString` and `UseComposerWithPath` option.
-  UseBothComposerWithPathAndIncludeStr,
+  /// Use Composer with absolute path to shaders, useful for hot-reloading
+  /// This option allows shader defines and is useful for hot-reloading.
+  UseComposerWithPath = 0b0100,
 }
 
 /// A struct representing a directory to scan for additional source files.
@@ -214,17 +217,13 @@ pub struct WgslBindgenOption {
   #[builder(default = "false")]
   pub derive_serde: bool,
 
-  /// The type of shader source generated. Defaults to `WgslShaderSourceType::UseSingleString`.
+  /// The shader source type generated bitflags. Defaults to `WgslShaderSourceType::UseSingleString`.
   #[builder(default)]
-  pub shader_source_type: WgslShaderSourceType,
-
-  /// A mapping operation for WGSL built-in types. This is used to map WGSL built-in types to their corresponding representations.
-  #[builder(setter(custom))]
-  pub type_map: WgslTypeMap,
+  pub shader_source_type: BitFlags<WgslShaderSourceType>,
 
   /// The output file path for the generated Rust bindings. Defaults to `None`.
   #[builder(default, setter(strip_option, into))]
-  pub output_file: Option<PathBuf>,
+  pub output: Option<PathBuf>,
 
   /// The additional set of directories to scan for source files.
   #[builder(default, setter(into, each(name = "additional_scan_dir", into)))]
@@ -238,10 +237,20 @@ pub struct WgslBindgenOption {
   /// Defaults to `None`
   #[builder(default, setter(strip_option, into))]
   pub short_constructor: Option<i32>,
+
+  /// A mapping operation for WGSL built-in types. This is used to map WGSL built-in types to their corresponding representations.
+  #[builder(setter(custom))]
+  pub type_map: WgslTypeMap,
+
+  /// A vector of custom struct mappings to be added, which will override the struct to be generated.
+  #[builder(default, setter(each(name = "custom_struct_mapping", into)))]
+  pub custom_struct_mappings: Vec<CustomStructMapping>,
 }
 
 impl WgslBindgenOptionBuilder {
-  pub fn build(&self) -> Result<WGSLBindgen, WgslBindgenError> {
+  pub fn build(&mut self) -> Result<WGSLBindgen, WgslBindgenError> {
+    self.merge_struct_mapping();
+
     let options = self.fallible_build()?;
     WGSLBindgen::new(options)
   }
@@ -261,17 +270,14 @@ impl WgslBindgenOptionBuilder {
     self
   }
 
-  /// Adds custom struct mappings to the type map.
-  pub fn custom_struct_mapping(
-    &mut self,
-    mappings: impl IntoIterator<Item = impl Into<CustomStructMapping>>,
-  ) -> &mut Self {
-    let struct_mappings = mappings
-      .into_iter()
-      .map(|m| m.into())
+  fn merge_struct_mapping(&mut self) {
+    let struct_mappings = self
+      .custom_struct_mappings
+      .iter()
+      .flatten()
       .map(|mapping| {
         let wgsl_type = WgslType::Struct {
-          fully_qualified_name: mapping.from,
+          fully_qualified_name: mapping.from.clone(),
         };
         let token_stream = syn::parse_str::<TokenStream>(&mapping.to).unwrap();
         (wgsl_type, token_stream)
@@ -279,6 +285,5 @@ impl WgslBindgenOptionBuilder {
       .collect::<std::collections::HashMap<_, _>>();
 
     self.type_map(struct_mappings);
-    self
   }
 }

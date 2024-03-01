@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use miette::Diagnostic;
 use naga::FastIndexMap;
 use proc_macro2::TokenStream;
@@ -85,6 +87,15 @@ impl RustMod {
       .or_insert_with(|| RustMod::new(name, true, self.initial_contents.clone()))
   }
 
+  fn merge(&mut self, other: Self) {
+    self.content.extend(other.content);
+    self.unique_content.extend(other.unique_content);
+    for (name, other_submodule) in other.submodules {
+      let self_submodule = self.get_or_create_submodule(&name);
+      self_submodule.merge(other_submodule);
+    }
+  }
+
   fn generate(&self) -> TokenStream {
     let name = Ident::new(&self.name, proc_macro2::Span::call_site());
 
@@ -116,7 +127,7 @@ impl RustMod {
   }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RustModBuilderConfig {
   use_relative_root: bool,
 }
@@ -224,6 +235,15 @@ impl RustModBuilder {
     content: TokenStream,
   ) -> Result<(), RustModBuilderError> {
     self.get_or_create_module(path).add_unique(id, content)
+  }
+
+  pub fn merge(mut self, other: Self) -> Self {
+    assert_eq!(self.config, other.config);
+    for (name, other_module) in other.modules {
+      let self_module = self.get_or_create_module(&name);
+      self_module.merge(other_module);
+    }
+    self
   }
 
   /// Generates the top level root module that includes other modules
@@ -336,5 +356,38 @@ mod tests {
     let error = mod_builder.add_unique("a::b", "A", quote! {struct B;});
 
     assert_eq!(error.is_err(), true);
+  }
+
+  #[test]
+  fn test_merge() {
+    let mut builder1 = RustModBuilder::new(false);
+    builder1.add("a::b::c", quote! {struct A;});
+    builder1.add("a::b::d", quote! {struct B;});
+
+    let mut builder2 = RustModBuilder::new(false);
+    builder2.add("a::b::c", quote! {struct C;});
+    builder2.add("a::b::e", quote! {struct D;});
+
+    let actual = builder1.merge(builder2).generate();
+
+    assert_tokens_eq!(
+      actual,
+      quote! {
+        pub mod a {
+          pub mod b {
+            pub mod c {
+              struct A;
+              struct C;
+            }
+            pub mod d {
+              struct B;
+            }
+            pub mod e {
+              struct D;
+            }
+          }
+        }
+      }
+    );
   }
 }

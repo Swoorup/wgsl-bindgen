@@ -1,16 +1,35 @@
 #![allow(unused, non_snake_case, non_camel_case_types)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderRegistry {
+    Pbr,
+}
+impl ShaderRegistry {
+    pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+        match self {
+            Self::Pbr => pbr::create_pipeline_layout(device),
+        }
+    }
+    pub fn create_shader_module_embed_source(
+        &self,
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        match self {
+            Self::Pbr => pbr::create_shader_module_embed_source(device),
+        }
+    }
+}
+const _: () = {
+    assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
+    assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
+    assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
+    assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
+    assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
+    assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
+    assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
+    assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
+};
 mod _root {
     pub use super::*;
-    const _: () = {
-        assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
-        assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
-        assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
-        assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
-        assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
-        assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
-        assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
-        assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
-    };
 }
 pub mod bevy_pbr {
     use super::{_root, _root::*};
@@ -107,7 +126,7 @@ pub mod bevy_pbr {
                 pub alpha_cutoff: f32,
             }
             impl StandardMaterialInit {
-                pub const fn const_into(&self) -> StandardMaterial {
+                pub const fn build(&self) -> StandardMaterial {
                     StandardMaterial {
                         base_color: self.base_color,
                         emissive: self.emissive,
@@ -122,7 +141,7 @@ pub mod bevy_pbr {
             }
             impl From<StandardMaterialInit> for StandardMaterial {
                 fn from(data: StandardMaterialInit) -> Self {
-                    data.const_into()
+                    data.build()
                 }
             }
             pub const STANDARD_MATERIAL_FLAGS_UNLIT_BIT: u32 = 32u32;
@@ -212,7 +231,7 @@ pub mod bevy_pbr {
             pub height: f32,
         }
         impl ViewInit {
-            pub const fn const_into(&self) -> View {
+            pub const fn build(&self) -> View {
                 View {
                     view_proj: self.view_proj,
                     inverse_view_proj: self.inverse_view_proj,
@@ -230,7 +249,7 @@ pub mod bevy_pbr {
         }
         impl From<ViewInit> for View {
             fn from(data: ViewInit) -> Self {
-                data.const_into()
+                data.build()
             }
         }
         #[repr(C, align(16))]
@@ -295,7 +314,7 @@ pub mod bevy_pbr {
             pub shadow_normal_bias: f32,
         }
         impl DirectionalLightInit {
-            pub const fn const_into(&self) -> DirectionalLight {
+            pub const fn build(&self) -> DirectionalLight {
                 DirectionalLight {
                     view_projection: self.view_projection,
                     color: self.color,
@@ -311,7 +330,7 @@ pub mod bevy_pbr {
         }
         impl From<DirectionalLightInit> for DirectionalLight {
             fn from(data: DirectionalLightInit) -> Self {
-                data.const_into()
+                data.build()
             }
         }
         #[repr(C, align(16))]
@@ -375,7 +394,7 @@ pub mod bevy_pbr {
             pub spot_light_shadowmap_offset: i32,
         }
         impl LightsInit {
-            pub const fn const_into(&self) -> Lights {
+            pub const fn build(&self) -> Lights {
                 Lights {
                     directional_lights: self.directional_lights,
                     ambient_color: self.ambient_color,
@@ -390,7 +409,7 @@ pub mod bevy_pbr {
         }
         impl From<LightsInit> for Lights {
             fn from(data: LightsInit) -> Self {
-                data.const_into()
+                data.build()
             }
         }
         #[repr(C, align(16))]
@@ -541,7 +560,7 @@ pub mod bevy_pbr {
             pub flags: u32,
         }
         impl MeshInit {
-            pub const fn const_into(&self) -> Mesh {
+            pub const fn build(&self) -> Mesh {
                 Mesh {
                     model: self.model,
                     inverse_transpose_model: self.inverse_transpose_model,
@@ -552,7 +571,7 @@ pub mod bevy_pbr {
         }
         impl From<MeshInit> for Mesh {
             fn from(data: MeshInit) -> Self {
-                data.const_into()
+                data.build()
             }
         }
         pub const MESH_FLAGS_SHADOW_RECEIVER_BIT: u32 = 1u32;
@@ -892,7 +911,9 @@ pub mod pbr {
                 },
             )
     }
-    pub fn create_shader_module(device: &wgpu::Device) -> wgpu::ShaderModule {
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
         let source = std::borrow::Cow::Borrowed(SHADER_STRING);
         device
             .create_shader_module(wgpu::ShaderModuleDescriptor {

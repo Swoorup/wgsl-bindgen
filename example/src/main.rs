@@ -62,7 +62,10 @@ impl<'a> State<'a> {
         surface.configure(&device, &config);
 
         // Use the generated bindings to create the pipeline.
-        let shader = shader::triangle::create_shader_module(&device);
+        let shader = shader::triangle::create_shader_module_from_path(
+            &device,
+            [("VERTEX_UVS".to_owned(), Default::default())].into(),
+        );
         let render_pipeline_layout = shader::triangle::create_pipeline_layout(&device);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {

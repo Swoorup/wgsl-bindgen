@@ -10,6 +10,8 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 - Supports import syntax and many more features from naga oil flavour.
 - BYOT - Bring your own types for wgsl matrix, vectors types. Bindgen automatically also include assertion to test alignment and sizes for your types.
 - Override struct types from your crate, which is handy for small primitive types.
+- Add shader defines dynamically when using either `WgslShaderSourceType::UseComposerEmbed` or `WgslShaderSourceType::UseComposerWithPath` source output type.
+- Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
 - Rust structs for vertex, storage, and uniform buffers
 - Generates either new or enum-like short constructors to ease creating the generated types, especially ones that require to be padded when using with bytemuck.
 - Final shader source can either as be a single embedded string, or naga_oil with embedded string or instead specified with directory containing the entry source for hot reloading.
