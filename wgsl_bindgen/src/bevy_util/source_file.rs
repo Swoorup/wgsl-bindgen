@@ -3,7 +3,7 @@ use smallvec::SmallVec;
 use super::parse_imports;
 use super::parse_imports::ImportStatement;
 use crate::types::{FxIndexSet, SourceFilePath};
-use crate::{ImportedPath, SourceModuleName};
+use crate::{ImportPathPart, SourceModuleName};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
@@ -38,7 +38,7 @@ impl SourceFile {
     self.direct_dependencies.insert(dependency);
   }
 
-  pub fn get_imported_paths(&self) -> FxIndexSet<ImportedPath> {
+  pub fn get_imported_paths(&self) -> FxIndexSet<ImportPathPart> {
     self
       .imports
       .iter()
@@ -69,7 +69,7 @@ mod tests {
     assert_eq!(
       actual,
       indexset! {
-        ImportedPath::new("bevy_pbr::mesh_view_types")
+        ImportPathPart::new("bevy_pbr::mesh_view_types")
       }
     );
   }

@@ -192,6 +192,10 @@ pub struct WgslBindgenOption {
   #[builder(default, setter(strip_option, into))]
   pub module_import_root: Option<String>,
 
+  /// The root shader workspace directory where all the imports will tested for resolution.
+  #[builder(setter(into))]
+  pub workspace_root: PathBuf,
+
   /// A boolean flag indicating whether to emit a rerun-if-changed directive to Cargo. Defaults to `true`.
   #[builder(default = "true")]
   pub emit_rerun_if_change: bool,

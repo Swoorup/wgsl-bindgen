@@ -32,6 +32,7 @@ impl WGSLBindgen {
       .collect();
 
     let dependency_tree = DependencyTree::try_build(
+      options.workspace_root.clone(),
       options.module_import_root.clone(),
       entry_points,
       options.additional_scan_dirs.clone(),

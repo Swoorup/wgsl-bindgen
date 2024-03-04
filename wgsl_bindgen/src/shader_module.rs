@@ -339,6 +339,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
 
     let relative_file_path =
       get_path_relative_to(self.output_dir, &self.entry_source_path);
+
     let source = if self.source_type.is_use_composer_with_path() {
       let mod_var = format_ident!("SHADER_ENTRY_FILE");
       quote!(&std::fs::read_to_string(#mod_var).unwrap())

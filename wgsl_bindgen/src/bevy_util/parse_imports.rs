@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use indexmap::IndexMap;
 use regex::Regex;
 
-use crate::{FxIndexSet, ImportedPath, SourceLocation};
+use crate::{FxIndexSet, ImportPathPart, SourceLocation};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportStatement {
@@ -19,12 +19,12 @@ impl ImportStatement {
     start..end
   }
 
-  pub fn get_imported_paths(&self) -> FxIndexSet<ImportedPath> {
+  pub fn get_imported_paths(&self) -> FxIndexSet<ImportPathPart> {
     self
       .item_to_import_paths
       .values()
       .flatten()
-      .map(ImportedPath::new)
+      .map(ImportPathPart::new)
       .collect()
   }
 }
@@ -237,6 +237,6 @@ mod tests {
       .flat_map(|x| x.get_imported_paths())
       .collect::<Vec<_>>();
 
-    assert_eq!(actual, vec![ImportedPath::new("bevy_pbr::mesh_view_types")]);
+    assert_eq!(actual, vec![ImportPathPart::new("bevy_pbr::mesh_view_types")]);
   }
 }

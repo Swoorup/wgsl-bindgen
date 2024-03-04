@@ -8,6 +8,7 @@ use wgsl_bindgen::*;
 fn test_bevy_bindgen() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .module_import_root("bevy_pbr")
+    .workspace_root("tests/shaders/bevy_pbr_wgsl")
     .add_entry_point("tests/shaders/bevy_pbr_wgsl/pbr.wgsl")
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
@@ -29,6 +30,7 @@ fn test_bevy_bindgen() -> Result<()> {
 fn test_main_bindgen() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .add_entry_point("tests/shaders/basic/main.wgsl")
+    .workspace_root("tests/shaders/additional")
     .additional_scan_dir((None, "tests/shaders/additional"))
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)

@@ -27,6 +27,7 @@ When enabling derives for crates like bytemuck, serde, or encase, these dependen
 ```toml
 [dependencies]
 bytemuck = "..."
+include_file_path = "..."
 
 [build-dependencies]
 wgsl_bindgen = "..."
@@ -39,9 +40,10 @@ use wgsl_bindgen::WgslBindgenOptionBuilder;
 
 fn main() {
   let bindgen = WgslBindgenOptionBuilder::default()
-    .add_entry_point("src/pbr.wgsl")
-    .add_entry_point("src/pfx.wgsl")
-    .output_file("src/shader.rs")
+    .workspace_root("shaders")
+    .add_entry_point("shaders/pbr.wgsl")
+    .add_entry_point("shaders/pfx.wgsl")
+    .output("src/shader.rs")
     .build()
     .unwrap();
 
@@ -125,12 +127,13 @@ use wgsl_bindgen::{WgslTypeSerializeStrategy, WgslBindgenOptionBuilder, GlamWgsl
 // src/build.rs
 fn main() -> Result<()> {
     WgslBindgenOptionBuilder::default()
+        .workspace_root("src/shader")
         .add_entry_point("src/shader/testbed.wgsl")
         .add_entry_point("src/shader/triangle.wgsl")
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
         .type_map(GlamWgslTypeMap)
         .derive_serde(false)
-        .output_file("src/shader.rs")
+        .output("src/shader.rs")
         .build()?
         .generate()
         .into_diagnostic()

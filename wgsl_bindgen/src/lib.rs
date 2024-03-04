@@ -22,6 +22,7 @@
 //!
 //! fn main() -> Result<()> {
 //!     WgslBindgenOptionBuilder::default()
+//!         .workspace_root("src/shader")
 //!         .add_entry_point("src/shader/testbed.wgsl")
 //!         .add_entry_point("src/shader/triangle.wgsl")
 //!         .skip_hash_check(true)

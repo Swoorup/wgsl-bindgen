@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use colored::*;
 use indexmap::map::Entry;
 use miette::{Diagnostic, NamedSource, SourceSpan};
@@ -9,8 +11,8 @@ use super::parse_imports::ImportStatement;
 use super::source_file::SourceFile;
 use super::ModulePathResolver;
 use crate::{
-  AdditionalScanDirectory, FxIndexMap, FxIndexSet, ImportedPath, SourceFileDir,
-  SourceFilePath, SourceModuleName,
+  AdditionalScanDirectory, FxIndexMap, FxIndexSet, ImportPathPart, SourceFilePath,
+  SourceModuleName,
 };
 
 #[derive(Debug, Error, Diagnostic)]
@@ -117,11 +119,13 @@ impl DependencyTree {
   /// A `Result` containing the built `DependencyTree` if successful, or a `DependencyTreeError`
   /// if an error occurred during the build process.
   pub fn try_build(
+    workspace_root: PathBuf,
     entry_module_prefix: Option<String>,
     entry_points: Vec<SourceFilePath>, // path to entry points
     additional_scan_dirs: Vec<AdditionalScanDirectory>,
   ) -> Result<Self, DependencyTreeError> {
-    let resolver = ModulePathResolver::new(entry_module_prefix, additional_scan_dirs);
+    let resolver =
+      ModulePathResolver::new(workspace_root, entry_module_prefix, additional_scan_dirs);
 
     let mut tree = Self {
       resolver,
@@ -131,12 +135,7 @@ impl DependencyTree {
 
     for entry_point in entry_points {
       tree.entry_points.insert(entry_point.clone());
-      tree.crawl_source(
-        &entry_point.dir(),
-        entry_point,
-        None,
-        &mut MaxRecursionLimiter::default(),
-      )?
+      tree.crawl_source(entry_point, None, &mut MaxRecursionLimiter::default())?
     }
 
     Ok(tree)
@@ -145,15 +144,14 @@ impl DependencyTree {
   /// Crawls an import statement and resolves the import paths.
   fn crawl_import_module(
     &mut self,
-    entry_dir: &SourceFileDir,
     parent_source_path: &SourceFilePath,
     import_stmt: &ImportStatement,
-    imported_path: &ImportedPath,
+    imported_path: &ImportPathPart,
     limiter: &mut MaxRecursionLimiter,
   ) -> Result<(), DependencyTreeError> {
     let possible_source_path = self
       .resolver
-      .generate_best_possible_paths(&entry_dir, &imported_path, parent_source_path)
+      .generate_best_possible_paths(&imported_path, parent_source_path)
       .into_iter()
       .find(|(_, path)| path.is_file()); // make sure this is not reimporting itself
 
@@ -181,7 +179,7 @@ impl DependencyTree {
     // if not crawled, crawl this import file
     if !self.parsed_sources.contains_key(&source_path) {
       self
-        .crawl_source(entry_dir, source_path, Some(module_name), limiter)
+        .crawl_source(source_path, Some(module_name), limiter)
         .expect("failed to crawl import path");
     }
 
@@ -193,7 +191,6 @@ impl DependencyTree {
   /// Crawls a source file and its dependencies.
   fn crawl_source(
     &mut self,
-    entry_dir: &SourceFileDir,
     source_path: SourceFilePath,
     module_name: Option<SourceModuleName>,
     limiter: &mut MaxRecursionLimiter,
@@ -215,13 +212,7 @@ impl DependencyTree {
 
     for import_stmt in &source_file.imports.clone() {
       for imported_path in import_stmt.get_imported_paths() {
-        self.crawl_import_module(
-          entry_dir,
-          &source_path,
-          &import_stmt,
-          &imported_path,
-          limiter,
-        )?
+        self.crawl_import_module(&source_path, &import_stmt, &imported_path, limiter)?
       }
     }
 

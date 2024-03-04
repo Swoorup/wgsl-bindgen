@@ -5,8 +5,9 @@ use wgsl_bindgen::{
 
 fn main() -> Result<()> {
     WgslBindgenOptionBuilder::default()
-        .add_entry_point("src/shader/testbed.wgsl")
-        .add_entry_point("src/shader/triangle.wgsl")
+        .workspace_root("assets/shader")
+        .add_entry_point("assets/shader/utils/testbed.wgsl")
+        .add_entry_point("assets/shader/triangle.wgsl")
         .skip_hash_check(true)
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
         .type_map(GlamWgslTypeMap)

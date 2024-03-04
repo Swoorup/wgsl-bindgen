@@ -56,13 +56,13 @@ impl From<&SourceFilePath> for SourceFileDir {
   }
 }
 
-/// Path used in the import statement
+/// Import part path used in the import statement
 #[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
 #[display(fmt = "{}", "_0")]
 #[derivative(Debug = "transparent")]
-pub struct ImportedPath(SmolStr);
+pub struct ImportPathPart(SmolStr);
 
-impl ImportedPath {
+impl ImportPathPart {
   pub fn new(value: impl Into<SmolStr>) -> Self {
     Self(value.into())
   }

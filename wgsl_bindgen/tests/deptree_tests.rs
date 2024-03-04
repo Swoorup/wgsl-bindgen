@@ -49,6 +49,7 @@ pub fn bevy_dependency_map() -> &'static SourceDependencyMap {
 
 fn build_bevy_deptree() -> DependencyTree {
   DependencyTree::try_build(
+    "tests/shaders/bevy_pbr_wgsl".into(),
     Some("bevy_pbr".into()),
     vec![
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl"),
@@ -120,8 +121,9 @@ fn test_bevy_full_dependencies() {
 #[test]
 fn test_example_wgsl_dep_tree() {
   let result = DependencyTree::try_build(
+    "../example/assets/shader".into(),
     None,
-    vec![SourceFilePath::new("../example/src/shader/testbed.wgsl")],
+    vec![SourceFilePath::new("../example/assets/shader/utils/testbed.wgsl")],
     vec![],
   )
   .unwrap();
@@ -129,9 +131,9 @@ fn test_example_wgsl_dep_tree() {
   assert_eq!(
     result.all_files_including_dependencies(),
     indexset![
-      SourceFilePath::new("../example/src/shader/testbed.wgsl"),
-      SourceFilePath::new("../example/src/shader/types.wgsl"),
-      SourceFilePath::new("../example/src/shader/../more-shader-files/reachme.wgsl")
+      SourceFilePath::new("../example/assets/shader/utils/testbed.wgsl"),
+      SourceFilePath::new("../example/assets/shader/utils/../../more-shader-files/reachme.wgsl"),
+      SourceFilePath::new("../example/assets/shader/types.wgsl"),
     ]
   )
 }
