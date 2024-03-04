@@ -1,9 +1,9 @@
 #![allow(unused, non_snake_case, non_camel_case_types)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum ShaderRegistry {
+pub enum ShaderEntry {
     Main,
 }
-impl ShaderRegistry {
+impl ShaderEntry {
     pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
         match self {
             Self::Main => main::create_pipeline_layout(device),

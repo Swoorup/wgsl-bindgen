@@ -1,6 +1,6 @@
 //! This module provides functionality for building a shader registry.
 //!
-//! This will create a `ShaderRegistry` enum with a variant for each entry in `entries`,
+//! This will create a `ShaderEntry` enum with a variant for each entry in `entries`,
 //! and functions for creating the pipeline layout and shader module for each variant.
 use derive_more::Constructor;
 use enumflags2::BitFlags;
@@ -11,12 +11,12 @@ use quote::{format_ident, quote};
 use crate::{WgslEntryResult, WgslShaderSourceType};
 
 #[derive(Constructor)]
-struct ShaderRegistryBuilder<'a, 'b> {
+struct ShaderEntryBuilder<'a, 'b> {
   entries: &'a [WgslEntryResult<'b>],
   source_type: BitFlags<WgslShaderSourceType>,
 }
 
-impl<'a, 'b> ShaderRegistryBuilder<'a, 'b> {
+impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   fn build_registry_enum(&self) -> TokenStream {
     let variants = self.entries.iter().map(|entry| {
       let name = format_ident!("{}", create_enum_variant_name(&entry.mod_name));
@@ -25,7 +25,7 @@ impl<'a, 'b> ShaderRegistryBuilder<'a, 'b> {
 
     quote! {
       #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-      pub enum ShaderRegistry {
+      pub enum ShaderEntry {
         #( #variants, )*
       }
     }
@@ -112,7 +112,7 @@ impl<'a, 'b> ShaderRegistryBuilder<'a, 'b> {
     let create_shader_files_fn = self.build_shader_files_fn();
 
     quote! {
-      impl ShaderRegistry {
+      impl ShaderEntry {
         #create_pipeline_layout_fn
         #(#create_shader_module_fns)*
         #create_shader_files_fn
@@ -134,7 +134,7 @@ pub(crate) fn build_shader_registry(
   entries: &[WgslEntryResult<'_>],
   source_type: BitFlags<WgslShaderSourceType>,
 ) -> TokenStream {
-  ShaderRegistryBuilder::new(entries, source_type).build()
+  ShaderEntryBuilder::new(entries, source_type).build()
 }
 
 fn create_enum_variant_name(v: &str) -> String {

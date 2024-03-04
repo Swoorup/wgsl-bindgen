@@ -73,10 +73,10 @@ impl ModulePathResolver {
   /// Generates possible import paths for a given import path fragment.
   pub fn generate_best_possible_paths(
     &self,
-    imported_path: &ImportPathPart,
+    import_path_part: &ImportPathPart,
     source_path: &SourceFilePath,
   ) -> FxIndexSet<(SourceModuleName, SourceFilePath)> {
-    let import_parts: SmallVec<[&str; 10]> = imported_path
+    let import_parts: SmallVec<[&str; 10]> = import_path_part
       .split("::")
       .enumerate()
       .skip_while(|(i, part)| {
@@ -132,10 +132,10 @@ mod tests {
   fn should_generate_single_import_path() {
     let module_prefix = None;
     let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let imported_path = ImportPathPart::new("Fragment");
+    let import_path_part = ImportPathPart::new("Fragment");
 
     let result = ModulePathResolver::new("mydir".into(), module_prefix, vec![])
-      .generate_best_possible_paths(&imported_path, &source_path);
+      .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![(
       SourceModuleName::new("Fragment"),
@@ -149,10 +149,10 @@ mod tests {
   fn should_generate_single_import_path_when_module_prefix_match() {
     let module_prefix = Some("mymod".to_string());
     let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let imported_path = ImportPathPart::new("mymod::Fragment");
+    let import_path_part = ImportPathPart::new("mymod::Fragment");
 
     let result = ModulePathResolver::new("mydir".into(), module_prefix, vec![])
-      .generate_best_possible_paths(&imported_path, &source_path);
+      .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![(
       SourceModuleName::new("mymod::Fragment"),
@@ -167,10 +167,10 @@ mod tests {
   fn should_generate_import_paths_with_correct_extensions() {
     let module_prefix = Some("prefix".to_string());
     let source_path = SourceFilePath::new("mydir/source");
-    let imported_path = ImportPathPart::new("Module::Submodule::Fragment");
+    let import_path_part = ImportPathPart::new("Module::Submodule::Fragment");
 
     let actual = ModulePathResolver::new("mydir".into(), module_prefix, vec![])
-      .generate_best_possible_paths(&imported_path, &source_path);
+      .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![
       (
@@ -194,10 +194,10 @@ mod tests {
   fn should_panic_when_import_module_is_empty() {
     let module_prefix = None;
     let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let imported_path = ImportPathPart::new("");
+    let import_path_part = ImportPathPart::new("");
 
     let result = ModulePathResolver::new("mydir".into(), module_prefix, vec![])
-      .generate_best_possible_paths(&imported_path, &source_path);
+      .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![];
 
@@ -210,10 +210,10 @@ mod tests {
   fn should_return_empty_smallvec_when_import_module_has_only_module_prefix() {
     let module_prefix = Some("prefix".to_string());
     let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let imported_path = ImportPathPart::new("prefix");
+    let import_path_part = ImportPathPart::new("prefix");
 
     let result = ModulePathResolver::new("mydir".into(), module_prefix, vec![])
-      .generate_best_possible_paths(&imported_path, &source_path);
+      .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![];
 
@@ -224,10 +224,10 @@ mod tests {
   fn should_return_smallvec_when_import_module() {
     let module_prefix = Some("prefix".to_string());
     let source_path = SourceFilePath::new("mydir/source.wgsl");
-    let imported_path = ImportPathPart::new("Fragment");
+    let import_path_part = ImportPathPart::new("Fragment");
 
     let result = ModulePathResolver::new("mydir".into(), module_prefix, vec![])
-      .generate_best_possible_paths(&imported_path, &source_path);
+      .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![(
       SourceModuleName::new("prefix::Fragment"),
@@ -241,11 +241,11 @@ mod tests {
   fn should_return_valid_pbr_paths_from_repeated_part() {
     let module_prefix = Some("bevy_pbr".to_string());
     let source_path = SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/functions.wgsl");
-    let imported_path = ImportPathPart::new("bevy_pbr::pbr::types");
+    let import_path_part = ImportPathPart::new("bevy_pbr::pbr::types");
 
     let result =
       ModulePathResolver::new("tests/bevy_pbr_wgsl/pbr".into(), module_prefix, vec![])
-        .generate_best_possible_paths(&imported_path, &source_path);
+        .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![(
       SourceModuleName::new("bevy_pbr::types"),
@@ -259,11 +259,11 @@ mod tests {
   fn should_return_valid_pbr_paths_back_to_current_dir() {
     let module_prefix = Some("bevy_pbr".to_string());
     let source_path = SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/functions.wgsl");
-    let imported_path = ImportPathPart::new("bevy_pbr::mesh_types");
+    let import_path_part = ImportPathPart::new("bevy_pbr::mesh_types");
 
     let result =
       ModulePathResolver::new("tests/bevy_pbr_wgsl".into(), module_prefix, vec![])
-        .generate_best_possible_paths(&imported_path, &source_path);
+        .generate_best_possible_paths(&import_path_part, &source_path);
 
     let expected = indexset![
       (

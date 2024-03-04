@@ -38,11 +38,11 @@ impl SourceFile {
     self.direct_dependencies.insert(dependency);
   }
 
-  pub fn get_imported_paths(&self) -> FxIndexSet<ImportPathPart> {
+  pub fn get_import_path_parts(&self) -> FxIndexSet<ImportPathPart> {
     self
       .imports
       .iter()
-      .flat_map(|import_stmt| import_stmt.get_imported_paths())
+      .flat_map(|import_stmt| import_stmt.get_import_path_parts())
       .collect()
   }
 }
@@ -64,7 +64,7 @@ mod tests {
       include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl")
         .to_owned(),
     );
-    let actual = source.get_imported_paths();
+    let actual = source.get_import_path_parts();
 
     assert_eq!(
       actual,

@@ -146,12 +146,12 @@ impl DependencyTree {
     &mut self,
     parent_source_path: &SourceFilePath,
     import_stmt: &ImportStatement,
-    imported_path: &ImportPathPart,
+    import_path_part: &ImportPathPart,
     limiter: &mut MaxRecursionLimiter,
   ) -> Result<(), DependencyTreeError> {
     let possible_source_path = self
       .resolver
-      .generate_best_possible_paths(&imported_path, parent_source_path)
+      .generate_best_possible_paths(&import_path_part, parent_source_path)
       .into_iter()
       .find(|(_, path)| path.is_file()); // make sure this is not reimporting itself
 
@@ -162,7 +162,7 @@ impl DependencyTree {
     let Some((module_name, source_path)) = possible_source_path else {
       return Err(ImportPathNotFound {
         stmt: import_stmt.clone(),
-        path: imported_path.to_string(),
+        path: import_path_part.to_string(),
         import_bit: (&import_stmt.source_location).into(),
         src: NamedSource::new(
           parent_source_path.to_string(),
@@ -211,8 +211,13 @@ impl DependencyTree {
     let source_file = self.parsed_sources.get(&source_path).unwrap();
 
     for import_stmt in &source_file.imports.clone() {
-      for imported_path in import_stmt.get_imported_paths() {
-        self.crawl_import_module(&source_path, &import_stmt, &imported_path, limiter)?
+      for import_path_part in import_stmt.get_import_path_parts() {
+        self.crawl_import_module(
+          &source_path,
+          &import_stmt,
+          &import_path_part,
+          limiter,
+        )?
       }
     }
 

@@ -19,7 +19,7 @@ impl ImportStatement {
     start..end
   }
 
-  pub fn get_imported_paths(&self) -> FxIndexSet<ImportPathPart> {
+  pub fn get_import_path_parts(&self) -> FxIndexSet<ImportPathPart> {
     self
       .item_to_import_paths
       .values()
@@ -234,7 +234,7 @@ mod tests {
     let contents =
       include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl");
     let actual = parse_import_statements_iter(contents)
-      .flat_map(|x| x.get_imported_paths())
+      .flat_map(|x| x.get_import_path_parts())
       .collect::<Vec<_>>();
 
     assert_eq!(actual, vec![ImportPathPart::new("bevy_pbr::mesh_view_types")]);

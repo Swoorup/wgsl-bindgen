@@ -123,7 +123,9 @@ fn test_example_wgsl_dep_tree() {
   let result = DependencyTree::try_build(
     "../example/assets/shader".into(),
     None,
-    vec![SourceFilePath::new("../example/assets/shader/utils/testbed.wgsl")],
+    vec![SourceFilePath::new(
+      "../example/assets/shader/utils/testbed.wgsl",
+    )],
     vec![],
   )
   .unwrap();
@@ -132,7 +134,9 @@ fn test_example_wgsl_dep_tree() {
     result.all_files_including_dependencies(),
     indexset![
       SourceFilePath::new("../example/assets/shader/utils/testbed.wgsl"),
-      SourceFilePath::new("../example/assets/shader/utils/../../more-shader-files/reachme.wgsl"),
+      SourceFilePath::new(
+        "../example/assets/shader/utils/../../more-shader-files/reachme.wgsl"
+      ),
       SourceFilePath::new("../example/assets/shader/types.wgsl"),
     ]
   )
