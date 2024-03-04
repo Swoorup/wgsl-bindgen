@@ -917,7 +917,7 @@ pub mod pbr {
         let source = std::borrow::Cow::Borrowed(SHADER_STRING);
         device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label: Some("pbr.wgsl"),
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }

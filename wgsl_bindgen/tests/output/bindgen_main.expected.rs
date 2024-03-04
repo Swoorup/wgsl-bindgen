@@ -276,7 +276,7 @@ pub mod main {
         let source = std::borrow::Cow::Borrowed(SHADER_STRING);
         device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label: Some("main.wgsl"),
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
@@ -375,7 +375,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let source = std::borrow::Cow::Owned(shader_string);
         device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label: Some("main.wgsl"),
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }

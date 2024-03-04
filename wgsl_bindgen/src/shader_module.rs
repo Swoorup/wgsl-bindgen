@@ -13,6 +13,26 @@ use crate::naga_util::module_to_source;
 use crate::quote_gen::create_shader_raw_string_literal;
 use crate::{WgslBindgenOption, WgslEntryResult, WgslShaderSourceType};
 
+impl<'a> WgslEntryResult<'a> {
+  fn get_label(&self) -> TokenStream {
+    let get_label = || {
+      Some(
+        self
+          .source_including_deps
+          .source_file
+          .file_path
+          .file_name()?
+          .to_str()?,
+      )
+    };
+
+    match get_label() {
+      Some(label) => quote!(Some(#label)),
+      None => quote!(None),
+    }
+  }
+}
+
 impl WgslShaderSourceType {
   pub(crate) fn create_shader_module_fn_name(&self) -> &'static str {
     use WgslShaderSourceType::*;
@@ -151,11 +171,12 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
   let create_shader_module_fn =
     format_ident!("{}", WgslShaderSourceType::UseEmbed.create_shader_module_fn_name());
   let shader_literal = create_shader_raw_string_literal(&shader_content);
+  let shader_label = entry.get_label();
   let create_shader_module = quote! {
       pub fn #create_shader_module_fn(device: &wgpu::Device) -> wgpu::ShaderModule {
           let source = std::borrow::Cow::Borrowed(SHADER_STRING);
           device.create_shader_module(wgpu::ShaderModuleDescriptor {
-              label: None,
+              label: #shader_label,
               source: wgpu::ShaderSource::Wgsl(source)
           })
       }
@@ -345,6 +366,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     let create_shader_module_fn = self.create_shader_module_fn_name();
     let load_shader_module_fn = self.load_shader_modules_fn_name();
     let load_naga_module_fn = self.load_naga_module_fn_name();
+    let shader_label = self.entry.get_label();
 
     quote! {
       pub fn #create_shader_module_fn(
@@ -374,7 +396,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
         let source = std::borrow::Cow::Owned(shader_string);
 
         device.create_shader_module(wgpu::ShaderModuleDescriptor {
-          label: None,
+          label: #shader_label,
           source: wgpu::ShaderSource::Wgsl(source)
         })
       }
