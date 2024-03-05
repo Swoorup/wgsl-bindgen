@@ -7,7 +7,9 @@ pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::{WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy};
+use crate::{
+  FastIndexMap, WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy,
+};
 
 /// An enum representing the source type that will be generated for the output.
 #[bitflags(default = UseEmbed)]
@@ -49,7 +51,7 @@ impl From<(Option<&str>, &str)> for AdditionalScanDirectory {
   }
 }
 
-pub type WgslTypeMap = std::collections::HashMap<WgslType, TokenStream>;
+pub type WgslTypeMap = FastIndexMap<WgslType, TokenStream>;
 
 /// A trait for building `WgslType` to `TokenStream` map.
 ///
@@ -286,7 +288,7 @@ impl WgslBindgenOptionBuilder {
         let token_stream = syn::parse_str::<TokenStream>(&mapping.to).unwrap();
         (wgsl_type, token_stream)
       })
-      .collect::<std::collections::HashMap<_, _>>();
+      .collect::<FastIndexMap<_, _>>();
 
     self.type_map(struct_mappings);
   }

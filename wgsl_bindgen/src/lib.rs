@@ -45,7 +45,6 @@ use case::CaseExt;
 use derive_more::IsVariant;
 use naga::ShaderStage;
 use proc_macro2::{Literal, Span, TokenStream};
-use quote::quote;
 use quote_gen::{add_custom_vector_matrix_assertions, RustModBuilder};
 use syn::{Ident, Index};
 use thiserror::Error;
@@ -64,6 +63,8 @@ mod wgsl;
 mod wgsl_type;
 
 pub use bindgen::*;
+pub use naga::FastIndexMap;
+pub use quote::quote;
 pub use types::*;
 pub use wgsl_type::*;
 

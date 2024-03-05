@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use miette::Diagnostic;
-use naga::FastIndexMap;
 use proc_macro2::TokenStream;
 use quote::quote;
 use smallvec::SmallVec;
@@ -11,6 +10,7 @@ use thiserror::Error;
 use super::constants::MOD_REFERENCE_ROOT;
 use super::RustSourceItem;
 use crate::quote_gen::constants::mod_reference_root;
+use crate::FastIndexMap;
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum RustModBuilderError {
