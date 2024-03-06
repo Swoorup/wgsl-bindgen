@@ -1,6 +1,7 @@
 use miette::{IntoDiagnostic, Result};
 use wgsl_bindgen::{
-    GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderSourceType, WgslTypeSerializeStrategy,
+    quote, GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderSourceType,
+    WgslTypeSerializeStrategy,
 };
 
 fn main() -> Result<()> {
@@ -11,14 +12,16 @@ fn main() -> Result<()> {
         .skip_hash_check(true)
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
         .type_map(GlamWgslTypeMap)
-        .derive_serde(false)
-        .output("src/shader.rs")
+        .add_custom_struct_field_mapping("types::VectorsU32", [("a", quote!(crate::MyTwoU32))])
+        .add_custom_struct_mapping(("types::Scalars", quote!(crate::MyScalars)))
         .short_constructor(2)
         .shader_source_type(
             WgslShaderSourceType::UseComposerWithPath
                 | WgslShaderSourceType::UseComposerEmbed
                 | WgslShaderSourceType::UseEmbed,
         )
+        .derive_serde(false)
+        .output("src/shader_bindings.rs")
         .build()?
         .generate()
         .into_diagnostic()

@@ -162,22 +162,27 @@ impl WgslTypeMapBuild for NalgebraWgslTypeMap {
 /// This also means skipping checks for alignment and size when using bytemuck
 /// for the struct.
 /// This is useful for core primitive types you would want to model in Rust side
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct CustomStructMapping {
   /// fully qualified struct name of the struct in wgsl, eg: `lib::fp64::Fp64`
   from: String,
   /// fully qualified struct name in your crate, eg: `crate::fp64::Fp64`
-  to: String,
+  to: TokenStream,
 }
 
-impl From<(&str, &str)> for CustomStructMapping {
-  fn from((from, to): (&str, &str)) -> Self {
+impl From<(&str, TokenStream)> for CustomStructMapping {
+  fn from((from, to): (&str, TokenStream)) -> Self {
     CustomStructMapping {
       from: from.to_owned(),
-      to: to.to_owned(),
+      to,
     }
   }
 }
+
+/// This type is used to create a custom field mapping from the wgsl side to rust side,
+/// skipping the type of field that would have been generated.
+/// You must fully qualify the destination type
+pub type CustomStructFieldMap = FastIndexMap<String, TokenStream>;
 
 #[derive(Debug, Default, Builder)]
 #[builder(
@@ -249,8 +254,12 @@ pub struct WgslBindgenOption {
   pub type_map: WgslTypeMap,
 
   /// A vector of custom struct mappings to be added, which will override the struct to be generated.
-  #[builder(default, setter(each(name = "custom_struct_mapping", into)))]
+  #[builder(default, setter(each(name = "add_custom_struct_mapping", into)))]
   pub custom_struct_mappings: Vec<CustomStructMapping>,
+
+  /// A map of custom struct field mappings, which will override the struct fields types generated for the struct.
+  #[builder(default, setter(custom))]
+  pub custom_struct_field_type_maps: FastIndexMap<String, CustomStructFieldMap>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -285,11 +294,35 @@ impl WgslBindgenOptionBuilder {
         let wgsl_type = WgslType::Struct {
           fully_qualified_name: mapping.from.clone(),
         };
-        let token_stream = syn::parse_str::<TokenStream>(&mapping.to).unwrap();
-        (wgsl_type, token_stream)
+        (wgsl_type, mapping.to.clone())
       })
       .collect::<FastIndexMap<_, _>>();
 
     self.type_map(struct_mappings);
+  }
+
+  pub fn add_custom_struct_field_mapping(
+    &mut self,
+    struct_name: impl Into<String>,
+    field_names: impl IntoIterator<Item = (impl Into<String>, TokenStream)>,
+  ) -> &mut Self {
+    let struct_name = struct_name.into();
+    let field_names = field_names
+      .into_iter()
+      .map(|(field, ts)| (field.into(), ts))
+      .collect::<CustomStructFieldMap>();
+
+    match self.custom_struct_field_type_maps.as_mut() {
+      Some(m) => {
+        m.insert(struct_name.to_string(), field_names);
+      }
+      None => {
+        let mut map = FastIndexMap::default();
+        map.insert(struct_name.to_string(), field_names);
+        self.custom_struct_field_type_maps = Some(map);
+      }
+    };
+
+    self
   }
 }

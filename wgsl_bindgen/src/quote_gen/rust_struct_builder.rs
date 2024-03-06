@@ -6,9 +6,9 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Ident, Index};
 
-use super::rust_type;
+use super::{rust_type, RustTypeInfo};
 use crate::bevy_util::{demangle, demangle_splitting_mod_path_and_item};
-use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
+use crate::{CustomStructFieldMap, WgslBindgenOption, WgslTypeSerializeStrategy};
 
 #[derive(Clone)]
 pub struct RustStructMemberEntryPadding {
@@ -37,10 +37,26 @@ struct NagaToRustStructState<'a> {
 }
 
 impl<'a> NagaToRustStructState<'a> {
+  /// This replaces the `rust_type` with a custom field map if necessary
+  fn get_rust_type(
+    rust_type: RustTypeInfo,
+    custom_struct_field_type_maps: Option<&CustomStructFieldMap>,
+    member_name: &str,
+  ) -> proc_macro2::TokenStream {
+    let get = move || {
+      let map = custom_struct_field_type_maps?;
+      let mapped_type = map.get(member_name)?;
+      Some(mapped_type.clone())
+    };
+
+    get().unwrap_or(rust_type.tokens)
+  }
+
   fn create_fold(
+    options: &'a WgslBindgenOption,
+    custom_struct_field_type_maps: Option<&'a CustomStructFieldMap>,
     naga_members: &'a [StructMember],
     naga_module: &'a naga::Module,
-    options: &'a WgslBindgenOption,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> impl FnMut(NagaToRustStructState<'a>, &'a StructMember) -> NagaToRustStructState<'a>
@@ -48,7 +64,8 @@ impl<'a> NagaToRustStructState<'a> {
     let fold = move |mut state: NagaToRustStructState<'a>,
                      naga_member: &'a StructMember|
           -> NagaToRustStructState<'a> {
-      let name_ident = Ident::new(naga_member.name.as_ref().unwrap(), Span::call_site());
+      let member_name = naga_member.name.as_ref().unwrap();
+      let name_ident = Ident::new(member_name, Span::call_site());
       let naga_type = &naga_module.types[naga_member.ty];
 
       let rust_type = rust_type(naga_module, naga_type, &options);
@@ -94,11 +111,14 @@ impl<'a> NagaToRustStructState<'a> {
         }
       };
 
+      let rust_type =
+        Self::get_rust_type(rust_type, custom_struct_field_type_maps, member_name);
+
       let entry = RustStructMemberEntry {
         name_ident: name_ident.clone(),
         naga_member,
         naga_type,
-        rust_type: syn::Type::Verbatim(rust_type.tokens),
+        rust_type: syn::Type::Verbatim(rust_type),
         is_rsa,
         padding,
       };
@@ -140,18 +160,20 @@ impl<'a> RustStructMemberEntry<'a> {
   }
 
   fn from_naga(
+    options: &'a WgslBindgenOption,
+    custom_struct_field_type_maps: Option<&'a CustomStructFieldMap>,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
-    options: &'a WgslBindgenOption,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> Vec<Self> {
     let state = naga_members.iter().fold(
       NagaToRustStructState::default(),
       NagaToRustStructState::create_fold(
+        options,
+        custom_struct_field_type_maps,
         naga_members,
         naga_module,
-        options,
         layout_size,
         is_directly_sharable,
       ),
@@ -512,18 +534,23 @@ impl<'a> RustStructBuilder<'a> {
     is_host_sharable: bool,
     has_rts_array: bool,
   ) -> Self {
+    let name = naga_type.name.as_ref().unwrap();
+
+    let custom_struct_field_type_maps = options
+      .custom_struct_field_type_maps
+      .get(&demangle(name).into_owned());
+
     let members = RustStructMemberEntry::from_naga(
+      options,
+      custom_struct_field_type_maps,
       naga_members,
       naga_module,
-      options,
       layout.size as usize,
       is_directly_sharable,
     );
 
-    let name = naga_type.name.as_ref().unwrap().into();
-
     let mut builder = RustStructBuilder {
-      name,
+      name: Cow::Borrowed(&name),
       members,
       is_host_sharable,
       naga_module,
