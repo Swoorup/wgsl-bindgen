@@ -40,23 +40,22 @@
 extern crate wgpu_types as wgpu;
 
 use bevy_util::SourceWithFullDependenciesResult;
-use bindgroup::{bind_groups_module, get_bind_group_data};
 use case::CaseExt;
 use derive_more::IsVariant;
+use generate::{bind_group, consts, pipeline, shader_module, shader_registry};
+use heck::ToPascalCase;
 use naga::ShaderStage;
 use proc_macro2::{Literal, Span, TokenStream};
+use quote::format_ident;
 use quote_gen::{add_custom_vector_matrix_assertions, RustModBuilder};
 use syn::{Ident, Index};
 use thiserror::Error;
 
 pub mod bevy_util;
 mod bindgen;
-mod bindgroup;
-mod consts;
+mod generate;
 mod naga_util;
 mod quote_gen;
-mod shader_module;
-mod shader_registry;
 mod structs;
 mod types;
 mod wgsl;
@@ -111,7 +110,8 @@ fn create_rust_bindings(
       naga_module,
       ..
     } = entry;
-    let bind_group_data = get_bind_group_data(naga_module)?;
+    let entry_name = sanitize_and_pascal_case(&entry.mod_name);
+    let bind_group_data = bind_group::get_bind_group_data(naga_module)?;
     let shader_stages = wgsl::shader_stages(naga_module);
 
     // Write all the structs, including uniforms and entry function inputs.
@@ -125,7 +125,15 @@ fn create_rust_bindings(
 
     mod_builder.add(mod_name, vertex_struct_methods(naga_module));
 
-    mod_builder.add(mod_name, bind_groups_module(&bind_group_data, shader_stages));
+    mod_builder.add(
+      mod_name,
+      bind_group::bind_groups_module(
+        &entry_name,
+        &options,
+        &bind_group_data,
+        shader_stages,
+      ),
+    );
 
     mod_builder.add(
       mod_name,
@@ -134,26 +142,8 @@ fn create_rust_bindings(
     mod_builder.add(mod_name, entry_point_constants(naga_module));
     mod_builder.add(mod_name, vertex_states(naga_module));
 
-    let bind_group_layouts: Vec<_> = bind_group_data
-      .keys()
-      .map(|group_no| {
-        let group = indexed_name_to_ident("BindGroup", *group_no);
-        quote!(bind_groups::#group::get_bind_group_layout(device))
-      })
-      .collect();
-
-    let create_pipeline_layout = quote! {
-        pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
-                bind_group_layouts: &[
-                    #(&#bind_group_layouts),*
-                ],
-                push_constant_ranges: &[],
-            })
-        }
-    };
-
+    let create_pipeline_layout =
+      pipeline::create_pipeline_layout_fn(&entry_name, &options, &bind_group_data);
     mod_builder.add(mod_name, create_pipeline_layout);
     mod_builder.add(mod_name, shader_module::shader_module(entry, options));
   }
@@ -163,7 +153,7 @@ fn create_rust_bindings(
     shader_registry::build_shader_registry(&entries, options.shader_source_type);
   let assertions = add_custom_vector_matrix_assertions(options);
   let output = quote! {
-    #![allow(unused, non_snake_case, non_camel_case_types)]
+    #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
     #shader_registry
     #assertions
@@ -178,8 +168,15 @@ fn pretty_print(tokens: &TokenStream) -> String {
   prettyplease::unparse(&file)
 }
 
-fn indexed_name_to_ident(name: &str, index: u32) -> Ident {
-  Ident::new(&format!("{name}{index}"), Span::call_site())
+fn indexed_name_ident(name: &str, index: u32) -> Ident {
+  format_ident!("{name}{index}")
+}
+
+fn sanitize_and_pascal_case(v: &str) -> String {
+  v.chars()
+    .filter(|ch| ch.is_alphanumeric() || *ch == '_')
+    .collect::<String>()
+    .to_pascal_case()
 }
 
 fn vertex_struct_methods(module: &naga::Module) -> TokenStream {
@@ -376,7 +373,7 @@ mod test {
 
     pretty_assertions::assert_eq!(
       indoc! {r##"
-                #![allow(unused, non_snake_case, non_camel_case_types)]
+                #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
                 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
                 pub enum ShaderEntry {
                     Test,
@@ -402,11 +399,20 @@ mod test {
                 pub mod test {
                     use super::{_root, _root::*};
                     pub const ENTRY_FS_MAIN: &str = "fs_main";
+                    #[derive(Debug)]
+                    pub struct WgpuPipelineLayout;
+                    impl WgpuPipelineLayout {
+                        pub fn bind_group_layout_entries(
+                            entries: [wgpu::BindGroupLayout; 0],
+                        ) -> [wgpu::BindGroupLayout; 0] {
+                            entries
+                        }
+                    }
                     pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
                         device
                             .create_pipeline_layout(
                                 &wgpu::PipelineLayoutDescriptor {
-                                    label: None,
+                                    label: Some("Test::PipelineLayout"),
                                     bind_group_layouts: &[],
                                     push_constant_ranges: &[],
                                 },

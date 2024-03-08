@@ -4,11 +4,10 @@
 //! and functions for creating the pipeline layout and shader module for each variant.
 use derive_more::Constructor;
 use enumflags2::BitFlags;
-use heck::ToPascalCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::{WgslEntryResult, WgslShaderSourceType};
+use crate::{sanitize_and_pascal_case, WgslEntryResult, WgslShaderSourceType};
 
 #[derive(Constructor)]
 struct ShaderEntryBuilder<'a, 'b> {
@@ -18,10 +17,10 @@ struct ShaderEntryBuilder<'a, 'b> {
 
 impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   fn build_registry_enum(&self) -> TokenStream {
-    let variants = self.entries.iter().map(|entry| {
-      let name = format_ident!("{}", create_enum_variant_name(&entry.mod_name));
-      quote! { #name }
-    });
+    let variants = self
+      .entries
+      .iter()
+      .map(|entry| format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name)));
 
     quote! {
       #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -34,7 +33,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   fn build_create_pipeline_layout_fn(&self) -> TokenStream {
     let match_arms = self.entries.iter().map(|entry| {
       let mod_path = format_ident!("{}", entry.mod_name);
-      let enum_variant = format_ident!("{}", create_enum_variant_name(&entry.mod_name));
+      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
       quote! {
         Self::#enum_variant => #mod_path::create_pipeline_layout(device)
@@ -56,7 +55,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
 
     let match_arms = self.entries.iter().map(|entry| {
       let mod_path = format_ident!("{}", entry.mod_name);
-      let enum_variant = format_ident!("{}", create_enum_variant_name(&entry.mod_name));
+      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
       quote! {
         Self::#enum_variant => {
@@ -84,7 +83,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
 
     let match_arms = self.entries.iter().map(|entry| {
       let mod_path = format_ident!("{}", entry.mod_name);
-      let enum_variant = format_ident!("{}", create_enum_variant_name(&entry.mod_name));
+      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
       quote! {
         Self::#enum_variant => #mod_path::SHADER_FILES
@@ -135,14 +134,4 @@ pub(crate) fn build_shader_registry(
   source_type: BitFlags<WgslShaderSourceType>,
 ) -> TokenStream {
   ShaderEntryBuilder::new(entries, source_type).build()
-}
-
-fn create_enum_variant_name(v: &str) -> String {
-  // Remove unnecessary characters
-  let cleaned: String = v
-    .chars()
-    .filter(|ch| ch.is_alphanumeric() || *ch == '_')
-    .collect();
-  // Convert to PascalCase
-  cleaned.to_pascal_case()
 }

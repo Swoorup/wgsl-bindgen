@@ -30,8 +30,8 @@ struct State<'a> {
     size: winit::dpi::PhysicalSize<u32>,
     config: wgpu::SurfaceConfiguration,
     pipeline: wgpu::RenderPipeline,
-    bind_group0: shader_bindings::triangle::bind_groups::BindGroup0,
-    bind_group1: shader_bindings::triangle::bind_groups::BindGroup1,
+    bind_group0: shader_bindings::triangle::bind_groups::WgpuBindGroup0,
+    bind_group1: shader_bindings::triangle::bind_groups::WgpuBindGroup1,
     vertex_buffer: wgpu::Buffer,
 }
 
@@ -145,9 +145,9 @@ impl<'a> State<'a> {
         });
 
         // Use the generated types to ensure the correct bind group is assigned to each slot.
-        let bind_group0 = shader_bindings::triangle::bind_groups::BindGroup0::from_bindings(
+        let bind_group0 = shader_bindings::triangle::bind_groups::WgpuBindGroup0::from_bindings(
             &device,
-            shader_bindings::triangle::bind_groups::BindGroupLayout0 {
+            shader_bindings::triangle::bind_groups::WgpuBindGroupLayout0 {
                 color_texture: &view,
                 color_sampler: &sampler,
             },
@@ -161,9 +161,9 @@ impl<'a> State<'a> {
             usage: wgpu::BufferUsages::UNIFORM,
         });
 
-        let bind_group1 = shader_bindings::triangle::bind_groups::BindGroup1::from_bindings(
+        let bind_group1 = shader_bindings::triangle::bind_groups::WgpuBindGroup1::from_bindings(
             &device,
-            shader_bindings::triangle::bind_groups::BindGroupLayout1 {
+            shader_bindings::triangle::bind_groups::WgpuBindGroupLayout1 {
                 uniforms: uniforms_buffer.as_entire_buffer_binding(),
             },
         );
