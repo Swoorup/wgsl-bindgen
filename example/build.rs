@@ -1,6 +1,6 @@
 use miette::{IntoDiagnostic, Result};
 use wgsl_bindgen::{
-    quote, GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderSourceType,
+    qs::quote, GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderSourceType,
     WgslTypeSerializeStrategy,
 };
 

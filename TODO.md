@@ -1,13 +1,11 @@
 # Rough ideas. 
 
-* Treat `_pad` as padding members and automatically initiallize it in init struct
-* Allow injecting dynamic shader defines at runtime
-* Allow generation directly from source files.
+* Treat `_pad` as padding members and automatically initiallize it in init struct. 
+  This requires moving the pad field as a member in struct member entry info to a member entry variant type?
+* Allow injecting dynamic shader defines at build-time (we already have a runtime mechanism from generation)
+* Allow generation directly from shader strings.
 * proc_macro as an option alongside of build.rs. We need proc_macro::tracked* feature?
-* per struct field replacement? Specify like `UniformBuffer.player_position` => `MyDVec4`.
-  This appears necessary as naga backend doesn't support custom alignment in struct members. 
-  i.e we can't have a struct which is not a mutliple of 16 bytes inside a uniform buffer struct. 
-  But we can have built in types like vec2, vec4, etc.
+* Use something like derivative and use MaybeUninit for padded fields
 
 * Use struct like this instead directly using the array.
   * ```rust

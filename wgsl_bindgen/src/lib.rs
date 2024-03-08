@@ -46,9 +46,8 @@ use generate::{bind_group, consts, pipeline, shader_module, shader_registry};
 use heck::ToPascalCase;
 use naga::ShaderStage;
 use proc_macro2::{Literal, Span, TokenStream};
-use quote::format_ident;
+use qs::{format_ident, quote, Ident, Index};
 use quote_gen::{add_custom_vector_matrix_assertions, RustModBuilder};
-use syn::{Ident, Index};
 use thiserror::Error;
 
 pub mod bevy_util;
@@ -61,9 +60,14 @@ mod types;
 mod wgsl;
 mod wgsl_type;
 
+pub mod qs {
+  pub use proc_macro2::TokenStream;
+  pub use quote::{format_ident, quote};
+  pub use syn::{Ident, Index};
+}
+
 pub use bindgen::*;
 pub use naga::FastIndexMap;
-pub use quote::quote;
 pub use types::*;
 pub use wgsl_type::*;
 

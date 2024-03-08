@@ -1,7 +1,5 @@
-use naga::FastIndexMap;
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::Index;
+use crate::qs::{quote, Index, TokenStream};
+use crate::FastIndexMap;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum BindResourceType {
