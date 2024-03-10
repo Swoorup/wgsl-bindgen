@@ -1084,14 +1084,6 @@ mod tests {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for Input0 {}
-        unsafe impl bytemuck::Pod for Input0 {}
-        const _: () = {
-          assert!(std::mem::offset_of!(Input0, a) == 0);
-          assert!(std::mem::offset_of!(Input0, b) == 8);
-          assert!(std::mem::offset_of!(Input0, c) == 32);
-          assert!(std::mem::size_of::<Input0>() == 64);
-        };
 
         #[repr(C)]
         #[derive(Debug, PartialEq, Clone, Copy)]
@@ -1117,6 +1109,14 @@ mod tests {
                 data.build()
             }
         }
+        const INPUT0_ASSERTS: () = {
+          assert!(std::mem::offset_of!(Input0, a) == 0);
+          assert!(std::mem::offset_of!(Input0, b) == 8);
+          assert!(std::mem::offset_of!(Input0, c) == 32);
+          assert!(std::mem::size_of::<Input0>() == 64);
+        };
+        unsafe impl bytemuck::Zeroable for Input0 {}
+        unsafe impl bytemuck::Pod for Input0 {}
 
         #[repr(C, align(4))]
         #[derive(Debug, PartialEq, Clone, Copy)]
@@ -1129,12 +1129,12 @@ mod tests {
                 Self { a }
             }
         }
-        unsafe impl bytemuck::Zeroable for Inner {}
-        unsafe impl bytemuck::Pod for Inner {}
-        const _: () = {
+        const INNER_ASSERTS: () = {
           assert!(std::mem::offset_of!(Inner, a) == 0);
           assert!(std::mem::size_of:: < Inner > () == 4);
         };
+        unsafe impl bytemuck::Zeroable for Inner {}
+        unsafe impl bytemuck::Pod for Inner {}
         #[repr(C, align(4))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct Outer {
@@ -1146,12 +1146,12 @@ mod tests {
                 Self { inner }
             }
         }
-        unsafe impl bytemuck::Zeroable for Outer {}
-        unsafe impl bytemuck::Pod for Outer {}
-        const _: () = {
+        const OUTER_ASSERTS: () = {
           assert!(std::mem::offset_of!(Outer, inner) == 0);
           assert!(std::mem::size_of:: < Outer > () == 4);
         };
+        unsafe impl bytemuck::Zeroable for Outer {}
+        unsafe impl bytemuck::Pod for Outer {}
       },
       actual
     );
@@ -1270,13 +1270,13 @@ mod tests {
                 Self { other_data, the_array }
             }
         }
-        unsafe impl<const N: usize> bytemuck::Zeroable for RtsStruct<N> {}
-        unsafe impl<const N: usize> bytemuck::Pod for RtsStruct<N> {}
-        const _: () = {
+        const RTS_STRUCT_ASSERTS: () = {
             assert!(std::mem::offset_of!(RtsStruct<1>, other_data) == 0);
             assert!(std::mem::offset_of!(RtsStruct<1>, the_array) == 4);
             assert!(std::mem::size_of::<RtsStruct<1> >() == 8);
         };
+        unsafe impl<const N: usize> bytemuck::Zeroable for RtsStruct<N> {}
+        unsafe impl<const N: usize> bytemuck::Pod for RtsStruct<N> {}
       },
       actual
     )
@@ -1341,12 +1341,12 @@ mod tests {
                 Self { a }
             }
         }
-        unsafe impl bytemuck::Zeroable for UniformsData {}
-        unsafe impl bytemuck::Pod for UniformsData {}
-        const _: () = {
+        const UNIFORMS_DATA_ASSERTS: () = {
              assert!(std::mem::offset_of!(UniformsData, a) == 0);
              assert!(std::mem::size_of::<UniformsData> () == 48);
         };
+        unsafe impl bytemuck::Zeroable for UniformsData {}
+        unsafe impl bytemuck::Pod for UniformsData {}
       },
       actual
     );
@@ -1388,12 +1388,12 @@ mod tests {
                 Self { centered_mvp }
             }
         }
-        unsafe impl bytemuck::Zeroable for UniformsData {}
-        unsafe impl bytemuck::Pod for UniformsData {}
-        const _: () = {
+        const UNIFORMS_DATA_ASSERTS: () = {
             assert!(std::mem::offset_of!(UniformsData, centered_mvp) == 0);
             assert!(std::mem::size_of:: <UniformsData>() == 48);
         };
+        unsafe impl bytemuck::Zeroable for UniformsData {}
+        unsafe impl bytemuck::Pod for UniformsData {}
       },
       actual
     );
@@ -1448,15 +1448,15 @@ mod tests {
                 Self { a, b, c, d }
             }
         }
-        unsafe impl bytemuck::Zeroable for MatricesF32 {}
-        unsafe impl bytemuck::Pod for MatricesF32 {}
-        const _: () = {
+        const MATRICES_F32_ASSERTS: () = {
             assert!(std::mem::offset_of!(MatricesF32, a) == 0);
             assert!(std::mem::offset_of!(MatricesF32, b) == 64);
             assert!(std::mem::offset_of!(MatricesF32, c) == 128);
             assert!(std::mem::offset_of!(MatricesF32, d) == 160);
             assert!(std::mem::size_of::<MatricesF32>() == 208);
         };
+        unsafe impl bytemuck::Zeroable for MatricesF32 {}
+        unsafe impl bytemuck::Pod for MatricesF32 {}
       },
       actual
     );
@@ -1496,12 +1496,12 @@ mod tests {
         pub const fn Uniform(position_data: [f32; 2]) -> Uniform {
             Uniform { position_data }
         }
-        unsafe impl bytemuck::Zeroable for Uniform {}
-        unsafe impl bytemuck::Pod for Uniform {}
-        const _: () = {
+        const UNIFORM_ASSERTS: () = {
             assert!(std::mem::offset_of!(Uniform, position_data) == 0);
             assert!(std::mem::size_of:: < Uniform > () == 8);
         };
+        unsafe impl bytemuck::Zeroable for Uniform {}
+        unsafe impl bytemuck::Pod for Uniform {}
       },
       actual
     );
