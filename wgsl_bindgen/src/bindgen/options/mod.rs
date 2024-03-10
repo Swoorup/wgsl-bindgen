@@ -181,6 +181,11 @@ pub struct WgslBindgenOption {
   #[builder(default, setter(custom))]
   pub custom_struct_field_type_maps: FastIndexMap<String, CustomStructFieldMap>,
 
+  /// A map of custom struct alignment mappings, which will override the alignment generated for the struct.
+  /// This still wouldn't change the assertions generated however.
+  #[builder(default, setter(custom))]
+  pub struct_alignment_override: FastIndexMap<String, u16>,
+
   /// This field can be used to provide a custom generator for extra bindings that are not covered by the default generator.
   #[builder(default, setter(custom))]
   pub extra_binding_generator: Option<BindingGenerator>,
@@ -248,6 +253,26 @@ impl WgslBindgenOptionBuilder {
         let mut map = FastIndexMap::default();
         map.insert(struct_name.to_string(), field_names);
         self.custom_struct_field_type_maps = Some(map);
+      }
+    };
+
+    self
+  }
+
+  pub fn add_struct_alignment_override(
+    &mut self,
+    struct_name: impl Into<String>,
+    alignment: u16,
+  ) -> &mut Self {
+    let struct_name = struct_name.into();
+    match self.struct_alignment_override.as_mut() {
+      Some(m) => {
+        m.insert(struct_name.to_string(), alignment);
+      }
+      None => {
+        let mut map = FastIndexMap::default();
+        map.insert(struct_name.to_string(), alignment);
+        self.struct_alignment_override = Some(map);
       }
     };
 

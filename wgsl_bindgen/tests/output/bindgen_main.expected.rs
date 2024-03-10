@@ -60,7 +60,7 @@ pub mod layout_asserts {
 }
 pub mod main {
     use super::{_root, _root::*};
-    #[repr(C, align(16))]
+    #[repr(C, align(256))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Style {
         /// size: 16, offset: 0x0, type: `vec4<f32>`

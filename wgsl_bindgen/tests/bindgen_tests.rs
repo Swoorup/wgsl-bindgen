@@ -32,6 +32,7 @@ fn test_main_bindgen() -> Result<()> {
     .add_entry_point("tests/shaders/basic/main.wgsl")
     .workspace_root("tests/shaders/additional")
     .additional_scan_dir((None, "tests/shaders/additional"))
+    .add_struct_alignment_override("main::Style", 256)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)

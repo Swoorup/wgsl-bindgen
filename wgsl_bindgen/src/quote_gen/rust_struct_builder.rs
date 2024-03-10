@@ -515,7 +515,14 @@ impl<'a> RustStructBuilder<'a> {
 
     let derives = self.build_derives();
 
-    let alignment = Index::from((self.layout.alignment * 1u32) as usize);
+    let aligment = self
+      .options
+      .struct_alignment_override
+      .get(self.item_path.get_fully_qualified_name().as_str())
+      .cloned()
+      .unwrap_or((self.layout.alignment * 1u32) as u16);
+
+    let alignment = Index::from(aligment as usize);
     let repr_c = if !has_rts_array {
       if should_generate_padding {
         quote!(#[repr(C, align(#alignment))])
