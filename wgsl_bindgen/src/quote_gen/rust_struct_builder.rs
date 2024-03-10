@@ -182,7 +182,7 @@ impl<'a> RustStructMemberEntry<'a> {
 }
 
 pub struct RustStructBuilder<'a> {
-  item_path: RustItemPath,
+  item_path: &'a RustItemPath,
   members: Vec<RustStructMemberEntry<'a>>,
   is_host_sharable: bool,
   has_rts_array: bool,
@@ -524,8 +524,7 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   pub fn from_naga(
-    invoking_entry_module: &'a str,
-    naga_type: &'a naga::Type,
+    item_path: &'a RustItemPath,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
     options: &'a WgslBindgenOption,
@@ -534,10 +533,6 @@ impl<'a> RustStructBuilder<'a> {
     is_host_sharable: bool,
     has_rts_array: bool,
   ) -> Self {
-    let name = naga_type.name.as_ref().unwrap();
-
-    let item_path = RustItemPath::from_mangled(&name, invoking_entry_module);
-
     // get the user defined field mapping for this struct
     let custom_struct_field_type_maps = options
       .custom_struct_field_type_maps

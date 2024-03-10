@@ -3,15 +3,14 @@ use std::collections::HashSet;
 use naga::{Handle, Type};
 use proc_macro2::TokenStream;
 
-use crate::bevy_util::demangle_str;
-use crate::quote_gen::{RustItemPath, RustSourceItem, RustStructBuilder};
+use crate::quote_gen::{RustItemPath, RustItem, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
 pub fn structs_items(
   invoking_entry_module: &str,
   module: &naga::Module,
   options: &WgslBindgenOption,
-) -> Vec<RustSourceItem> {
+) -> Vec<RustItem> {
   // Initialize the layout calculator provided by naga.
   let mut layouter = naga::proc::Layouter::default();
   layouter.update(module.to_ctx()).unwrap();
@@ -43,17 +42,17 @@ pub fn structs_items(
     })
     .filter_map(|(t_handle, ty)| {
       if let naga::TypeInner::Struct { members, .. } = &ty.inner {
-        let demangled_name = demangle_str(ty.name.as_ref().unwrap());
+        let rust_item_path =
+          RustItemPath::from_mangled(ty.name.as_ref().unwrap(), invoking_entry_module);
 
         // skip if using custom struct mapping
         if options.type_map.contains_key(&crate::WgslType::Struct {
-          fully_qualified_name: demangled_name.into(),
+          fully_qualified_name: rust_item_path.get_fully_qualified_name().into(),
         }) {
           None
         } else {
           let rust_struct = rust_struct(
-            invoking_entry_module,
-            ty,
+            &rust_item_path,
             members,
             &layouter,
             t_handle,
@@ -62,9 +61,7 @@ pub fn structs_items(
             &global_variable_types,
           );
 
-          let rust_item_path =
-            RustItemPath::from_mangled(ty.name.as_ref().unwrap(), invoking_entry_module);
-          Some(RustSourceItem::new(rust_item_path, rust_struct))
+          Some(RustItem::new(rust_item_path, rust_struct))
         }
       } else {
         None
@@ -74,8 +71,7 @@ pub fn structs_items(
 }
 
 fn rust_struct(
-  invoking_entry_module: &str,
-  naga_type: &naga::Type,
+  rust_item_path: &RustItemPath,
   naga_members: &[naga::StructMember],
   layouter: &naga::proc::Layouter,
   t_handle: naga::Handle<naga::Type>,
@@ -99,8 +95,7 @@ fn rust_struct(
     && is_host_sharable;
 
   let builder = RustStructBuilder::from_naga(
-    invoking_entry_module,
-    naga_type,
+    rust_item_path,
     naga_members,
     naga_module,
     &options,
