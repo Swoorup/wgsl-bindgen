@@ -11,8 +11,6 @@
 
 * Use something like derivative and use MaybeUninit for padded fields
 
-* Organise consts assertions, impls into their own modules
-
 * Use rustfmt instead of prettyparse
 
 * Use struct like this instead directly using the array.
