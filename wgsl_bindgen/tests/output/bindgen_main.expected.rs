@@ -55,7 +55,7 @@ pub mod layout_asserts {
     const MAIN_STYLE_ASSERTS: () = {
         assert!(std::mem::offset_of!(main::Style, color) == 0);
         assert!(std::mem::offset_of!(main::Style, width) == 16);
-        assert!(std::mem::size_of:: < main::Style > () == 32);
+        assert!(std::mem::size_of:: < main::Style > () == 256);
     };
 }
 pub mod main {

@@ -32,7 +32,7 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 -   Rust structs for vertex, storage, and uniform buffers
 -   Either use encase or bytemuck derives, and optionally serde for generated structs.
 -   Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
--   Override the alignment for the struct generated.
+-   Override the alignment for the struct generated. This also affects the size of the struct generated.
 
 ## Usage
 

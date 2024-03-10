@@ -182,7 +182,9 @@ pub struct WgslBindgenOption {
   pub custom_struct_field_type_maps: FastIndexMap<String, CustomStructFieldMap>,
 
   /// A map of custom struct alignment mappings, which will override the alignment generated for the struct.
-  /// This still wouldn't change the assertions generated however.
+  /// This will also possibly change the size of the structure and the associated struct size asserts.
+  /// You would only need under certain scenarios where the uniform buffer needs a specific minimum alignment. 
+  /// See [WebGPU specs](https://www.w3.org/TR/webgpu/#dom-supported-limits-minuniformbufferoffsetalignment).
   #[builder(default, setter(custom))]
   pub struct_alignment_override: FastIndexMap<String, u16>,
 

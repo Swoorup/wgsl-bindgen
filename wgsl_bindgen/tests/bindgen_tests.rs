@@ -54,6 +54,28 @@ fn test_main_bindgen() -> Result<()> {
 }
 
 #[test]
+fn test_struct_alignment_minimal() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/shaders/basic/minimal.wgsl")
+    .workspace_root("tests/shaders/basic")
+    .add_struct_alignment_override("minimal::Uniforms", 256)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/bindgen_minimal.actual.rs".to_string())
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/bindgen_minimal.actual.rs").unwrap();
+  let expected = read_to_string("tests/output/bindgen_minimal.expected.rs").unwrap();
+
+  assert_eq!(actual, expected);
+  Ok(())
+}
+
+#[test]
 #[ignore = "It doesn't like path symbols inside a nested type like array."]
 fn test_path_import() -> Result<()> {
   let _ = WgslBindgenOptionBuilder::default()

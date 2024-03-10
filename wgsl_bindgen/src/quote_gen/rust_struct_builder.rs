@@ -438,7 +438,10 @@ impl<'a> RustStructBuilder<'a> {
     derives
   }
 
-  fn build_layout_assertion(&self) -> TokenStream {
+  fn build_layout_assertion(
+    &self,
+    custom_alignment: Option<naga::proc::Alignment>,
+  ) -> TokenStream {
     let fully_qualified_name_str = self.item_path.get_fully_qualified_name();
 
     let fully_qualified_name =
@@ -464,9 +467,11 @@ impl<'a> RustStructBuilder<'a> {
     if self.is_directly_shareable() {
       // Assert that the Rust layout matches the WGSL layout.
       // Enable for bytemuck since it uses the Rust struct's memory layout.
+      let struct_size = custom_alignment
+        .map(|alignment| alignment.round_up(self.layout.size))
+        .unwrap_or(self.layout.size) as usize;
 
-      // TODO: Does the Rust alignment matter if it's copied to a buffer anyway?
-      let struct_size = Index::from(self.layout.size as usize);
+      let struct_size = Index::from(struct_size);
 
       let assertion_name = format_ident!(
         "{}_ASSERTS",
@@ -515,14 +520,15 @@ impl<'a> RustStructBuilder<'a> {
 
     let derives = self.build_derives();
 
-    let aligment = self
+    let custom_alignment = self
       .options
       .struct_alignment_override
       .get(self.item_path.get_fully_qualified_name().as_str())
-      .cloned()
-      .unwrap_or((self.layout.alignment * 1u32) as u16);
+      .map(|align| naga::proc::Alignment::new(*align as u32))
+      .flatten();
 
-    let alignment = Index::from(aligment as usize);
+    let alignment = custom_alignment.unwrap_or(self.layout.alignment) * 1u32;
+    let alignment = Index::from(alignment as usize);
     let repr_c = if !has_rts_array {
       if should_generate_padding {
         quote!(#[repr(C, align(#alignment))])
@@ -536,7 +542,7 @@ impl<'a> RustStructBuilder<'a> {
     let fields = self.build_fields();
     let struct_new_fn = self.build_fn_new();
     let init_struct = self.build_init_struct();
-    let assert_layout = self.build_layout_assertion();
+    let assert_layout = self.build_layout_assertion(custom_alignment);
     let unsafe_bytemuck_pod_impl = self.build_bytemuck_impls();
     let fully_qualified_name = self.item_path.get_fully_qualified_name();
 
