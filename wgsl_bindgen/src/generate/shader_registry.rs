@@ -64,8 +64,10 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       }
     });
 
+    let return_type = source_type.get_return_type(quote!(wgpu::ShaderModule));
+
     quote! {
-      pub fn #fn_name(&self, #param_defs) -> wgpu::ShaderModule {
+      pub fn #fn_name(&self, #param_defs) -> #return_type {
         match self {
           #( #match_arms, )*
         }
@@ -73,7 +75,40 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
     }
   }
 
-  fn build_shader_files_fn(&self) -> TokenStream {
+  fn build_shader_entry_filename_fn(&self) -> TokenStream {
+    if !self
+      .source_type
+      .contains(WgslShaderSourceType::UseComposerWithPath)
+    {
+      return quote!();
+    }
+
+    let match_arms = self.entries.iter().map(|entry| {
+      let filename = entry
+        .source_including_deps
+        .source_file
+        .file_path
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap();
+      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
+
+      quote! {
+        Self::#enum_variant => #filename
+      }
+    });
+
+    quote! {
+      pub fn shader_entry_filename(&self) -> &'static str {
+        match self {
+          #( #match_arms, )*
+        }
+      }
+    }
+  }
+
+  fn build_shader_paths_fn(&self) -> TokenStream {
     if !self
       .source_type
       .contains(WgslShaderSourceType::UseComposerWithPath)
@@ -86,12 +121,12 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
       quote! {
-        Self::#enum_variant => #mod_path::SHADER_FILES
+        Self::#enum_variant => #mod_path::SHADER_PATHS
       }
     });
 
     quote! {
-      pub fn shader_files(&self) -> &[&str] {
+      pub fn shader_paths(&self) -> &[&str] {
         match self {
           #( #match_arms, )*
         }
@@ -108,13 +143,15 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
 
     let create_pipeline_layout_fn = self.build_create_pipeline_layout_fn();
 
-    let create_shader_files_fn = self.build_shader_files_fn();
+    let shader_paths_fn = self.build_shader_paths_fn();
+    let shader_entry_filename_fn = self.build_shader_entry_filename_fn();
 
     quote! {
       impl ShaderEntry {
         #create_pipeline_layout_fn
         #(#create_shader_module_fns)*
-        #create_shader_files_fn
+        #shader_entry_filename_fn
+        #shader_paths_fn
       }
     }
   }

@@ -37,11 +37,11 @@ impl ToTokens for RustTypeInfo {
   }
 }
 
-pub(crate) fn add_custom_vector_matrix_assertions(
+pub(crate) fn custom_vector_matrix_assertions(
   options: &WgslBindgenOption,
-) -> TokenStream {
+) -> Option<TokenStream> {
   if options.serialization_strategy.is_encase() {
-    return quote!();
+    return None;
   }
 
   fn build_assert_for(
@@ -65,11 +65,9 @@ pub(crate) fn add_custom_vector_matrix_assertions(
     .chain(WgslMatType::iter().filter_map(|ty| build_assert_for(options, ty)))
     .collect::<Vec<_>>();
 
-  quote! {
-    const _: () = {
-      #(#assertions)*
-    };
-  }
+  Some(quote! {
+    const WGSL_BASE_TYPE_ASSERTS: () = { #(#assertions)* };
+  })
 }
 
 #[allow(non_snake_case)]

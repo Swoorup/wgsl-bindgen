@@ -18,18 +18,194 @@ impl ShaderEntry {
         }
     }
 }
-const _: () = {
-    assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
-    assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
-    assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
-    assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
-    assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
-    assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
-    assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
-    assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
-};
 mod _root {
     pub use super::*;
+}
+pub mod layout_asserts {
+    use super::{_root, _root::*};
+    const WGSL_BASE_TYPE_ASSERTS: () = {
+        assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
+        assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
+        assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
+        assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
+        assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
+        assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
+        assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
+        assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
+    };
+    const BEVY_PBRPBRTYPES_STANDARD_MATERIAL_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, base_color) == 0
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, emissive) == 16
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial,
+            perceptual_roughness) == 32
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, metallic) == 36
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, reflectance) ==
+            40
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, flags) == 44
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, alpha_cutoff) ==
+            48
+        );
+        assert!(std::mem::size_of:: < bevy_pbr::pbr::types::StandardMaterial > () == 64);
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_VIEW_ASSERTS: () = {
+        assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, view_proj) == 0);
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::View, inverse_view_proj) ==
+            64
+        );
+        assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, view) == 128);
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::View, inverse_view) == 192
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::View, projection) == 256
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::View, inverse_projection) ==
+            320
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::View, world_position) == 384
+        );
+        assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, width) == 396);
+        assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, height) == 400);
+        assert!(std::mem::size_of:: < bevy_pbr::mesh_view_types::View > () == 416);
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_DIRECTIONAL_LIGHT_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight,
+            view_projection) == 0
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight, color) ==
+            64
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight,
+            direction_to_light) == 80
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight, flags) ==
+            92
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight,
+            shadow_depth_bias) == 96
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight,
+            shadow_normal_bias) == 100
+        );
+        assert!(
+            std::mem::size_of:: < bevy_pbr::mesh_view_types::DirectionalLight > () == 112
+        );
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_LIGHTS_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights, directional_lights)
+            == 0
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights, ambient_color) == 112
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights, cluster_dimensions)
+            == 128
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights, cluster_factors) ==
+            144
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights, n_directional_lights)
+            == 160
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights,
+            spot_light_shadowmap_offset) == 164
+        );
+        assert!(std::mem::size_of:: < bevy_pbr::mesh_view_types::Lights > () == 176);
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_POINT_LIGHT_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight,
+            light_custom_data) == 0
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight,
+            color_inverse_square_range) == 16
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight, position_radius)
+            == 32
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight, flags) == 48
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight,
+            shadow_depth_bias) == 52
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight,
+            shadow_normal_bias) == 56
+        );
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight,
+            spot_light_tan_angle) == 60
+        );
+        assert!(std::mem::size_of:: < bevy_pbr::mesh_view_types::PointLight > () == 64);
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_POINT_LIGHTS_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLights < 1 >, data) == 0
+        );
+        assert!(
+            std::mem::size_of:: < bevy_pbr::mesh_view_types::PointLights < 1 > > () == 64
+        );
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_CLUSTER_LIGHT_INDEX_LISTS_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::ClusterLightIndexLists < 1 >,
+            data) == 0
+        );
+        assert!(
+            std::mem::size_of:: < bevy_pbr::mesh_view_types::ClusterLightIndexLists < 1 >
+            > () == 4
+        );
+    };
+    const BEVY_PBRMESH_VIEW_TYPES_CLUSTER_OFFSETS_AND_COUNTS_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts < 1
+            >, data) == 0
+        );
+        assert!(
+            std::mem::size_of:: < bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts < 1
+            > > () == 16
+        );
+    };
+    const BEVY_PBRMESH_TYPES_MESH_ASSERTS: () = {
+        assert!(std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, model) == 0);
+        assert!(
+            std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, inverse_transpose_model) ==
+            64
+        );
+        assert!(std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, flags) == 128);
+        assert!(std::mem::size_of:: < bevy_pbr::mesh_types::Mesh > () == 144);
+    };
 }
 pub mod bevy_pbr {
     use super::{_root, _root::*};
@@ -52,8 +228,6 @@ pub mod bevy_pbr {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for MeshVertexOutput {}
-        unsafe impl bytemuck::Pod for MeshVertexOutput {}
     }
     pub mod pbr {
         use super::{_root, _root::*};
@@ -100,20 +274,6 @@ pub mod bevy_pbr {
                     }
                 }
             }
-            unsafe impl bytemuck::Zeroable for StandardMaterial {}
-            unsafe impl bytemuck::Pod for StandardMaterial {}
-            const _: () = {
-                assert!(std::mem::offset_of!(StandardMaterial, base_color) == 0);
-                assert!(std::mem::offset_of!(StandardMaterial, emissive) == 16);
-                assert!(
-                    std::mem::offset_of!(StandardMaterial, perceptual_roughness) == 32
-                );
-                assert!(std::mem::offset_of!(StandardMaterial, metallic) == 36);
-                assert!(std::mem::offset_of!(StandardMaterial, reflectance) == 40);
-                assert!(std::mem::offset_of!(StandardMaterial, flags) == 44);
-                assert!(std::mem::offset_of!(StandardMaterial, alpha_cutoff) == 48);
-                assert!(std::mem::size_of:: < StandardMaterial > () == 64);
-            };
             #[repr(C)]
             #[derive(Debug, PartialEq, Clone, Copy)]
             pub struct StandardMaterialInit {
@@ -203,20 +363,6 @@ pub mod bevy_pbr {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for View {}
-        unsafe impl bytemuck::Pod for View {}
-        const _: () = {
-            assert!(std::mem::offset_of!(View, view_proj) == 0);
-            assert!(std::mem::offset_of!(View, inverse_view_proj) == 64);
-            assert!(std::mem::offset_of!(View, view) == 128);
-            assert!(std::mem::offset_of!(View, inverse_view) == 192);
-            assert!(std::mem::offset_of!(View, projection) == 256);
-            assert!(std::mem::offset_of!(View, inverse_projection) == 320);
-            assert!(std::mem::offset_of!(View, world_position) == 384);
-            assert!(std::mem::offset_of!(View, width) == 396);
-            assert!(std::mem::offset_of!(View, height) == 400);
-            assert!(std::mem::size_of:: < View > () == 416);
-        };
         #[repr(C)]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct ViewInit {
@@ -292,17 +438,6 @@ pub mod bevy_pbr {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for DirectionalLight {}
-        unsafe impl bytemuck::Pod for DirectionalLight {}
-        const _: () = {
-            assert!(std::mem::offset_of!(DirectionalLight, view_projection) == 0);
-            assert!(std::mem::offset_of!(DirectionalLight, color) == 64);
-            assert!(std::mem::offset_of!(DirectionalLight, direction_to_light) == 80);
-            assert!(std::mem::offset_of!(DirectionalLight, flags) == 92);
-            assert!(std::mem::offset_of!(DirectionalLight, shadow_depth_bias) == 96);
-            assert!(std::mem::offset_of!(DirectionalLight, shadow_normal_bias) == 100);
-            assert!(std::mem::size_of:: < DirectionalLight > () == 112);
-        };
         #[repr(C)]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct DirectionalLightInit {
@@ -372,17 +507,6 @@ pub mod bevy_pbr {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for Lights {}
-        unsafe impl bytemuck::Pod for Lights {}
-        const _: () = {
-            assert!(std::mem::offset_of!(Lights, directional_lights) == 0);
-            assert!(std::mem::offset_of!(Lights, ambient_color) == 112);
-            assert!(std::mem::offset_of!(Lights, cluster_dimensions) == 128);
-            assert!(std::mem::offset_of!(Lights, cluster_factors) == 144);
-            assert!(std::mem::offset_of!(Lights, n_directional_lights) == 160);
-            assert!(std::mem::offset_of!(Lights, spot_light_shadowmap_offset) == 164);
-            assert!(std::mem::size_of:: < Lights > () == 176);
-        };
         #[repr(C)]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct LightsInit {
@@ -451,18 +575,6 @@ pub mod bevy_pbr {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for PointLight {}
-        unsafe impl bytemuck::Pod for PointLight {}
-        const _: () = {
-            assert!(std::mem::offset_of!(PointLight, light_custom_data) == 0);
-            assert!(std::mem::offset_of!(PointLight, color_inverse_square_range) == 16);
-            assert!(std::mem::offset_of!(PointLight, position_radius) == 32);
-            assert!(std::mem::offset_of!(PointLight, flags) == 48);
-            assert!(std::mem::offset_of!(PointLight, shadow_depth_bias) == 52);
-            assert!(std::mem::offset_of!(PointLight, shadow_normal_bias) == 56);
-            assert!(std::mem::offset_of!(PointLight, spot_light_tan_angle) == 60);
-            assert!(std::mem::size_of:: < PointLight > () == 64);
-        };
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct PointLights<const N: usize> {
             /// size: 64, offset: 0x0, type: `array<bevy_pbr::mesh_view_types::PointLight>`
@@ -475,12 +587,6 @@ pub mod bevy_pbr {
                 Self { data }
             }
         }
-        unsafe impl<const N: usize> bytemuck::Zeroable for PointLights<N> {}
-        unsafe impl<const N: usize> bytemuck::Pod for PointLights<N> {}
-        const _: () = {
-            assert!(std::mem::offset_of!(PointLights < 1 >, data) == 0);
-            assert!(std::mem::size_of:: < PointLights < 1 > > () == 64);
-        };
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct ClusterLightIndexLists<const N: usize> {
             /// size: 4, offset: 0x0, type: `array<u32>`
@@ -491,12 +597,6 @@ pub mod bevy_pbr {
                 Self { data }
             }
         }
-        unsafe impl<const N: usize> bytemuck::Zeroable for ClusterLightIndexLists<N> {}
-        unsafe impl<const N: usize> bytemuck::Pod for ClusterLightIndexLists<N> {}
-        const _: () = {
-            assert!(std::mem::offset_of!(ClusterLightIndexLists < 1 >, data) == 0);
-            assert!(std::mem::size_of:: < ClusterLightIndexLists < 1 > > () == 4);
-        };
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct ClusterOffsetsAndCounts<const N: usize> {
             /// size: 16, offset: 0x0, type: `array<vec4<u32>>`
@@ -507,12 +607,6 @@ pub mod bevy_pbr {
                 Self { data }
             }
         }
-        unsafe impl<const N: usize> bytemuck::Zeroable for ClusterOffsetsAndCounts<N> {}
-        unsafe impl<const N: usize> bytemuck::Pod for ClusterOffsetsAndCounts<N> {}
-        const _: () = {
-            assert!(std::mem::offset_of!(ClusterOffsetsAndCounts < 1 >, data) == 0);
-            assert!(std::mem::size_of:: < ClusterOffsetsAndCounts < 1 > > () == 16);
-        };
         pub const POINT_LIGHT_FLAGS_SPOT_LIGHT_Y_NEGATIVE: u32 = 2u32;
         pub const POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BIT: u32 = 1u32;
         pub const DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT: u32 = 1u32;
@@ -544,14 +638,6 @@ pub mod bevy_pbr {
                 }
             }
         }
-        unsafe impl bytemuck::Zeroable for Mesh {}
-        unsafe impl bytemuck::Pod for Mesh {}
-        const _: () = {
-            assert!(std::mem::offset_of!(Mesh, model) == 0);
-            assert!(std::mem::offset_of!(Mesh, inverse_transpose_model) == 64);
-            assert!(std::mem::offset_of!(Mesh, flags) == 128);
-            assert!(std::mem::size_of:: < Mesh > () == 144);
-        };
         #[repr(C)]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct MeshInit {
@@ -580,6 +666,35 @@ pub mod bevy_pbr {
         use super::{_root, _root::*};
         pub const PI: f32 = 3.1415927f32;
     }
+}
+pub mod bytemuck_impls {
+    use super::{_root, _root::*};
+    unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_vertex_output::MeshVertexOutput {}
+    unsafe impl bytemuck::Pod for bevy_pbr::mesh_vertex_output::MeshVertexOutput {}
+    unsafe impl bytemuck::Zeroable for bevy_pbr::pbr::types::StandardMaterial {}
+    unsafe impl bytemuck::Pod for bevy_pbr::pbr::types::StandardMaterial {}
+    unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_view_types::View {}
+    unsafe impl bytemuck::Pod for bevy_pbr::mesh_view_types::View {}
+    unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_view_types::DirectionalLight {}
+    unsafe impl bytemuck::Pod for bevy_pbr::mesh_view_types::DirectionalLight {}
+    unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_view_types::Lights {}
+    unsafe impl bytemuck::Pod for bevy_pbr::mesh_view_types::Lights {}
+    unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_view_types::PointLight {}
+    unsafe impl bytemuck::Pod for bevy_pbr::mesh_view_types::PointLight {}
+    unsafe impl<const N: usize> bytemuck::Zeroable
+    for bevy_pbr::mesh_view_types::PointLights<N> {}
+    unsafe impl<const N: usize> bytemuck::Pod
+    for bevy_pbr::mesh_view_types::PointLights<N> {}
+    unsafe impl<const N: usize> bytemuck::Zeroable
+    for bevy_pbr::mesh_view_types::ClusterLightIndexLists<N> {}
+    unsafe impl<const N: usize> bytemuck::Pod
+    for bevy_pbr::mesh_view_types::ClusterLightIndexLists<N> {}
+    unsafe impl<const N: usize> bytemuck::Zeroable
+    for bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<N> {}
+    unsafe impl<const N: usize> bytemuck::Pod
+    for bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<N> {}
+    unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_types::Mesh {}
+    unsafe impl bytemuck::Pod for bevy_pbr::mesh_types::Mesh {}
 }
 pub mod pbr {
     use super::{_root, _root::*};

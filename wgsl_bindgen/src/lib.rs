@@ -47,7 +47,7 @@ use heck::ToPascalCase;
 use naga::ShaderStage;
 use proc_macro2::{Literal, Span, TokenStream};
 use qs::{format_ident, quote, Ident, Index};
-use quote_gen::{add_custom_vector_matrix_assertions, RustModBuilder};
+use quote_gen::{custom_vector_matrix_assertions, RustModBuilder, MOD_STRUCT_ASSERTIONS};
 use thiserror::Error;
 
 pub mod bevy_util;
@@ -108,6 +108,10 @@ fn create_rust_bindings(
 ) -> Result<String, CreateModuleError> {
   let mut mod_builder = RustModBuilder::new(true);
 
+  if let Some(custom_wgsl_type_asserts) = custom_vector_matrix_assertions(options) {
+    mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
+  }
+
   for entry in entries.iter() {
     let WgslEntryResult {
       mod_name,
@@ -155,12 +159,11 @@ fn create_rust_bindings(
   let mod_token_stream = mod_builder.generate();
   let shader_registry =
     shader_registry::build_shader_registry(&entries, options.shader_source_type);
-  let assertions = add_custom_vector_matrix_assertions(options);
+
   let output = quote! {
     #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
     #shader_registry
-    #assertions
     #mod_token_stream
   };
 

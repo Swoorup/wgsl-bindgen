@@ -206,10 +206,7 @@ impl RustModBuilder {
     current_module
   }
 
-  pub fn add_items(
-    &mut self,
-    items: Vec<RustItem>,
-  ) -> Result<(), RustModBuilderError> {
+  pub fn add_items(&mut self, items: Vec<RustItem>) -> Result<(), RustModBuilderError> {
     for item in items {
       let module_path = item.path.parent_module_path;
       let name = item.path.item_name;
