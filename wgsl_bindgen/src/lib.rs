@@ -120,11 +120,11 @@ fn create_rust_bindings(
 
     // Write all the structs, including uniforms and entry function inputs.
     mod_builder
-      .add_items(mod_name, structs::structs_items(naga_module, options))
+      .add_items(structs::structs_items(&mod_name, naga_module, options))
       .unwrap();
 
     mod_builder
-      .add_items(mod_name, consts::consts_items(naga_module))
+      .add_items(consts::consts_items(&mod_name, naga_module))
       .unwrap();
 
     mod_builder.add(mod_name, vertex_struct_methods(naga_module));
@@ -132,7 +132,7 @@ fn create_rust_bindings(
     mod_builder.add(
       mod_name,
       bind_group::bind_groups_module(
-        &entry_name,
+        &mod_name,
         &options,
         &bind_group_data,
         shader_stages,

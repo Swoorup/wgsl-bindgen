@@ -11,7 +11,7 @@ pub(crate) use rust_source_item::*;
 pub(crate) use rust_struct_builder::*;
 pub(crate) use rust_type_info::*;
 
-use crate::bevy_util::demangle;
+use crate::bevy_util::demangle_str;
 
 /// Creates a raw string literal from the given shader content.
 ///
@@ -36,7 +36,7 @@ pub(crate) fn create_shader_raw_string_literal(shader_content: &str) -> TokenStr
 ///
 /// The demangled and qualified token stream.
 pub(crate) fn demangle_and_qualify(string: &str) -> TokenStream {
-  let demangled = demangle(string);
+  let demangled = demangle_str(string);
 
   match demangled.contains("::") {
     true => {

@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use derive_more::Constructor;
 use quote::{format_ident, quote};
 
-use crate::bevy_util::demangle_splitting_mod_path_and_item;
 use crate::wgsl::buffer_binding_type;
 use crate::*;
 
@@ -120,23 +119,29 @@ impl<'a> BindGroupBuilder<'a> {
 
 // TODO: Take an iterator instead?
 pub fn bind_groups_module(
-  entry_name: &str,
+  invoking_entry_module: &str,
   options: &WgslBindgenOption,
   bind_group_data: &BTreeMap<u32, GroupData>,
   shader_stages: wgpu::ShaderStages,
 ) -> TokenStream {
+  let entry_name = sanitize_and_pascal_case(invoking_entry_module);
   let bind_groups: Vec<_> = bind_group_data
     .iter()
     .map(|(group_no, group)| {
       let wgpu_generator = &options.wgpu_binding_generator;
 
-      let wgpu_layout =
-        BindGroupLayoutBuilder::new(*group_no, group, &wgpu_generator.bind_group_layout)
-          .build();
+      let wgpu_layout = BindGroupLayoutBuilder::new(
+        invoking_entry_module,
+        *group_no,
+        group,
+        &wgpu_generator.bind_group_layout,
+      )
+      .build();
 
       let additional_layout =
         if let Some(additional_generator) = &options.extra_binding_generator {
           BindGroupLayoutBuilder::new(
+            invoking_entry_module,
             *group_no,
             group,
             &additional_generator.bind_group_layout,
@@ -147,7 +152,7 @@ pub fn bind_groups_module(
         };
 
       let bindgroup = BindGroupBuilder::new(
-        entry_name,
+        &entry_name,
         *group_no,
         group,
         shader_stages,

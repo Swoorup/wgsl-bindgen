@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::usize;
 
 use naga::StructMember;
@@ -6,8 +5,8 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Ident, Index};
 
-use super::{rust_type, RustTypeInfo};
-use crate::bevy_util::{demangle, demangle_splitting_mod_path_and_item};
+use super::{rust_type, RustItemPath, RustTypeInfo};
+use crate::bevy_util::demangle_str;
 use crate::{CustomStructFieldMap, WgslBindgenOption, WgslTypeSerializeStrategy};
 
 #[derive(Clone)]
@@ -183,7 +182,7 @@ impl<'a> RustStructMemberEntry<'a> {
 }
 
 pub struct RustStructBuilder<'a> {
-  name: Cow<'a, str>,
+  item_path: RustItemPath,
   members: Vec<RustStructMemberEntry<'a>>,
   is_host_sharable: bool,
   has_rts_array: bool,
@@ -194,7 +193,7 @@ pub struct RustStructBuilder<'a> {
 
 impl<'a> RustStructBuilder<'a> {
   fn name_ident(&self) -> Ident {
-    Ident::new(self.name.as_ref(), Span::call_site())
+    Ident::new(&self.item_path.item_name.as_ref(), Span::call_site())
   }
 
   fn is_directly_shareable(&self) -> bool {
@@ -240,14 +239,14 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn init_struct_name_in_usage_fragment(&self) -> TokenStream {
-    let name = format!("{}Init", self.name);
+    let name = format!("{}Init", self.item_path.item_name);
     let ident = Ident::new(&name, Span::call_site());
     let ty_param_use = self.ty_param_use();
     quote!(#ident #ty_param_use)
   }
 
   fn init_struct_name_in_definition_fragment(&self) -> TokenStream {
-    let name = format!("{}Init", self.name);
+    let name = format!("{}Init", self.item_path.item_name);
     let ident = Ident::new(&name, Span::call_site());
     let ty_param_def = self.ty_param_def();
     quote!(#ident #ty_param_def)
@@ -367,7 +366,7 @@ impl<'a> RustStructBuilder<'a> {
             let offset = member.offset;
             let size = naga_type.inner.size(gctx);
             let ty_name = naga_type.inner.to_wgsl(&gctx);
-            let ty_name = demangle(&ty_name);
+            let ty_name = demangle_str(&ty_name);
             let doc = format!(" size: {size}, offset: 0x{offset:X}, type: `{ty_name}`");
 
             quote!(#[doc = #doc])
@@ -525,6 +524,7 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   pub fn from_naga(
+    invoking_entry_module: &'a str,
     naga_type: &'a naga::Type,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
@@ -536,9 +536,12 @@ impl<'a> RustStructBuilder<'a> {
   ) -> Self {
     let name = naga_type.name.as_ref().unwrap();
 
+    let item_path = RustItemPath::from_mangled(&name, invoking_entry_module);
+
+    // get the user defined field mapping for this struct
     let custom_struct_field_type_maps = options
       .custom_struct_field_type_maps
-      .get(&demangle(name).into_owned());
+      .get(&item_path.get_fully_qualified_name().to_string());
 
     let members = RustStructMemberEntry::from_naga(
       options,
@@ -549,19 +552,14 @@ impl<'a> RustStructBuilder<'a> {
       is_directly_sharable,
     );
 
-    let mut builder = RustStructBuilder {
-      name: Cow::Borrowed(&name),
+    RustStructBuilder {
+      item_path,
       members,
       is_host_sharable,
       naga_module,
       options: &options,
       has_rts_array,
       layout,
-    };
-
-    // we don't need full qualification here
-    let (_, demangled_name) = demangle_splitting_mod_path_and_item(&builder.name);
-    builder.name = demangled_name.into();
-    builder
+    }
   }
 }

@@ -4,7 +4,7 @@ use quote::{quote, ToTokens};
 use strum::IntoEnumIterator;
 use syn::Index;
 
-use crate::bevy_util::demangle;
+use crate::bevy_util::demangle_str;
 use crate::quote_gen::demangle_and_qualify;
 use crate::wgsl_type::WgslBuiltInMappedType;
 use crate::{
@@ -324,7 +324,7 @@ pub(crate) fn rust_type(
 
       // custom map struct
       let mapped_type = WgslType::Struct {
-        fully_qualified_name: demangle(name_str).into(),
+        fully_qualified_name: demangle_str(name_str).into(),
       }
       .get_mapped_type(&options.type_map, size, alignment)
       .unwrap_or(RustTypeInfo(name, size, alignment));

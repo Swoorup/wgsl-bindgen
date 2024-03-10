@@ -4,8 +4,34 @@ use std::sync::OnceLock;
 use regex::Regex;
 use smallvec::SmallVec;
 
+use crate::quote_gen::RustItemPath;
+
 const DECORATION_PRE: &str = "X_naga_oil_mod_X";
 const DECORATION_POST: &str = "X";
+
+impl RustItemPath {
+  /// Demangles a string representing a module path and item name, splitting them into separate parts.
+  pub fn from_mangled(string: &str, default_module_path: &str) -> Self {
+    let demangled = demangle_str(string);
+    let mut parts = demangled
+      .as_ref()
+      .split("::")
+      .collect::<SmallVec<[&str; 4]>>();
+
+    let (mod_path, item) = if parts.len() == 1 {
+      (default_module_path.into(), parts[0])
+    } else {
+      let item = parts.pop().unwrap();
+      let mod_path = parts.join("::");
+      (mod_path.into(), item)
+    };
+
+    Self {
+      parent_module_path: mod_path,
+      item_name: item.into(),
+    }
+  }
+}
 
 fn undecorate_regex() -> &'static Regex {
   static MEM: OnceLock<Regex> = OnceLock::new();
@@ -46,7 +72,7 @@ pub fn make_valid_rust_import(value: &str) -> String {
 }
 
 // https://github.com/bevyengine/naga_oil/blob/master/src/compose/mod.rs#L421-L431
-pub fn demangle(string: &str) -> Cow<str> {
+pub fn demangle_str(string: &str) -> Cow<str> {
   undecorate_regex().replace_all(string, |caps: &regex::Captures| {
     format!(
       "{}{}::{}",
@@ -57,27 +83,12 @@ pub fn demangle(string: &str) -> Cow<str> {
   })
 }
 
-/// Demangles a string representing a module path and item name, splitting them into separate parts.
-pub fn demangle_splitting_mod_path_and_item(string: &str) -> (Option<String>, String) {
-  let demangled = demangle(string);
-  let mut parts = demangled
-    .as_ref()
-    .split("::")
-    .collect::<SmallVec<[&str; 4]>>();
-  if parts.len() == 1 {
-    (None, parts[0].into())
-  } else {
-    let item = parts.pop().unwrap();
-    let mod_path = parts.join("::");
-    (Some(mod_path), item.to_string())
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;
 
-  use crate::bevy_util::{demangle_splitting_mod_path_and_item, make_valid_rust_import};
+  use crate::bevy_util::make_valid_rust_import;
+  use crate::quote_gen::RustItemPath;
 
   #[test]
   fn test_make_valid_rust_import() {
@@ -88,13 +99,19 @@ mod tests {
   #[test]
   fn test_demangle_mod_names() {
     assert_eq!(
-      demangle_splitting_mod_path_and_item("SnehaDataX_naga_oil_mod_XOM5DU5DZOBSXGX"),
-      (Some("s::types".into()), "SnehaData".into())
+      RustItemPath::from_mangled("SnehaDataX_naga_oil_mod_XOM5DU5DZOBSXGX", ""),
+      RustItemPath {
+        parent_module_path: "s::types".into(),
+        item_name: "SnehaData".into()
+      }
     );
 
     assert_eq!(
-      demangle_splitting_mod_path_and_item("UniformsX_naga_oil_mod_XOR4XAZLTX"),
-      (Some("types".into()), "Uniforms".into())
+      RustItemPath::from_mangled("UniformsX_naga_oil_mod_XOR4XAZLTX", ""),
+      RustItemPath {
+        parent_module_path: "types".into(),
+        item_name: "Uniforms".into()
+      }
     );
   }
 }

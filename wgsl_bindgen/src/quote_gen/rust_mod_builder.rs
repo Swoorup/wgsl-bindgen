@@ -208,17 +208,13 @@ impl RustModBuilder {
 
   pub fn add_items(
     &mut self,
-    default_mod_path: &str,
     items: Vec<RustSourceItem>,
   ) -> Result<(), RustModBuilderError> {
     for item in items {
-      let module_path = item
-        .mod_path
-        .as_ref()
-        .map(|s| s.as_str())
-        .unwrap_or(default_mod_path);
+      let module_path = item.path.parent_module_path;
+      let name = item.path.item_name;
 
-      self.add_unique(module_path, &item.name, item.item)?;
+      self.add_unique(module_path.as_str(), &name, item.item)?;
     }
 
     Ok(())

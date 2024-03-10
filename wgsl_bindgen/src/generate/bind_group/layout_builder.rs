@@ -1,9 +1,11 @@
 use derive_more::Constructor;
 
+use self::quote_gen::RustItemPath;
 use super::*;
 
 #[derive(Constructor)]
 pub(super) struct BindGroupLayoutBuilder<'a> {
+  invoking_entry_module: &'a str,
   group_no: u32,
   data: &'a GroupData<'a>,
   generator: &'a BindGroupLayoutGenerator,
@@ -19,9 +21,11 @@ impl<'a> BindGroupLayoutBuilder<'a> {
       .iter()
       .map(|binding| {
         let binding_index = binding.binding_index as usize;
-        let (_, demangled_name) =
-          demangle_splitting_mod_path_and_item(binding.name.as_ref().unwrap());
-        let binding_name = Ident::new(&demangled_name, Span::call_site());
+        let demangled_name = RustItemPath::from_mangled(
+          binding.name.as_ref().unwrap(),
+          self.invoking_entry_module,
+        );
+        let binding_name = Ident::new(&demangled_name.item_name, Span::call_site());
         let binding_var = quote!(#binding_var_name.#binding_name);
 
         match binding.binding_type.inner {
@@ -49,9 +53,11 @@ impl<'a> BindGroupLayoutBuilder<'a> {
       .bindings
       .iter()
       .map(|binding| {
-        let (_, demangled_name) =
-          demangle_splitting_mod_path_and_item(binding.name.as_ref().unwrap());
-        let field_name = format_ident!("{}", &demangled_name);
+        let rust_item_path = RustItemPath::from_mangled(
+          binding.name.as_ref().unwrap(),
+          self.invoking_entry_module,
+        );
+        let field_name = format_ident!("{}", &rust_item_path.item_name.as_str());
 
         // TODO: Support more types.
         let resource_type = match binding.binding_type.inner {

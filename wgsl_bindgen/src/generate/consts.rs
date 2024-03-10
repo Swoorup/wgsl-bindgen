@@ -1,11 +1,13 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::Span;
 use quote::quote;
 use syn::Ident;
 
-use crate::bevy_util::demangle_splitting_mod_path_and_item;
-use crate::quote_gen::RustSourceItem;
+use crate::quote_gen::{RustItemPath, RustSourceItem};
 
-pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
+pub fn consts_items(
+  invoking_entry_module: &str,
+  module: &naga::Module,
+) -> Vec<RustSourceItem> {
   // Create matching Rust constants for WGSl constants.
   module
     .constants
@@ -14,9 +16,8 @@ pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
       let name_str = t.name.as_ref()?;
 
       // we don't need full qualification here
-      let (_, demangled_name) = demangle_splitting_mod_path_and_item(name_str);
-
-      let name = Ident::new(&demangled_name, Span::call_site());
+      let rust_item_path = RustItemPath::from_mangled(name_str, invoking_entry_module);
+      let name = Ident::new(&rust_item_path.item_name, Span::call_site());
 
       // TODO: Add support for f64 and f16 once naga supports them.
       let type_and_value = match &module.const_expressions[t.init] {
@@ -33,25 +34,28 @@ pub fn consts_items(module: &naga::Module) -> Vec<RustSourceItem> {
         _ => None,
       }?;
 
-      Some(RustSourceItem::from_mangled(
-        &name_str,
+      Some(RustSourceItem::new(
+        rust_item_path,
         quote! { pub const #name: #type_and_value;},
       ))
     })
     .collect()
 }
 
-#[allow(unused)]
-pub fn consts(module: &naga::Module) -> Vec<TokenStream> {
-  consts_items(module).into_iter().map(|i| i.item).collect()
-}
-
 #[cfg(test)]
 mod tests {
   use indoc::indoc;
+  use proc_macro2::TokenStream;
 
   use super::*;
   use crate::assert_tokens_eq;
+
+  pub fn consts(module: &naga::Module) -> Vec<TokenStream> {
+    consts_items("", module)
+      .into_iter()
+      .map(|i| i.item)
+      .collect()
+  }
 
   #[test]
   fn write_global_consts() {

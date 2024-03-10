@@ -1,23 +1,26 @@
+use derive_more::Constructor;
 use proc_macro2::TokenStream;
+use smol_str::SmolStr;
 
-use crate::bevy_util::demangle_splitting_mod_path_and_item;
-
-/// Represents a Rust source item.
-pub(crate) struct RustSourceItem {
-  /// If not present this item belongs at the source root
-  pub mod_path: Option<String>,
-  pub name: String,
-  pub item: TokenStream,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct RustItemPath {
+  pub parent_module_path: SmolStr,
+  pub item_name: SmolStr,
 }
 
-impl RustSourceItem {
-  pub fn from_mangled(name: &str, item: TokenStream) -> Self {
-    let (mod_path, name) = demangle_splitting_mod_path_and_item(name);
-
-    Self {
-      mod_path,
-      name,
-      item,
+impl RustItemPath {
+  pub fn get_fully_qualified_name(&self) -> SmolStr {
+    if self.parent_module_path.is_empty() {
+      SmolStr::new(self.item_name.as_str())
+    } else {
+      SmolStr::new(format!("{}::{}", self.parent_module_path, self.item_name).as_str())
     }
   }
+}
+
+/// Represents a Rust source item.
+#[derive(Constructor)]
+pub(crate) struct RustSourceItem {
+  pub path: RustItemPath,
+  pub item: TokenStream,
 }

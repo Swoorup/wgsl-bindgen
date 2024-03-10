@@ -3,11 +3,12 @@ use std::collections::HashSet;
 use naga::{Handle, Type};
 use proc_macro2::TokenStream;
 
-use crate::bevy_util::demangle;
-use crate::quote_gen::{RustSourceItem, RustStructBuilder};
+use crate::bevy_util::demangle_str;
+use crate::quote_gen::{RustItemPath, RustSourceItem, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
 pub fn structs_items(
+  invoking_entry_module: &str,
   module: &naga::Module,
   options: &WgslBindgenOption,
 ) -> Vec<RustSourceItem> {
@@ -42,7 +43,7 @@ pub fn structs_items(
     })
     .filter_map(|(t_handle, ty)| {
       if let naga::TypeInner::Struct { members, .. } = &ty.inner {
-        let demangled_name = demangle(ty.name.as_ref().unwrap());
+        let demangled_name = demangle_str(ty.name.as_ref().unwrap());
 
         // skip if using custom struct mapping
         if options.type_map.contains_key(&crate::WgslType::Struct {
@@ -51,6 +52,7 @@ pub fn structs_items(
           None
         } else {
           let rust_struct = rust_struct(
+            invoking_entry_module,
             ty,
             members,
             &layouter,
@@ -60,7 +62,9 @@ pub fn structs_items(
             &global_variable_types,
           );
 
-          Some(RustSourceItem::from_mangled(ty.name.as_ref().unwrap(), rust_struct))
+          let rust_item_path =
+            RustItemPath::from_mangled(ty.name.as_ref().unwrap(), invoking_entry_module);
+          Some(RustSourceItem::new(rust_item_path, rust_struct))
         }
       } else {
         None
@@ -69,15 +73,8 @@ pub fn structs_items(
     .collect()
 }
 
-#[allow(unused)]
-pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
-  structs_items(module, options)
-    .into_iter()
-    .map(|s| s.item)
-    .collect()
-}
-
 fn rust_struct(
+  invoking_entry_module: &str,
   naga_type: &naga::Type,
   naga_members: &[naga::StructMember],
   layouter: &naga::proc::Layouter,
@@ -102,6 +99,7 @@ fn rust_struct(
     && is_host_sharable;
 
   let builder = RustStructBuilder::from_naga(
+    invoking_entry_module,
     naga_type,
     naga_members,
     naga_module,
@@ -158,6 +156,13 @@ mod tests {
 
   use super::*;
   use crate::*;
+
+  pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
+    structs_items("", module, options)
+      .into_iter()
+      .map(|s| s.item)
+      .collect()
+  }
 
   #[test]
   fn write_all_structs_rust() {
