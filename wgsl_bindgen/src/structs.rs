@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
 use naga::{Handle, Type};
-use proc_macro2::TokenStream;
 
-use crate::quote_gen::{RustItemPath, RustItem, RustStructBuilder};
+use crate::quote_gen::{RustItem, RustItemPath, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
 pub fn structs_items(
@@ -40,7 +39,7 @@ pub fn structs_items(
           .any(|e| e.function.arguments.iter().any(|a| a.ty == *h))
         || global_variable_types.contains(h)
     })
-    .filter_map(|(t_handle, ty)| {
+    .flat_map(|(t_handle, ty)| {
       if let naga::TypeInner::Struct { members, .. } = &ty.inner {
         let rust_item_path =
           RustItemPath::from_mangled(ty.name.as_ref().unwrap(), invoking_entry_module);
@@ -49,9 +48,9 @@ pub fn structs_items(
         if options.type_map.contains_key(&crate::WgslType::Struct {
           fully_qualified_name: rust_item_path.get_fully_qualified_name().into(),
         }) {
-          None
+          Vec::new()
         } else {
-          let rust_struct = rust_struct(
+          rust_struct(
             &rust_item_path,
             members,
             &layouter,
@@ -59,12 +58,10 @@ pub fn structs_items(
             module,
             options,
             &global_variable_types,
-          );
-
-          Some(RustItem::new(rust_item_path, rust_struct))
+          )
         }
       } else {
-        None
+        Vec::new()
       }
     })
     .collect()
@@ -78,7 +75,7 @@ fn rust_struct(
   naga_module: &naga::Module,
   options: &WgslBindgenOption,
   global_variable_types: &HashSet<Handle<Type>>,
-) -> TokenStream {
+) -> Vec<RustItem> {
   let layout = layouter[t_handle];
 
   // Assume types used in global variables are host shareable and require validation.

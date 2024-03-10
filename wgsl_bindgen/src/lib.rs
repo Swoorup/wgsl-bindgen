@@ -183,6 +183,14 @@ fn sanitize_and_pascal_case(v: &str) -> String {
     .to_pascal_case()
 }
 
+fn sanitized_upper_snake_case(v: &str) -> String {
+  v.chars()
+    .filter(|ch| ch.is_alphanumeric() || *ch == '_')
+    .collect::<String>()
+    .to_snake()
+    .to_uppercase()
+}
+
 fn vertex_struct_methods(module: &naga::Module) -> TokenStream {
   let structs = vertex_input_structs(module);
   quote!(#(#structs)*)

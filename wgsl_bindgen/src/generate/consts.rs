@@ -2,12 +2,9 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::Ident;
 
-use crate::quote_gen::{RustItemPath, RustItem};
+use crate::quote_gen::{RustItem, RustItemKind, RustItemPath};
 
-pub fn consts_items(
-  invoking_entry_module: &str,
-  module: &naga::Module,
-) -> Vec<RustItem> {
+pub fn consts_items(invoking_entry_module: &str, module: &naga::Module) -> Vec<RustItem> {
   // Create matching Rust constants for WGSl constants.
   module
     .constants
@@ -35,6 +32,7 @@ pub fn consts_items(
       }?;
 
       Some(RustItem::new(
+        RustItemKind::ConstVarDecl,
         rust_item_path,
         quote! { pub const #name: #type_and_value;},
       ))

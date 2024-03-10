@@ -1,9 +1,10 @@
+#![allow(dead_code)]
 use derive_more::Constructor;
 use proc_macro2::TokenStream;
 use smol_str::SmolStr;
 
 /// `RustItemPath` represents the path to a Rust item within a module.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Constructor, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RustItemPath {
   pub parent_module_path: SmolStr,
   pub item_name: SmolStr,
@@ -19,13 +20,17 @@ impl RustItemPath {
   }
 }
 
-pub(crate) enum RustItemType {
-  ConstAssertStmt,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum RustItemKind {
+  ConstVarDecl,
+  TraitImpls,
+  Any,
 }
 
 /// Represents a Rust source item.
 #[derive(Constructor)]
 pub(crate) struct RustItem {
+  pub kind: RustItemKind,
   pub path: RustItemPath,
   pub item: TokenStream,
 }
