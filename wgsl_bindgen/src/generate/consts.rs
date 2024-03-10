@@ -2,17 +2,17 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::Ident;
 
-use crate::quote_gen::{RustItemPath, RustSourceItem};
+use crate::quote_gen::{RustItemPath, RustItem};
 
 pub fn consts_items(
   invoking_entry_module: &str,
   module: &naga::Module,
-) -> Vec<RustSourceItem> {
+) -> Vec<RustItem> {
   // Create matching Rust constants for WGSl constants.
   module
     .constants
     .iter()
-    .filter_map(|(_, t)| -> Option<RustSourceItem> {
+    .filter_map(|(_, t)| -> Option<RustItem> {
       let name_str = t.name.as_ref()?;
 
       // we don't need full qualification here
@@ -34,7 +34,7 @@ pub fn consts_items(
         _ => None,
       }?;
 
-      Some(RustSourceItem::new(
+      Some(RustItem::new(
         rust_item_path,
         quote! { pub const #name: #type_and_value;},
       ))

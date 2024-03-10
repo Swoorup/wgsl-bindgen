@@ -8,7 +8,7 @@ use syn::Ident;
 use thiserror::Error;
 
 use super::constants::MOD_REFERENCE_ROOT;
-use super::RustSourceItem;
+use super::RustItem;
 use crate::quote_gen::constants::mod_reference_root;
 use crate::FastIndexMap;
 
@@ -208,7 +208,7 @@ impl RustModBuilder {
 
   pub fn add_items(
     &mut self,
-    items: Vec<RustSourceItem>,
+    items: Vec<RustItem>,
   ) -> Result<(), RustModBuilderError> {
     for item in items {
       let module_path = item.path.parent_module_path;
