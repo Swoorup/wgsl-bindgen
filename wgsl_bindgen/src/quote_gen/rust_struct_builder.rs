@@ -2,12 +2,16 @@ use std::usize;
 
 use naga::StructMember;
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{Ident, Index};
 
-use super::{rust_type, RustItemPath, RustTypeInfo};
+use super::{rust_type, RustItem, RustItemPath, RustTypeInfo};
 use crate::bevy_util::demangle_str;
-use crate::{CustomStructFieldMap, WgslBindgenOption, WgslTypeSerializeStrategy};
+use crate::quote_gen::{RustItemKind, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS};
+use crate::{
+  sanitized_upper_snake_case, CustomStructFieldMap, WgslBindgenOption,
+  WgslTypeSerializeStrategy,
+};
 
 #[derive(Clone)]
 pub struct RustStructMemberEntryPadding {
@@ -232,6 +236,14 @@ impl<'a> RustStructBuilder<'a> {
     quote!(#ident #ty_param_use)
   }
 
+  fn fully_qualified_struct_name_in_usage_fragment(&self) -> TokenStream {
+    let fully_qualified_name_str = self.item_path.get_fully_qualified_name();
+    let fully_qualified_name =
+      syn::parse_str::<TokenStream>(&fully_qualified_name_str).unwrap();
+    let ty_param_use = self.ty_param_use();
+    quote!(#fully_qualified_name #ty_param_use)
+  }
+
   fn struct_name_in_definition_fragment(&self) -> TokenStream {
     let ident = self.name_ident();
     let ty_param_def = self.ty_param_def();
@@ -426,12 +438,15 @@ impl<'a> RustStructBuilder<'a> {
     derives
   }
 
-  fn build_assert_layout(&self) -> TokenStream {
-    let ident = self.name_ident();
+  fn build_layout_assertion(&self) -> TokenStream {
+    let fully_qualified_name_str = self.item_path.get_fully_qualified_name();
+
+    let fully_qualified_name =
+      syn::parse_str::<TokenStream>(&fully_qualified_name_str).unwrap();
     let struct_name = if self.uses_generics_for_rts() {
-      quote!(#ident<1>) // test RTS with 1 element
+      quote!(#fully_qualified_name<1>) // test RTS with 1 element
     } else {
-      quote!(#ident)
+      quote!(#fully_qualified_name)
     };
 
     let assert_member_offsets: Vec<_> = self
@@ -453,8 +468,13 @@ impl<'a> RustStructBuilder<'a> {
       // TODO: Does the Rust alignment matter if it's copied to a buffer anyway?
       let struct_size = Index::from(self.layout.size as usize);
 
+      let assertion_name = format_ident!(
+        "{}_ASSERTS",
+        sanitized_upper_snake_case(&fully_qualified_name_str)
+      );
+
       quote! {
-        const _: () = {
+        const #assertion_name: () = {
           #(#assert_member_offsets)*
           assert!(std::mem::size_of::<#struct_name>() == #struct_size);
         };
@@ -464,10 +484,22 @@ impl<'a> RustStructBuilder<'a> {
     }
   }
 
-  pub fn build(&self) -> TokenStream {
-    let struct_name_def = self.struct_name_in_definition_fragment();
-    let struct_name_in_usage = self.struct_name_in_usage_fragment();
+  pub fn build_bytemuck_impls(&self) -> TokenStream {
+    let struct_name_in_usage = self.fully_qualified_struct_name_in_usage_fragment();
     let impl_fragment = self.impl_trait_for_fragment();
+
+    if self.options.serialization_strategy == WgslTypeSerializeStrategy::Bytemuck {
+      quote! {
+        unsafe #impl_fragment bytemuck::Zeroable for #struct_name_in_usage {}
+        unsafe #impl_fragment bytemuck::Pod for #struct_name_in_usage {}
+      }
+    } else {
+      quote!()
+    }
+  }
+
+  pub fn build(&self) -> Vec<RustItem> {
+    let struct_name_def = self.struct_name_in_definition_fragment();
 
     // Assume types used in global variables are host shareable and require validation.
     // This includes storage, uniform, and workgroup variables.
@@ -497,30 +529,36 @@ impl<'a> RustStructBuilder<'a> {
     let fields = self.build_fields();
     let struct_new_fn = self.build_fn_new();
     let init_struct = self.build_init_struct();
-    let assert_layout = self.build_assert_layout();
+    let assert_layout = self.build_layout_assertion();
+    let unsafe_bytemuck_pod_impl = self.build_bytemuck_impls();
+    let fully_qualified_name = self.item_path.get_fully_qualified_name();
 
-    let unsafe_bytemuck_pod_impl =
-      if self.options.serialization_strategy == WgslTypeSerializeStrategy::Bytemuck {
+    vec![
+      RustItem::new(
+        RustItemKind::Any,
+        self.item_path.clone(),
         quote! {
-          unsafe #impl_fragment bytemuck::Zeroable for #struct_name_in_usage {}
-          unsafe #impl_fragment bytemuck::Pod for #struct_name_in_usage {}
-        }
-      } else {
-        quote!()
-      };
+          #repr_c
+          #[derive(#(#derives),*)]
+          pub struct #struct_name_def {
+              #(#fields),*
+          }
 
-    quote! {
-        #repr_c
-        #[derive(#(#derives),*)]
-        pub struct #struct_name_def {
-            #(#fields),*
-        }
-
-        #struct_new_fn
-        #unsafe_bytemuck_pod_impl
-        #assert_layout
-        #init_struct
-    }
+          #struct_new_fn
+          #init_struct
+        },
+      ),
+      RustItem::new(
+        RustItemKind::Any,
+        RustItemPath::new(MOD_STRUCT_ASSERTIONS.into(), fully_qualified_name.clone()),
+        assert_layout,
+      ),
+      RustItem::new(
+        RustItemKind::Any,
+        RustItemPath::new(MOD_BYTEMUCK_IMPLS.into(), fully_qualified_name.clone()),
+        unsafe_bytemuck_pod_impl,
+      ),
+    ]
   }
 
   pub fn from_naga(
