@@ -178,15 +178,15 @@ pub struct WgslBindgenOption {
   pub custom_struct_mappings: Vec<CustomStructMapping>,
 
   /// A map of custom struct field mappings, which will override the struct fields types generated for the struct.
-  #[builder(default, setter(custom))]
-  pub custom_struct_field_type_maps: FastIndexMap<String, CustomStructFieldMap>,
+  #[builder(default, setter(into))]
+  pub custom_struct_field_type_maps: FastIndexMap<&'static str, CustomStructFieldMap>,
 
   /// A map of custom struct alignment mappings, which will override the alignment generated for the struct.
   /// This will also possibly change the size of the structure and the associated struct size asserts.
   /// You would only need under certain scenarios where the uniform buffer needs a specific minimum alignment.
   /// See [WebGPU specs](https://www.w3.org/TR/webgpu/#dom-supported-limits-minuniformbufferoffsetalignment).
-  #[builder(default, setter(custom))]
-  pub struct_alignment_override: FastIndexMap<String, u16>,
+  #[builder(default, setter(each(name = "add_struct_alignment_override"), into))]
+  pub struct_alignment_override: FastIndexMap<&'static str, u16>,
 
   /// The regular expression of the padding fields used in the shader struct types.
   /// These fields will be omitted in the *Init structs generated, and will automatically be assigned the default values.
@@ -247,10 +247,9 @@ impl WgslBindgenOptionBuilder {
 
   pub fn add_custom_struct_field_mapping(
     &mut self,
-    struct_name: impl Into<String>,
-    field_names: impl IntoIterator<Item = (impl Into<String>, TokenStream)>,
+    struct_name: &'static str,
+    field_names: impl IntoIterator<Item = (&'static str, TokenStream)>,
   ) -> &mut Self {
-    let struct_name = struct_name.into();
     let field_names = field_names
       .into_iter()
       .map(|(field, ts)| (field.into(), ts))
@@ -258,32 +257,12 @@ impl WgslBindgenOptionBuilder {
 
     match self.custom_struct_field_type_maps.as_mut() {
       Some(m) => {
-        m.insert(struct_name.to_string(), field_names);
+        m.insert(struct_name, field_names);
       }
       None => {
         let mut map = FastIndexMap::default();
-        map.insert(struct_name.to_string(), field_names);
+        map.insert(struct_name, field_names);
         self.custom_struct_field_type_maps = Some(map);
-      }
-    };
-
-    self
-  }
-
-  pub fn add_struct_alignment_override(
-    &mut self,
-    struct_name: impl Into<String>,
-    alignment: u16,
-  ) -> &mut Self {
-    let struct_name = struct_name.into();
-    match self.struct_alignment_override.as_mut() {
-      Some(m) => {
-        m.insert(struct_name.to_string(), alignment);
-      }
-      None => {
-        let mut map = FastIndexMap::default();
-        map.insert(struct_name.to_string(), alignment);
-        self.struct_alignment_override = Some(map);
       }
     };
 

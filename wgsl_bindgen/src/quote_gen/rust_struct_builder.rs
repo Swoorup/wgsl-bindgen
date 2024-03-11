@@ -626,7 +626,7 @@ impl<'a> RustStructBuilder<'a> {
     // get the user defined field mapping for this struct
     let custom_struct_field_type_maps = options
       .custom_struct_field_type_maps
-      .get(&item_path.get_fully_qualified_name().to_string());
+      .get(item_path.get_fully_qualified_name().as_str());
 
     let members = RustStructMemberEntry::from_naga(
       options,
