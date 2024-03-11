@@ -68,6 +68,7 @@ pub mod qs {
 
 pub use bindgen::*;
 pub use naga::FastIndexMap;
+pub use regex::Regex;
 pub use types::*;
 pub use wgsl_type::*;
 

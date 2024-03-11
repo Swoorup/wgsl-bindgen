@@ -1,5 +1,6 @@
 use std::usize;
 
+use derive_more::IsVariant;
 use naga::StructMember;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
@@ -14,12 +15,12 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct RustStructMemberEntryPadding {
+pub struct Padding {
   pub pad_name: Ident,
   pub pad_size_tokens: TokenStream,
 }
 
-impl RustStructMemberEntryPadding {
+impl Padding {
   fn generate_member_instantiate(&self) -> TokenStream {
     let pad_name = &self.pad_name;
     let pad_size = &self.pad_size_tokens;
@@ -60,6 +61,7 @@ impl<'a> NagaToRustStructState<'a> {
     custom_struct_field_type_maps: Option<&'a CustomStructFieldMap>,
     naga_members: &'a [StructMember],
     naga_module: &'a naga::Module,
+    gctx: naga::proc::GlobalCtx<'a>,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> impl FnMut(NagaToRustStructState<'a>, &'a StructMember) -> NagaToRustStructState<'a>
@@ -90,7 +92,7 @@ impl<'a> NagaToRustStructState<'a> {
         };
         let rust_type = &rust_type;
 
-        let pad_name = format!("_pad_{}", naga_member.name.clone().unwrap());
+        let pad_name = format!("_pad_{}", member_name);
         let required_member_size = next_offset - current_offset;
 
         match rust_type.size_after_alignment() {
@@ -104,7 +106,7 @@ impl<'a> NagaToRustStructState<'a> {
             let pad_size_tokens =
               quote!(#member_size - core::mem::size_of::<#rust_type>());
 
-            let padding = RustStructMemberEntryPadding {
+            let padding = Padding {
               pad_name,
               pad_size_tokens,
             };
@@ -114,20 +116,39 @@ impl<'a> NagaToRustStructState<'a> {
         }
       };
 
-      let rust_type =
-        Self::get_rust_type(rust_type, custom_struct_field_type_maps, member_name);
+      let is_current_field_padding = options
+        .custom_padding_field_regexps
+        .iter()
+        .any(|pad_expr| pad_expr.is_match(&member_name));
 
-      let entry = RustStructMemberEntry {
-        name_ident: name_ident.clone(),
-        naga_member,
-        naga_type,
-        rust_type: syn::Type::Verbatim(rust_type),
-        is_rsa,
-        padding,
+      let entry = if is_current_field_padding {
+        let size = naga_type.inner.size(gctx);
+        let size = format!("0x{:X}", size);
+        let pad_size_tokens = syn::parse_str::<TokenStream>(&size).unwrap();
+
+        RustStructMemberEntry::Padding(Padding {
+          pad_name: name_ident,
+          pad_size_tokens,
+        })
+      } else {
+        let rust_type =
+          Self::get_rust_type(rust_type, custom_struct_field_type_maps, member_name);
+
+        RustStructMemberEntry::Field(Field {
+          name_ident: name_ident.clone(),
+          naga_member,
+          naga_type,
+          rust_type: syn::Type::Verbatim(rust_type),
+          is_rsa,
+        })
       };
 
       state.index += 1;
       state.members.push(entry);
+
+      if let Some(padding) = padding {
+        state.members.push(RustStructMemberEntry::Padding(padding));
+      }
       state
     };
 
@@ -135,16 +156,15 @@ impl<'a> NagaToRustStructState<'a> {
   }
 }
 
-pub struct RustStructMemberEntry<'a> {
+pub struct Field<'a> {
   pub name_ident: Ident,
   pub naga_member: &'a naga::StructMember,
   pub naga_type: &'a naga::Type,
   pub rust_type: syn::Type,
-  pub padding: Option<RustStructMemberEntryPadding>,
   pub is_rsa: bool,
 }
 
-impl<'a> RustStructMemberEntry<'a> {
+impl<'a> Field<'a> {
   fn generate_member_instantiate(&self, other_struct_var_name: &Ident) -> TokenStream {
     let name = &self.name_ident;
     quote!(#name: #other_struct_var_name.#name)
@@ -161,7 +181,15 @@ impl<'a> RustStructMemberEntry<'a> {
     let ty = &self.rust_type;
     quote!(#name: #ty)
   }
+}
 
+#[derive(IsVariant)]
+pub enum RustStructMemberEntry<'a> {
+  Field(Field<'a>),
+  Padding(Padding),
+}
+
+impl<'a> RustStructMemberEntry<'a> {
   fn from_naga(
     options: &'a WgslBindgenOption,
     custom_struct_field_type_maps: Option<&'a CustomStructFieldMap>,
@@ -170,6 +198,8 @@ impl<'a> RustStructMemberEntry<'a> {
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> Vec<Self> {
+    let gctx = naga_module.to_ctx();
+
     let state = naga_members.iter().fold(
       NagaToRustStructState::default(),
       NagaToRustStructState::create_fold(
@@ -177,6 +207,7 @@ impl<'a> RustStructMemberEntry<'a> {
         custom_struct_field_type_maps,
         naga_members,
         naga_module,
+        gctx,
         layout_size,
         is_directly_sharable,
       ),
@@ -211,7 +242,7 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn uses_padding(&self) -> bool {
-    self.members.iter().any(|m| m.padding.is_some())
+    self.members.iter().any(|m| m.is_padding())
   }
 
   fn ty_param_use(&self) -> TokenStream {
@@ -270,7 +301,9 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn build_init_struct(&self) -> TokenStream {
-    if !self.is_directly_shareable() || !self.uses_padding() {
+    if !self.is_directly_shareable()
+      || (!self.uses_padding() && !self.options.always_generate_init_struct)
+    {
       return quote!();
     }
 
@@ -286,11 +319,14 @@ impl<'a> RustStructBuilder<'a> {
     let init_var_name = Ident::new("self", Span::call_site());
 
     for entry in self.members.iter() {
-      init_struct_members.push(entry.generate_member_definition());
-      mem_assignments.push(entry.generate_member_instantiate(&init_var_name));
-
-      for pad in entry.padding.iter() {
-        mem_assignments.push(pad.generate_member_instantiate())
+      match entry {
+        RustStructMemberEntry::Field(field) => {
+          init_struct_members.push(field.generate_member_definition());
+          mem_assignments.push(field.generate_member_instantiate(&init_var_name));
+        }
+        RustStructMemberEntry::Padding(padding) => {
+          mem_assignments.push(padding.generate_member_instantiate())
+        }
       }
     }
 
@@ -325,12 +361,15 @@ impl<'a> RustStructBuilder<'a> {
     let mut member_assignments = Vec::new();
 
     for entry in &self.members {
-      let name = &entry.name_ident;
-      non_padding_members.push(entry.generate_fn_new_param());
-      member_assignments.push(quote!(#name));
-
-      for p in entry.padding.iter() {
-        member_assignments.push(p.generate_member_instantiate())
+      match entry {
+        RustStructMemberEntry::Field(field) => {
+          let name = &field.name_ident;
+          non_padding_members.push(field.generate_fn_new_param());
+          member_assignments.push(quote!(#name));
+        }
+        RustStructMemberEntry::Padding(padding) => {
+          member_assignments.push(padding.generate_member_instantiate())
+        }
       }
     }
 
@@ -365,15 +404,16 @@ impl<'a> RustStructBuilder<'a> {
     let members = self
       .members
       .iter()
-      .map(
-        |RustStructMemberEntry {
-           name_ident: name,
-           rust_type,
-           is_rsa: is_rts,
-           naga_member: member,
-           naga_type,
-           padding,
-         }| {
+      .map(|entry| match entry {
+        RustStructMemberEntry::Field(field) => {
+          let Field {
+            name_ident: name,
+            rust_type,
+            is_rsa: is_rts,
+            naga_member: member,
+            naga_type,
+          } = field;
+
           let doc_comment = if self.is_directly_shareable() {
             let offset = member.offset;
             let size = naga_type.inner.size(gctx);
@@ -396,19 +436,14 @@ impl<'a> RustStructBuilder<'a> {
             quote!()
           };
 
-          let mut qs = vec![quote! {
+          quote! {
             #doc_comment
             #runtime_size_attribute
             pub #name: #rust_type
-          }];
-
-          for padding in padding.iter() {
-            qs.push(padding.generate_member_definition());
           }
-
-          quote!(#(#qs), *)
-        },
-      )
+        }
+        RustStructMemberEntry::Padding(padding) => padding.generate_member_definition(),
+      })
       .collect::<Vec<_>>();
 
     members
@@ -455,6 +490,10 @@ impl<'a> RustStructBuilder<'a> {
     let assert_member_offsets: Vec<_> = self
       .members
       .iter()
+      .filter_map(|m| match m {
+        RustStructMemberEntry::Field(field) => Some(field),
+        RustStructMemberEntry::Padding(_) => None,
+      })
       .map(|m| {
         let m = m.naga_member;
         let name = Ident::new(m.name.as_ref().unwrap(), Span::call_site());

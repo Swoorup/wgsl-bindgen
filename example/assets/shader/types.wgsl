@@ -8,6 +8,7 @@ struct VectorsU32 {
   a: vec2<u32>,
   b: vec3<u32>,
   c: vec4<u32>,
+  _padding: f32,
 };
 
 struct VectorsI32 {

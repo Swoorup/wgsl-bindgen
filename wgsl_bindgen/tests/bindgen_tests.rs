@@ -56,8 +56,8 @@ fn test_main_bindgen() -> Result<()> {
 #[test]
 fn test_struct_alignment_minimal() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .add_entry_point("tests/shaders/basic/minimal.wgsl")
-    .workspace_root("tests/shaders/basic")
+    .add_entry_point("tests/shaders/minimal.wgsl")
+    .workspace_root("tests/shaders")
     .add_struct_alignment_override("minimal::Uniforms", 256)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
@@ -70,6 +70,28 @@ fn test_struct_alignment_minimal() -> Result<()> {
 
   let actual = read_to_string("tests/output/bindgen_minimal.actual.rs").unwrap();
   let expected = read_to_string("tests/output/bindgen_minimal.expected.rs").unwrap();
+
+  assert_eq!(actual, expected);
+  Ok(())
+}
+
+#[test]
+fn test_struct_alignment_padding() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/shaders/padding.wgsl")
+    .workspace_root("tests/shaders")
+    .add_custom_padding_field_regexp(Regex::new("_padding").unwrap())
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/bindgen_padding.actual.rs".to_string())
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/bindgen_padding.actual.rs").unwrap();
+  let expected = read_to_string("tests/output/bindgen_padding.expected.rs").unwrap();
 
   assert_eq!(actual, expected);
   Ok(())

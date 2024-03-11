@@ -1,6 +1,6 @@
 use miette::{IntoDiagnostic, Result};
 use wgsl_bindgen::{
-    qs::quote, GlamWgslTypeMap, WgslBindgenOptionBuilder, WgslShaderSourceType,
+    qs::quote, GlamWgslTypeMap, Regex, WgslBindgenOptionBuilder, WgslShaderSourceType,
     WgslTypeSerializeStrategy,
 };
 
@@ -14,6 +14,7 @@ fn main() -> Result<()> {
         .type_map(GlamWgslTypeMap)
         .add_custom_struct_field_mapping("types::VectorsU32", [("a", quote!(crate::MyTwoU32))])
         .add_custom_struct_mapping(("types::Scalars", quote!(crate::MyScalars)))
+        .add_custom_padding_field_regexp(Regex::new("_pad.*").unwrap())
         .short_constructor(2)
         .shader_source_type(
             WgslShaderSourceType::UseComposerWithPath

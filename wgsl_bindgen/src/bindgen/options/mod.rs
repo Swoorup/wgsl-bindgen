@@ -183,10 +183,19 @@ pub struct WgslBindgenOption {
 
   /// A map of custom struct alignment mappings, which will override the alignment generated for the struct.
   /// This will also possibly change the size of the structure and the associated struct size asserts.
-  /// You would only need under certain scenarios where the uniform buffer needs a specific minimum alignment. 
+  /// You would only need under certain scenarios where the uniform buffer needs a specific minimum alignment.
   /// See [WebGPU specs](https://www.w3.org/TR/webgpu/#dom-supported-limits-minuniformbufferoffsetalignment).
   #[builder(default, setter(custom))]
   pub struct_alignment_override: FastIndexMap<String, u16>,
+
+  /// The regular expression of the padding fields used in the shader struct types.
+  /// These fields will be omitted in the *Init structs generated, and will automatically be assigned the default values.
+  #[builder(default, setter(each(name = "add_custom_padding_field_regexp", into)))]
+  pub custom_padding_field_regexps: Vec<regex::Regex>,
+
+  /// Whether to always have the init struct generated in the out. This is only applicable when using bytemuck mode.
+  #[builder(default = "false")]
+  pub always_generate_init_struct: bool,
 
   /// This field can be used to provide a custom generator for extra bindings that are not covered by the default generator.
   #[builder(default, setter(custom))]
