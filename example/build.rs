@@ -12,8 +12,10 @@ fn main() -> Result<()> {
         .skip_hash_check(true)
         .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
         .type_map(GlamWgslTypeMap)
-        .add_custom_struct_field_mapping("types::VectorsU32", [("a", quote!(crate::MyTwoU32))])
-        .add_custom_struct_mapping(("types::Scalars", quote!(crate::MyScalars)))
+        .override_struct_field_type(
+            [("types::VectorsU32", "a", quote!(crate::MyTwoU32))].map(Into::into),
+        )
+        .add_override_struct_mapping(("types::Scalars", quote!(crate::MyScalars)))
         .add_custom_padding_field_regexp(Regex::new("_pad.*").unwrap())
         .short_constructor(2)
         .shader_source_type(

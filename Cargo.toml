@@ -2,3 +2,11 @@
 # wgpu requires the newer resolver
 resolver = "2"
 members = ["wgsl_bindgen", "example"]
+
+[workspace.package]
+version = "0.10.0"
+authors = ["swoorup", "ScanMountGoat(Original Fork)"]
+edition = "2021"
+repository = "https://github.com/Swoorup/wgsl_bindgen"
+license = "MIT"
+documentation = "https://docs.rs/wgsl_bindgen"

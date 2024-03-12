@@ -1,13 +1,13 @@
 [package]
 name = "wgsl_bindgen"
-version = "0.9.48"
-authors = ["Swoorup", "ScanMountGoat(Original)"]
-description = "Generate typesafe Rust bindings for wgsl shaders in wgpu"
-license = "MIT"
-documentation = "https://docs.rs/wgsl_bindgen"
-repository = "https://github.com/Swoorup/wgsl_bindgen"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+documentation.workspace = true
+license.workspace = true
+description = "Type safe Rust bindings workflow for wgsl shaders in wgpu"
 readme = "../README.md"
-edition = "2021"
 
 [dependencies]
 naga = { version = "0.19.0", features = ["wgsl-in"] }

@@ -1,7 +1,8 @@
 [package]
 name = "example"
-version = "0.9.48"
-edition = "2021"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
 winit = "0.29.10"

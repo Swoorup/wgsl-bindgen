@@ -1,14 +1,15 @@
 mod bindings;
-pub use bindings::*;
-
 mod types;
+
 use std::path::PathBuf;
 
+pub use bindings::*;
 use derive_builder::Builder;
 use derive_more::IsVariant;
 use enumflags2::{bitflags, BitFlags};
 pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 use proc_macro2::TokenStream;
+use regex::Regex;
 pub use types::*;
 
 use crate::{
@@ -83,26 +84,72 @@ impl WgslTypeMapBuild for WgslTypeMap {
 /// for the struct.
 /// This is useful for core primitive types you would want to model in Rust side
 #[derive(Clone, Debug)]
-pub struct CustomStructMapping {
+pub struct OverrideStruct {
   /// fully qualified struct name of the struct in wgsl, eg: `lib::fp64::Fp64`
-  from: String,
+  pub from: String,
   /// fully qualified struct name in your crate, eg: `crate::fp64::Fp64`
-  to: TokenStream,
+  pub to: TokenStream,
 }
 
-impl From<(&str, TokenStream)> for CustomStructMapping {
+impl From<(&str, TokenStream)> for OverrideStruct {
   fn from((from, to): (&str, TokenStream)) -> Self {
-    CustomStructMapping {
+    OverrideStruct {
       from: from.to_owned(),
       to,
     }
   }
 }
 
-/// This type is used to create a custom field mapping from the wgsl side to rust side,
-/// skipping the type of field that would have been generated.
-/// You must fully qualify the destination type
-pub type CustomStructFieldMap = FastIndexMap<String, TokenStream>;
+/// Struct  for overriding the field type of specific structs.
+#[derive(Clone, Debug)]
+pub struct OverrideStructFieldType {
+  pub struct_regex: Regex,
+  pub field_regex: Regex,
+  pub override_type: TokenStream,
+}
+impl From<(Regex, Regex, TokenStream)> for OverrideStructFieldType {
+  fn from(
+    (struct_regex, field_regex, override_type): (Regex, Regex, TokenStream),
+  ) -> Self {
+    Self {
+      struct_regex,
+      field_regex,
+      override_type,
+    }
+  }
+}
+impl From<(&str, &str, TokenStream)> for OverrideStructFieldType {
+  fn from((struct_regex, field_regex, override_type): (&str, &str, TokenStream)) -> Self {
+    Self {
+      struct_regex: Regex::new(struct_regex).expect("Failed to create struct regex"),
+      field_regex: Regex::new(field_regex).expect("Failed to create field regex"),
+      override_type,
+    }
+  }
+}
+
+/// Struct for overriding alignment of specific structs.
+#[derive(Clone, Debug)]
+pub struct OverrideStructAlignment {
+  pub struct_regex: Regex,
+  pub alignment: u16,
+}
+impl From<(Regex, u16)> for OverrideStructAlignment {
+  fn from((struct_regex, alignment): (Regex, u16)) -> Self {
+    Self {
+      struct_regex: struct_regex,
+      alignment: alignment,
+    }
+  }
+}
+impl From<(&str, u16)> for OverrideStructAlignment {
+  fn from((struct_regex, alignment): (&str, u16)) -> Self {
+    Self {
+      struct_regex: Regex::new(struct_regex).expect("Failed to create struct regex"),
+      alignment: alignment,
+    }
+  }
+}
 
 #[derive(Debug, Default, Builder)]
 #[builder(
@@ -174,24 +221,23 @@ pub struct WgslBindgenOption {
   pub type_map: WgslTypeMap,
 
   /// A vector of custom struct mappings to be added, which will override the struct to be generated.
-  #[builder(default, setter(each(name = "add_custom_struct_mapping", into)))]
-  pub custom_struct_mappings: Vec<CustomStructMapping>,
+  #[builder(default, setter(each(name = "add_override_struct_mapping", into)))]
+  pub override_struct: Vec<OverrideStruct>,
 
-  /// A map of custom struct field mappings, which will override the struct fields types generated for the struct.
+  /// A vector of `OverrideStructFieldType` to override the generated types for struct fields in matching structs.
   #[builder(default, setter(into))]
-  pub custom_struct_field_type_maps: FastIndexMap<&'static str, CustomStructFieldMap>,
+  pub override_struct_field_type: Vec<OverrideStructFieldType>,
 
-  /// A map of custom struct alignment mappings, which will override the alignment generated for the struct.
-  /// This will also possibly change the size of the structure and the associated struct size asserts.
-  /// You would only need under certain scenarios where the uniform buffer needs a specific minimum alignment.
-  /// See [WebGPU specs](https://www.w3.org/TR/webgpu/#dom-supported-limits-minuniformbufferoffsetalignment).
-  #[builder(default, setter(each(name = "add_struct_alignment_override"), into))]
-  pub struct_alignment_override: FastIndexMap<&'static str, u16>,
+  /// A vector of regular expressions and alignments that override the generated alignment for matching structs.
+  /// This can be used in scenarios where a specific minimum alignment is required for a uniform buffer.
+  /// Refer to the [WebGPU specs](https://www.w3.org/TR/webgpu/#dom-supported-limits-minuniformbufferoffsetalignment) for more information.
+  #[builder(default, setter(into))]
+  pub override_struct_alignment: Vec<OverrideStructAlignment>,
 
   /// The regular expression of the padding fields used in the shader struct types.
   /// These fields will be omitted in the *Init structs generated, and will automatically be assigned the default values.
   #[builder(default, setter(each(name = "add_custom_padding_field_regexp", into)))]
-  pub custom_padding_field_regexps: Vec<regex::Regex>,
+  pub custom_padding_field_regexps: Vec<Regex>,
 
   /// Whether to always have the init struct generated in the out. This is only applicable when using bytemuck mode.
   #[builder(default = "false")]
@@ -208,7 +254,7 @@ pub struct WgslBindgenOption {
 
 impl WgslBindgenOptionBuilder {
   pub fn build(&mut self) -> Result<WGSLBindgen, WgslBindgenError> {
-    self.merge_struct_mapping();
+    self.merge_struct_type_overrides();
 
     let options = self.fallible_build()?;
     WGSLBindgen::new(options)
@@ -229,9 +275,9 @@ impl WgslBindgenOptionBuilder {
     self
   }
 
-  fn merge_struct_mapping(&mut self) {
+  fn merge_struct_type_overrides(&mut self) {
     let struct_mappings = self
-      .custom_struct_mappings
+      .override_struct
       .iter()
       .flatten()
       .map(|mapping| {
@@ -243,30 +289,6 @@ impl WgslBindgenOptionBuilder {
       .collect::<FastIndexMap<_, _>>();
 
     self.type_map(struct_mappings);
-  }
-
-  pub fn add_custom_struct_field_mapping(
-    &mut self,
-    struct_name: &'static str,
-    field_names: impl IntoIterator<Item = (&'static str, TokenStream)>,
-  ) -> &mut Self {
-    let field_names = field_names
-      .into_iter()
-      .map(|(field, ts)| (field.into(), ts))
-      .collect::<CustomStructFieldMap>();
-
-    match self.custom_struct_field_type_maps.as_mut() {
-      Some(m) => {
-        m.insert(struct_name, field_names);
-      }
-      None => {
-        let mut map = FastIndexMap::default();
-        map.insert(struct_name, field_names);
-        self.custom_struct_field_type_maps = Some(map);
-      }
-    };
-
-    self
   }
 
   pub fn extra_binding_generator(

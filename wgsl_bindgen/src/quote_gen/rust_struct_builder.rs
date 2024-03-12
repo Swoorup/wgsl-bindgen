@@ -4,15 +4,13 @@ use derive_more::IsVariant;
 use naga::StructMember;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
+use smol_str::SmolStr;
 use syn::{Ident, Index};
 
 use super::{rust_type, RustItem, RustItemPath, RustTypeInfo};
 use crate::bevy_util::demangle_str;
 use crate::quote_gen::{RustItemKind, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS};
-use crate::{
-  sanitized_upper_snake_case, CustomStructFieldMap, WgslBindgenOption,
-  WgslTypeSerializeStrategy,
-};
+use crate::{sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy};
 
 #[derive(Clone)]
 pub struct Padding {
@@ -43,22 +41,26 @@ struct NagaToRustStructState<'a> {
 impl<'a> NagaToRustStructState<'a> {
   /// This replaces the `rust_type` with a custom field map if necessary
   fn get_rust_type(
+    options: &WgslBindgenOption,
+    fully_qualified_name: &SmolStr,
     rust_type: RustTypeInfo,
-    custom_struct_field_type_maps: Option<&CustomStructFieldMap>,
     member_name: &str,
   ) -> proc_macro2::TokenStream {
-    let get = move || {
-      let map = custom_struct_field_type_maps?;
-      let mapped_type = map.get(member_name)?;
-      Some(mapped_type.clone())
-    };
-
-    get().unwrap_or(rust_type.tokens)
+    let fully_qualified_name = fully_qualified_name.as_str();
+    options
+      .override_struct_field_type
+      .iter()
+      .find_map(|o| {
+        let struct_matches = o.struct_regex.is_match(fully_qualified_name);
+        let field_matches = o.field_regex.is_match(member_name);
+        (struct_matches && field_matches).then_some(o.override_type.clone())
+      })
+      .unwrap_or(rust_type.tokens)
   }
 
   fn create_fold(
     options: &'a WgslBindgenOption,
-    custom_struct_field_type_maps: Option<&'a CustomStructFieldMap>,
+    fully_qualified_name: SmolStr,
     naga_members: &'a [StructMember],
     naga_module: &'a naga::Module,
     gctx: naga::proc::GlobalCtx<'a>,
@@ -95,7 +97,7 @@ impl<'a> NagaToRustStructState<'a> {
         let pad_name = format!("_pad_{}", member_name);
         let required_member_size = next_offset - current_offset;
 
-        match rust_type.size_after_alignment() {
+        match rust_type.aligned_size() {
           Some(rust_type_size) if required_member_size == rust_type_size => None,
           _ => {
             let required_member_size = format!("0x{:X}", required_member_size);
@@ -132,7 +134,7 @@ impl<'a> NagaToRustStructState<'a> {
         })
       } else {
         let rust_type =
-          Self::get_rust_type(rust_type, custom_struct_field_type_maps, member_name);
+          Self::get_rust_type(options, &fully_qualified_name, rust_type, member_name);
 
         RustStructMemberEntry::Field(Field {
           name_ident: name_ident.clone(),
@@ -192,19 +194,20 @@ pub enum RustStructMemberEntry<'a> {
 impl<'a> RustStructMemberEntry<'a> {
   fn from_naga(
     options: &'a WgslBindgenOption,
-    custom_struct_field_type_maps: Option<&'a CustomStructFieldMap>,
+    item_path: &'a RustItemPath,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> Vec<Self> {
     let gctx = naga_module.to_ctx();
+    let fully_qualified_name = item_path.get_fully_qualified_name();
 
     let state = naga_members.iter().fold(
       NagaToRustStructState::default(),
       NagaToRustStructState::create_fold(
         options,
-        custom_struct_field_type_maps,
+        fully_qualified_name,
         naga_members,
         naga_module,
         gctx,
@@ -559,11 +562,19 @@ impl<'a> RustStructBuilder<'a> {
 
     let derives = self.build_derives();
 
+    let fully_qualified_name = self.item_path.get_fully_qualified_name();
+    let fully_qualified_name = fully_qualified_name.as_str();
     let custom_alignment = self
       .options
-      .struct_alignment_override
-      .get(self.item_path.get_fully_qualified_name().as_str())
-      .map(|align| naga::proc::Alignment::new(*align as u32))
+      .override_struct_alignment
+      .iter()
+      .find_map(|struct_align| {
+        struct_align
+          .struct_regex
+          .is_match(fully_qualified_name)
+          .then_some(struct_align.alignment as u32)
+      })
+      .map(|align| naga::proc::Alignment::new(align))
       .flatten();
 
     let alignment = custom_alignment.unwrap_or(self.layout.alignment) * 1u32;
@@ -623,14 +634,9 @@ impl<'a> RustStructBuilder<'a> {
     is_host_sharable: bool,
     has_rts_array: bool,
   ) -> Self {
-    // get the user defined field mapping for this struct
-    let custom_struct_field_type_maps = options
-      .custom_struct_field_type_maps
-      .get(item_path.get_fully_qualified_name().as_str());
-
     let members = RustStructMemberEntry::from_naga(
       options,
-      custom_struct_field_type_maps,
+      item_path,
       naga_members,
       naga_module,
       layout.size as usize,

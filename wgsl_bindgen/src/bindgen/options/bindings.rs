@@ -8,10 +8,18 @@ pub enum BindResourceType {
   Texture,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct BindingGenerator {
   pub bind_group_layout: BindGroupLayoutGenerator,
   pub pipeline_layout: PipelineLayoutGenerator,
+}
+
+impl std::fmt::Debug for BindingGenerator {
+  fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    // skip the debug generation for this,
+    // as the output changes on every build due to fns
+    Ok(())
+  }
 }
 
 /// Represents a generator for creating WGSL bind group layout structures.

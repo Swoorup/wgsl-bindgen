@@ -25,7 +25,7 @@ impl RustTypeInfo {
     self.alignment.round_up(1) as usize
   }
 
-  pub fn size_after_alignment(&self) -> Option<usize> {
+  pub fn aligned_size(&self) -> Option<usize> {
     let size = self.size? as u32;
     Some(self.alignment.round_up(size) as usize)
   }
@@ -49,13 +49,12 @@ pub(crate) fn custom_vector_matrix_assertions(
     ty: impl WgslTypeAlignmentAndSize + Into<WgslType> + WgslBuiltInMappedType,
   ) -> Option<TokenStream> {
     let ty = ty.get_mapped_type(&options.type_map)?;
-    let size_after_alignment = ty.size_after_alignment()?;
 
     let alignment = Index::from(ty.alignment_value());
-    let size_after_alignment = Index::from(size_after_alignment);
+    let aligned_size = Index::from(ty.aligned_size()?);
 
     Some(quote! {
-      assert!(std::mem::size_of::<#ty>() == #size_after_alignment);
+      assert!(std::mem::size_of::<#ty>() == #aligned_size);
       assert!(std::mem::align_of::<#ty>() == #alignment);
     })
   }
