@@ -934,7 +934,7 @@ pub mod testbed {
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
-    const SHADER_STRING: &'static str = r#"
+    pub const SHADER_STRING: &'static str = r#"
 struct rtsStructX_naga_oil_mod_XEIXC4LZOFYXW233SMUWXG2DBMRSXELLGNFWGK4ZPOJSWCY3INVSSEX {
     other_data: i32,
     the_array: array<u32>,
@@ -1416,7 +1416,7 @@ pub mod triangle {
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
-    const SHADER_STRING: &'static str = r#"
+    pub const SHADER_STRING: &'static str = r#"
 struct Uniforms {
     color_rgb: vec4<f32>,
 }

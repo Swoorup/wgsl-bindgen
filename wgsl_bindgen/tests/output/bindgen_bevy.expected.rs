@@ -1062,7 +1062,7 @@ pub mod pbr {
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
-    const SHADER_STRING: &'static str = r#"
+    pub const SHADER_STRING: &'static str = r#"
 struct MeshVertexOutputX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZSXE5DFPBPW65LUOB2XIX {
     @location(0) world_position: vec4<f32>,
     @location(1) world_normal: vec3<f32>,

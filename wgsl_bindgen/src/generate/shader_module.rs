@@ -275,7 +275,7 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
           })
       }
   };
-  let shader_str_def = quote!(const SHADER_STRING: &'static str = #shader_literal;);
+  let shader_str_def = quote!(pub const SHADER_STRING: &'static str = #shader_literal;);
 
   quote! {
     #create_shader_module
