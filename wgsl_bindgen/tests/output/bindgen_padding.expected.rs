@@ -208,7 +208,7 @@ pub mod padding {
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
-    const SHADER_STRING: &'static str = r#"
+    pub const SHADER_STRING: &'static str = r#"
 struct Style {
     color: vec4<f32>,
     width: f32,

@@ -444,7 +444,7 @@ mod test {
                                 source: wgpu::ShaderSource::Wgsl(source),
                             })
                     }
-                    const SHADER_STRING: &'static str = r#"
+                    pub const SHADER_STRING: &'static str = r#"
                 @fragment 
                 fn fs_main() {
                     return;
