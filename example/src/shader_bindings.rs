@@ -1092,13 +1092,13 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
-    pub const SHADER_ENTRY_PATH: &str = include_file_path::include_file_path!(
+    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
         "../assets/shader/utils/testbed.wgsl"
     );
-    pub const MORESHADERFILESREACHME_PATH: &str = include_file_path::include_file_path!(
+    pub const MORESHADERFILESREACHME_PATH: &str = include_absolute_path::include_absolute_path!(
         "../assets/shader/utils/../../more-shader-files/reachme.wgsl"
     );
-    pub const TYPES_PATH: &str = include_file_path::include_file_path!(
+    pub const TYPES_PATH: &str = include_absolute_path::include_absolute_path!(
         "../assets/shader/types.wgsl"
     );
     pub const SHADER_PATHS: &[&str] = &[
@@ -1503,7 +1503,7 @@ fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
                 source: wgpu::ShaderSource::Wgsl(source),
             })
     }
-    pub const SHADER_ENTRY_PATH: &str = include_file_path::include_file_path!(
+    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
         "../assets/shader/triangle.wgsl"
     );
     pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH];

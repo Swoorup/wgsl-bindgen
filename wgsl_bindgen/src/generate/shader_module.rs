@@ -331,7 +331,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
         let relative_file_path = get_path_relative_to(&self.output_dir, &dep.file_path);
 
         let assignment = quote! {
-          pub const #module_name_var: &str = include_file_path::include_file_path!(#relative_file_path);
+          pub const #module_name_var: &str = include_absolute_path::include_absolute_path!(#relative_file_path);
         };
 
         (module_name_var, assignment)
@@ -342,7 +342,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     let entry_name_var = format_ident!("SHADER_ENTRY_PATH");
 
     let assignment = quote! {
-      pub const #entry_name_var: &str = include_file_path::include_file_path!(#shader_entry_path);
+      pub const #entry_name_var: &str = include_absolute_path::include_absolute_path!(#shader_entry_path);
     };
 
     module_vars.insert(0, entry_name_var);

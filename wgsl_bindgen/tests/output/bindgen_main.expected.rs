@@ -328,13 +328,13 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     return;
 }
 "#;
-    pub const SHADER_ENTRY_PATH: &str = include_file_path::include_file_path!(
+    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
         "../shaders/basic/main.wgsl"
     );
-    pub const BINDINGS_PATH: &str = include_file_path::include_file_path!(
+    pub const BINDINGS_PATH: &str = include_absolute_path::include_absolute_path!(
         "../shaders/basic/bindings.wgsl"
     );
-    pub const TYPES_PATH: &str = include_file_path::include_file_path!(
+    pub const TYPES_PATH: &str = include_absolute_path::include_absolute_path!(
         "../shaders/additional/types.wgsl"
     );
     pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, BINDINGS_PATH, TYPES_PATH];
