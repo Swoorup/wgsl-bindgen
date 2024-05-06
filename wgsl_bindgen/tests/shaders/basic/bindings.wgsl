@@ -1,2 +1,2 @@
-@group(1) @binding(11)
+@group(1) @binding(0)
 var<uniform> ONE: f32;

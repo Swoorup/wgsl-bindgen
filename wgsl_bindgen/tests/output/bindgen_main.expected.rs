@@ -102,13 +102,28 @@ pub mod main {
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub buffer: wgpu::BufferBinding<'a>,
+            pub texture_float: &'a wgpu::TextureView,
+            pub texture_sint: &'a wgpu::TextureView,
+            pub texture_uint: &'a wgpu::TextureView,
         }
         impl<'a> WgpuBindGroupLayout0<'a> {
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 4] {
                 [
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Buffer(self.buffer),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(self.texture_float),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::TextureView(self.texture_sint),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::TextureView(self.texture_uint),
                     },
                 ]
             }
@@ -128,6 +143,38 @@ pub mod main {
                             },
                             has_dynamic_offset: false,
                             min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float {
+                                filterable: false,
+                            },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Sint,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Uint,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
                         },
                         count: None,
                     },
@@ -166,7 +213,7 @@ pub mod main {
             pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
                 [
                     wgpu::BindGroupEntry {
-                        binding: 11,
+                        binding: 0,
                         resource: wgpu::BindingResource::Buffer(self.ONE),
                     },
                 ]
@@ -179,7 +226,7 @@ pub mod main {
                 label: Some("Main::BindGroup1::LayoutDescriptor"),
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
-                        binding: 11,
+                        binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
@@ -312,10 +359,16 @@ struct Style {
     width: f32,
 }
 
-@group(1) @binding(11) 
+@group(1) @binding(0) 
 var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
 @group(0) @binding(0) 
 var<storage, read_write> buffer: array<f32>;
+@group(0) @binding(1) 
+var texture_float: texture_2d<f32>;
+@group(0) @binding(2) 
+var texture_sint: texture_2d<i32>;
+@group(0) @binding(3) 
+var texture_uint: texture_2d<u32>;
 var<push_constant> const_style: Style;
 
 @compute @workgroup_size(1, 1, 1) 
