@@ -10,35 +10,35 @@ description = "Type safe Rust bindings workflow for wgsl shaders in wgpu"
 readme = "../README.md"
 
 [dependencies]
-naga = { version = "0.19.0", features = ["wgsl-in"] }
-wgpu-types = "0.19.0"
-syn = "2.0"
-quote = "1.0"
-proc-macro2 = "1.0"
-prettyplease = "0.2"
-thiserror = "1.0"
-case = "1.0"
-naga_oil = "0.13.0"
-regex = "1.10.3"
-data-encoding = "2.5.0"
-indexmap = "2.2.3"
-smallvec = "1.13.1"
-derive_more = "0.99.17"
-fxhash = "0.2.1"
-derivative = "2.2.0"
-smol_str = "0.2.1"
-colored = "2.1.0"
-derive_builder = "0.20.0"
-miette = "7.0.0"
-blake3 = "1.5.0"
-regex-syntax = "0.8.2"
-strum = "0.26.1"
-strum_macros = "0.26.1"
-pathdiff = "0.2.1"
-enumflags2 = "0.7.9"
-heck = "0.5"
+naga = { workspace = true, features = ["wgsl-in"] }
+wgpu-types.workspace = true
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+prettyplease.workspace = true
+thiserror.workspace = true
+case.workspace = true
+naga_oil.workspace = true
+regex.workspace = true
+data-encoding.workspace = true
+indexmap.workspace = true
+smallvec.workspace = true
+derive_more.workspace = true
+fxhash.workspace = true
+derivative.workspace = true
+smol_str.workspace = true
+colored.workspace = true
+derive_builder.workspace = true
+miette.workspace = true
+blake3.workspace = true
+regex-syntax.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+pathdiff.workspace = true
+enumflags2.workspace = true
+heck.workspace = true
 
 [dev-dependencies]
-indoc = "2.0"
-pretty_assertions = "1.2.1"
-miette = { version = "7.0.0", features = ["fancy", "syntect"] }
+indoc.workspace = true
+pretty_assertions.workspace = true
+miette = { workspace = true, features = ["fancy", "syntect"] }

@@ -75,7 +75,8 @@ impl<'a> State<'a> {
         let shader = shader_bindings::triangle::create_shader_module_from_path(
             &device,
             [("VERTEX_UVS".to_owned(), Default::default())].into(),
-        ).unwrap();
+        )
+        .unwrap();
         let render_pipeline_layout = shader_bindings::triangle::create_pipeline_layout(&device);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {

@@ -5,15 +5,15 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-winit = "0.29"
-wgpu = "0.19"
-futures = "0.3"
-bytemuck = { version = "1.13", features = ["derive"] }
-encase = { version = "0.7", features = ["glam"] }
-glam = { version = "0.27", features = ["bytemuck"] }
-naga_oil = "0.13"
-include_absolute_path = "0.1"
+winit.workspace = true
+wgpu.workspace = true
+futures.workspace = true
+bytemuck = { workspace = true, features = ["derive"] }
+encase = { workspace = true, features = ["glam"] }
+glam = { workspace = true, features = ["bytemuck"] }
+naga_oil.workspace = true
+include_absolute_path.workspace = true
 
 [build-dependencies]
 wgsl_bindgen = { path = "../wgsl_bindgen" }
-miette = { version = "7.0.0", features = ["fancy", "syntect"] }
+miette = { workspace = true, features = ["fancy", "syntect"] }

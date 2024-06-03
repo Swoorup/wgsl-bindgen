@@ -1520,10 +1520,13 @@ mod tests {
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
 
-    let structs = structs(&module, &WgslBindgenOption{
-      type_visiblity: WgslTypeVisibility::RestrictedCrate,
-      ..Default::default()
-    });
+    let structs = structs(
+      &module,
+      &WgslBindgenOption {
+        type_visiblity: WgslTypeVisibility::RestrictedCrate,
+        ..Default::default()
+      },
+    );
     let actual = quote!(#(#structs)*);
 
     assert_tokens_eq!(
