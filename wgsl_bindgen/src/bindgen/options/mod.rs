@@ -7,7 +7,6 @@ pub use bindings::*;
 use derive_builder::Builder;
 use derive_more::IsVariant;
 use enumflags2::{bitflags, BitFlags};
-pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 use proc_macro2::TokenStream;
 use regex::Regex;
 pub use types::*;
@@ -15,6 +14,13 @@ pub use types::*;
 use crate::{
   FastIndexMap, WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy,
 };
+
+/// The [wgpu::naga::valid::Capabilities](https://docs.rs/wgpu/latest/wgpu/naga/valid/struct.Capabilities.html) to use for the module.
+#[derive(Clone, Copy, Debug)]
+pub struct WgslShaderIrCapabilities {
+  pub capabilities: naga::valid::Capabilities,
+  pub subgroup_stages: naga::valid::ShaderStages,
+}
 
 /// An enum representing the source type that will be generated for the output.
 #[bitflags(default = UseEmbed)]
@@ -223,7 +229,7 @@ pub struct WgslBindgenOption {
 
   /// The [wgpu::naga::valid::Capabilities](https://docs.rs/wgpu/latest/wgpu/naga/valid/struct.Capabilities.html) to support. Defaults to `None`.
   #[builder(default, setter(strip_option))]
-  pub ir_capabilities: Option<WgslShaderIRCapabilities>,
+  pub ir_capabilities: Option<WgslShaderIrCapabilities>,
 
   /// Whether to generate short constructor similar to enums constructors instead of `new`, if number of parameters are below the specified threshold
   /// Defaults to `None`

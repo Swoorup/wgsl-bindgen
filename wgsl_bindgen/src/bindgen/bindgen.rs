@@ -1,6 +1,5 @@
 use std::io::Write;
 
-pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
 use naga_oil::compose::{
   ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor,
   ShaderLanguage,
@@ -10,7 +9,7 @@ use crate::bevy_util::source_file::SourceFile;
 use crate::bevy_util::DependencyTree;
 use crate::{
   create_rust_bindings, SourceFilePath, SourceWithFullDependenciesResult,
-  WgslBindgenError, WgslBindgenOption, WgslEntryResult,
+  WgslBindgenError, WgslBindgenOption, WgslEntryResult, WgslShaderIrCapabilities,
 };
 
 const PKG_VER: &str = env!("CARGO_PKG_VERSION");
@@ -74,7 +73,7 @@ impl WGSLBindgen {
   }
 
   fn generate_naga_module_for_entry(
-    ir_capabilities: Option<WgslShaderIRCapabilities>,
+    ir_capabilities: Option<WgslShaderIrCapabilities>,
     entry: SourceWithFullDependenciesResult<'_>,
   ) -> Result<WgslEntryResult, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
@@ -87,7 +86,10 @@ impl WGSLBindgen {
     };
 
     let mut composer = match ir_capabilities {
-      Some(ir_capabilities) => Composer::default().with_capabilities(ir_capabilities),
+      Some(WgslShaderIrCapabilities {
+        capabilities,
+        subgroup_stages,
+      }) => Composer::default().with_capabilities(capabilities, subgroup_stages),
       _ => Composer::default(),
     };
     let source = entry.source_file;

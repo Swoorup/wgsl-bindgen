@@ -167,6 +167,7 @@ pub mod minimal {
                         layout: Some(&layout),
                         module: &module,
                         entry_point: "main",
+                        compilation_options: Default::default(),
                     },
                 )
         }

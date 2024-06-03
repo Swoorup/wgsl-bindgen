@@ -857,6 +857,7 @@ pub mod testbed {
                         layout: Some(&layout),
                         module: &module,
                         entry_point: "main",
+                        compilation_options: Default::default(),
                     },
                 )
         }
@@ -876,6 +877,7 @@ pub mod testbed {
                         layout: Some(&layout),
                         module: &module,
                         entry_point: "main",
+                        compilation_options: Default::default(),
                     },
                 )
         }
@@ -896,6 +898,7 @@ pub mod testbed {
                         layout: Some(&layout),
                         module: &module,
                         entry_point: "main",
+                        compilation_options: Default::default(),
                     },
                 )
         }
@@ -1376,6 +1379,7 @@ pub mod triangle {
             module,
             entry_point: entry.entry_point,
             buffers: &entry.buffers,
+            compilation_options: Default::default(),
         }
     }
     pub fn vs_main_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
