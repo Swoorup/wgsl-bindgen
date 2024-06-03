@@ -10,7 +10,20 @@ use syn::{Ident, Index};
 use super::{rust_type, RustItem, RustItemPath, RustTypeInfo};
 use crate::bevy_util::demangle_str;
 use crate::quote_gen::{RustItemKind, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS};
-use crate::{sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy};
+use crate::{
+  sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy,
+  WgslTypeVisibility,
+};
+
+impl WgslTypeVisibility {
+  fn generate_quote(&self) -> TokenStream {
+    match self {
+      WgslTypeVisibility::Public => quote!(pub),
+      WgslTypeVisibility::RestrictedCrate => quote!(pub(crate)),
+      WgslTypeVisibility::RestrictedSuper => quote!(pub(super)),
+    }
+  }
+}
 
 #[derive(Clone)]
 pub struct Padding {
@@ -315,6 +328,7 @@ impl<'a> RustStructBuilder<'a> {
     let struct_name = self.name_ident();
     let init_struct_name_def = self.init_struct_name_in_definition_fragment();
     let init_struct_name_in_usage = self.init_struct_name_in_usage_fragment();
+    let visibility = self.options.type_visiblity.generate_quote();
 
     let mut init_struct_members = vec![];
     let mut mem_assignments = vec![];
@@ -336,7 +350,7 @@ impl<'a> RustStructBuilder<'a> {
     quote! {
       #[repr(C)]
       #[derive(Debug, PartialEq, Clone, Copy)]
-      pub struct #init_struct_name_def {
+      #visibility struct #init_struct_name_def {
         #(#init_struct_members),*
       }
 
@@ -595,6 +609,7 @@ impl<'a> RustStructBuilder<'a> {
     let assert_layout = self.build_layout_assertion(custom_alignment);
     let unsafe_bytemuck_pod_impl = self.build_bytemuck_impls();
     let fully_qualified_name = self.item_path.get_fully_qualified_name();
+    let visibility = self.options.type_visiblity.generate_quote();
 
     vec![
       RustItem::new(
@@ -603,7 +618,7 @@ impl<'a> RustStructBuilder<'a> {
         quote! {
           #repr_c
           #[derive(#(#derives),*)]
-          pub struct #struct_name_def {
+          #visibility struct #struct_name_def {
               #(#fields),*
           }
 

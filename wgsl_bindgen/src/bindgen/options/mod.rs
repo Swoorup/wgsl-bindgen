@@ -151,6 +151,20 @@ impl From<(&str, u16)> for OverrideStructAlignment {
   }
 }
 
+/// An enum representing the visibility of the type generated in the output
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum WgslTypeVisibility {
+  /// All exported types set to `pub` visiblity
+  #[default]
+  Public,
+
+  /// All exported types set to `pub(crate)` visiblity
+  RestrictedCrate,
+
+  /// All exported types set to `pub(super)` visiblity
+  RestrictedSuper,
+}
+
 #[derive(Debug, Default, Builder)]
 #[builder(
   setter(into),
@@ -215,6 +229,10 @@ pub struct WgslBindgenOption {
   /// Defaults to `None`
   #[builder(default, setter(strip_option, into))]
   pub short_constructor: Option<i32>,
+
+  /// Which visiblity to use for the exported types.
+  #[builder(default)]
+  pub type_visiblity: WgslTypeVisibility,
 
   /// A mapping operation for WGSL built-in types. This is used to map WGSL built-in types to their corresponding representations.
   #[builder(setter(custom))]

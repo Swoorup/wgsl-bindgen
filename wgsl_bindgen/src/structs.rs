@@ -1506,4 +1506,42 @@ mod tests {
       actual
     );
   }
+
+  #[test]
+  fn test_struct_visibility() {
+    let source = indoc! {r#"
+            struct Scalars {
+                a: u32,
+                b: i32,
+                c: f32,
+            };
+            var<uniform> a: Scalars;
+        "#};
+
+    let module = naga::front::wgsl::parse_str(source).unwrap();
+
+    let structs = structs(&module, &WgslBindgenOption{
+      type_visiblity: WgslTypeVisibility::RestrictedCrate,
+      ..Default::default()
+    });
+    let actual = quote!(#(#structs)*);
+
+    assert_tokens_eq!(
+      quote! {
+          #[repr(C)]
+          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+          pub(crate) struct Scalars {
+              pub a: u32,
+              pub b: i32,
+              pub c: f32,
+          }
+          impl Scalars {
+            pub const fn new(a: u32, b: i32, c: f32) -> Self {
+                Self { a, b, c }
+            }
+          }
+      },
+      actual
+    );
+  }
 }
