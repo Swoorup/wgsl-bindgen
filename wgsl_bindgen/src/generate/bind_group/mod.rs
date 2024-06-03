@@ -280,7 +280,7 @@ fn bind_group_layout_entry(
             naga::ScalarKind::Sint => quote!(wgpu::TextureSampleType::Sint),
             naga::ScalarKind::Uint => quote!(wgpu::TextureSampleType::Uint),
             naga::ScalarKind::Float => {
-              quote!(wgpu::TextureSampleType::Float { filterable: false })
+              quote!(wgpu::TextureSampleType::Float { filterable: true })
             }
             _ => panic!("Unsupported sample type: {kind:#?}"),
           };
@@ -798,7 +798,7 @@ mod tests {
                             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                             ty: wgpu::BindingType::Texture {
                                 sample_type: wgpu::TextureSampleType::Float {
-                                    filterable: false,
+                                    filterable: true,
                                 },
                                 view_dimension: wgpu::TextureViewDimension::D2,
                                 multisampled: false,
@@ -882,7 +882,7 @@ mod tests {
                             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                             ty: wgpu::BindingType::Texture {
                                 sample_type: wgpu::TextureSampleType::Float {
-                                    filterable: false,
+                                    filterable: true,
                                 },
                                 view_dimension: wgpu::TextureViewDimension::D2,
                                 multisampled: true,

@@ -151,7 +151,7 @@ pub mod main {
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::Texture {
                             sample_type: wgpu::TextureSampleType::Float {
-                                filterable: false,
+                                filterable: true,
                             },
                             view_dimension: wgpu::TextureViewDimension::D2,
                             multisampled: false,
