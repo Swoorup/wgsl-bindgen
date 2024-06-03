@@ -281,6 +281,7 @@ fn vertex_states(module: &naga::Module) -> TokenStream {
                 module,
                 entry_point: entry.entry_point,
                 buffers: &entry.buffers,
+                compilation_options: Default::default(),
             }
         }
 
@@ -808,6 +809,7 @@ mod test {
                   module,
                   entry_point: entry.entry_point,
                   buffers: &entry.buffers,
+                  compilation_options: Default::default()
               }
           }
           pub fn vs_main_entry() -> VertexEntry<0> {
@@ -853,6 +855,7 @@ mod test {
                   module,
                   entry_point: entry.entry_point,
                   buffers: &entry.buffers,
+                  compilation_options: Default::default(),
               }
           }
           pub fn vs_main_1_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
@@ -904,6 +907,7 @@ mod test {
                   module,
                   entry_point: entry.entry_point,
                   buffers: &entry.buffers,
+                  compilation_options: Default::default(),
               }
           }
           pub fn vs_main_entry(input0: wgpu::VertexStepMode, input1: wgpu::VertexStepMode) -> VertexEntry<2> {

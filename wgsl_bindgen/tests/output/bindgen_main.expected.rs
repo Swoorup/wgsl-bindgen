@@ -296,6 +296,7 @@ pub mod main {
                         layout: Some(&layout),
                         module: &module,
                         entry_point: "main",
+                        compilation_options: Default::default(),
                     },
                 )
         }
@@ -316,6 +317,7 @@ pub mod main {
                         layout: Some(&layout),
                         module: &module,
                         entry_point: "main",
+                        compilation_options: Default::default(),
                     },
                 )
         }

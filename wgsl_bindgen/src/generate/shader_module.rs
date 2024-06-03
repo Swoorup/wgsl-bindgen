@@ -202,6 +202,7 @@ impl<'a> ComputeModuleBuilder<'a> {
                 layout: Some(&layout),
                 module: &module,
                 entry_point: #entry_point,
+                compilation_options: Default::default(),
             })
         }
     }
@@ -631,6 +632,7 @@ mod tests {
                               layout: Some(&layout),
                               module: &module,
                               entry_point: "main1",
+                              compilation_options: Default::default(),
                           },
                       )
               }
@@ -645,6 +647,7 @@ mod tests {
                               layout: Some(&layout),
                               module: &module,
                               entry_point: "main2",
+                              compilation_options: Default::default(),
                           },
                       )
               }
