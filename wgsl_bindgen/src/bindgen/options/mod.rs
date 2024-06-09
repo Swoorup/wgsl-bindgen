@@ -238,7 +238,7 @@ pub struct WgslBindgenOption {
 
   /// Which visiblity to use for the exported types.
   #[builder(default)]
-  pub type_visiblity: WgslTypeVisibility,
+  pub type_visibility: WgslTypeVisibility,
 
   /// A mapping operation for WGSL built-in types. This is used to map WGSL built-in types to their corresponding representations.
   #[builder(setter(custom))]

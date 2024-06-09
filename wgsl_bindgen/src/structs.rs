@@ -1523,7 +1523,7 @@ mod tests {
     let structs = structs(
       &module,
       &WgslBindgenOption {
-        type_visiblity: WgslTypeVisibility::RestrictedCrate,
+        type_visibility: WgslTypeVisibility::RestrictedCrate,
         ..Default::default()
       },
     );
