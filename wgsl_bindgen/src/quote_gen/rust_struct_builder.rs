@@ -328,7 +328,7 @@ impl<'a> RustStructBuilder<'a> {
     let struct_name = self.name_ident();
     let init_struct_name_def = self.init_struct_name_in_definition_fragment();
     let init_struct_name_in_usage = self.init_struct_name_in_usage_fragment();
-    let visibility = self.options.type_visiblity.generate_quote();
+    let visibility = self.options.type_visibility.generate_quote();
 
     let mut init_struct_members = vec![];
     let mut mem_assignments = vec![];
@@ -609,7 +609,7 @@ impl<'a> RustStructBuilder<'a> {
     let assert_layout = self.build_layout_assertion(custom_alignment);
     let unsafe_bytemuck_pod_impl = self.build_bytemuck_impls();
     let fully_qualified_name = self.item_path.get_fully_qualified_name();
-    let visibility = self.options.type_visiblity.generate_quote();
+    let visibility = self.options.type_visibility.generate_quote();
 
     vec![
       RustItem::new(
