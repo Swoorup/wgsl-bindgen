@@ -1030,6 +1030,35 @@ pub mod pbr {
     }
     pub const ENTRY_FRAGMENT: &str = "fragment";
     #[derive(Debug)]
+    pub struct FragmentEntry<const N: usize> {
+        pub entry_point: &'static str,
+        pub targets: [Option<wgpu::ColorTargetState>; N],
+        pub constants: std::collections::HashMap<String, f64>,
+    }
+    pub fn fragment_state<'a, const N: usize>(
+        module: &'a wgpu::ShaderModule,
+        entry: &'a FragmentEntry<N>,
+    ) -> wgpu::FragmentState<'a> {
+        wgpu::FragmentState {
+            module,
+            entry_point: entry.entry_point,
+            targets: &entry.targets,
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
+        }
+    }
+    pub fn fragment_entry(
+        targets: [Option<wgpu::ColorTargetState>; 1],
+    ) -> FragmentEntry<1> {
+        FragmentEntry {
+            entry_point: ENTRY_FRAGMENT,
+            targets,
+            constants: Default::default(),
+        }
+    }
+    #[derive(Debug)]
     pub struct WgpuPipelineLayout;
     impl WgpuPipelineLayout {
         pub fn bind_group_layout_entries(

@@ -14,7 +14,7 @@ pub fn module_to_source(
 
   // Mini validation to get module info
   let info = naga::valid::Validator::new(
-    naga::valid::ValidationFlags::empty(),
+    naga::valid::ValidationFlags::all(),
     naga::valid::Capabilities::all(),
   )
   .validate(&module);
