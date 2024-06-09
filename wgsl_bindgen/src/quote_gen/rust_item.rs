@@ -6,7 +6,9 @@ use smol_str::SmolStr;
 /// `RustItemPath` represents the path to a Rust item within a module.
 #[derive(Constructor, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RustItemPath {
+  /// The path to the parent module.
   pub parent_module_path: SmolStr,
+  /// name of the item, without the module path.
   pub item_name: SmolStr,
 }
 
@@ -27,7 +29,7 @@ pub(crate) enum RustItemKind {
   Any,
 }
 
-/// Represents a Rust source item.
+/// Represents a Rust source item, that is either a ConstVar, TraitImpls or others.
 #[derive(Constructor)]
 pub(crate) struct RustItem {
   pub kind: RustItemKind,

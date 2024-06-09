@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.11.3
 // Changes made to this file will not be saved.
-// SourceHash: 144fa2ffd4020ac8162e09f636601c3306b1a8b55f25d819b057fd7a8f525075
+// SourceHash: ef4009c9c186ea26c5de5d22facdc282edb382e24de0a02baaa7a3a726576364
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -1368,8 +1368,9 @@ pub mod triangle {
     pub const ENTRY_FS_MAIN: &str = "fs_main";
     #[derive(Debug)]
     pub struct VertexEntry<const N: usize> {
-        entry_point: &'static str,
-        buffers: [wgpu::VertexBufferLayout<'static>; N],
+        pub entry_point: &'static str,
+        pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+        pub constants: std::collections::HashMap<String, f64>,
     }
     pub fn vertex_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,
@@ -1379,13 +1380,46 @@ pub mod triangle {
             module,
             entry_point: entry.entry_point,
             buffers: &entry.buffers,
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
         }
     }
     pub fn vs_main_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
         VertexEntry {
             entry_point: ENTRY_VS_MAIN,
             buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
+            constants: Default::default(),
+        }
+    }
+    #[derive(Debug)]
+    pub struct FragmentEntry<const N: usize> {
+        pub entry_point: &'static str,
+        pub targets: [Option<wgpu::ColorTargetState>; N],
+        pub constants: std::collections::HashMap<String, f64>,
+    }
+    pub fn fragment_state<'a, const N: usize>(
+        module: &'a wgpu::ShaderModule,
+        entry: &'a FragmentEntry<N>,
+    ) -> wgpu::FragmentState<'a> {
+        wgpu::FragmentState {
+            module,
+            entry_point: entry.entry_point,
+            targets: &entry.targets,
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
+        }
+    }
+    pub fn fs_main_entry(
+        targets: [Option<wgpu::ColorTargetState>; 1],
+    ) -> FragmentEntry<1> {
+        FragmentEntry {
+            entry_point: ENTRY_FS_MAIN,
+            targets,
+            constants: Default::default(),
         }
     }
     #[derive(Debug)]
