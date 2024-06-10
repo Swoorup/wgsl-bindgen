@@ -1,6 +1,7 @@
 use std::io::Write;
 
 pub use naga::valid::Capabilities as WgslShaderIRCapabilities;
+use naga::valid::ShaderStages;
 use naga_oil::compose::{
   ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor,
   ShaderLanguage,
@@ -87,7 +88,9 @@ impl WGSLBindgen {
     };
 
     let mut composer = match ir_capabilities {
-      Some(ir_capabilities) => Composer::default().with_capabilities(ir_capabilities),
+      Some(ir_capabilities) => {
+        Composer::default().with_capabilities(ir_capabilities, ShaderStages::empty())
+      }
       _ => Composer::default(),
     };
     let source = entry.source_file;

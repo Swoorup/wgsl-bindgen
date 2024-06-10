@@ -281,6 +281,7 @@ fn vertex_states(module: &naga::Module) -> TokenStream {
                 module,
                 entry_point: entry.entry_point,
                 buffers: &entry.buffers,
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }
         }
 
@@ -464,6 +465,10 @@ mod test {
             };
             @group(0) @binding(0) var<uniform> a: A;
             @group(1) @binding(0) var<uniform> b: A;
+
+            #ifdef MASK
+            @group(2) @binding(0) var<uniform> c: A;
+            #endif
 
             @vertex
             fn vs_main() -> @builtin(position) vec4<f32> {
@@ -808,6 +813,7 @@ mod test {
                   module,
                   entry_point: entry.entry_point,
                   buffers: &entry.buffers,
+                  compilation_options: wgpu::PipelineCompilationOptions::default(),
               }
           }
           pub fn vs_main_entry() -> VertexEntry<0> {
@@ -853,6 +859,7 @@ mod test {
                   module,
                   entry_point: entry.entry_point,
                   buffers: &entry.buffers,
+                  compilation_options: wgpu::PipelineCompilationOptions::default(),
               }
           }
           pub fn vs_main_1_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
@@ -904,6 +911,7 @@ mod test {
                   module,
                   entry_point: entry.entry_point,
                   buffers: &entry.buffers,
+                  compilation_options: wgpu::PipelineCompilationOptions::default(),
               }
           }
           pub fn vs_main_entry(input0: wgpu::VertexStepMode, input1: wgpu::VertexStepMode) -> VertexEntry<2> {
