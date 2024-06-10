@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v0.12.0 (2024-06-10)
 
+<csr-id-e52a9dbe660a417afa371f480be161d58f1dd642/>
+
 ### Other
 
  - <csr-id-e52a9dbe660a417afa371f480be161d58f1dd642/> format builder error message into bindgen error
@@ -15,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 49 commits contributed to the release over the course of 125 calendar days.
+ - 51 commits contributed to the release over the course of 125 calendar days.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -26,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Added changelog ([`cd55d10`](https://github.com/Swoorup/wgsl-bindgen/commit/cd55d10c57f1e159a0c31988c67559b559a68ace))
+    - Release wgsl_bindgen v0.12.0 ([`d61fd9e`](https://github.com/Swoorup/wgsl-bindgen/commit/d61fd9e174877500ba86d089101ecba7c1b5886f))
     - Fix typo ([`22adeec`](https://github.com/Swoorup/wgsl-bindgen/commit/22adeece762ad8835a812fc448a3281ae6ce42f9))
     - Added non-working support for overridable constants ([`e1937d6`](https://github.com/Swoorup/wgsl-bindgen/commit/e1937d661f920812e3587d2cb70362cad15a613f))
     - Initial upgrade to wgpu 0.20 ([`92bf827`](https://github.com/Swoorup/wgsl-bindgen/commit/92bf8274c3bdc39e4332f558a653647be61c3d95))
