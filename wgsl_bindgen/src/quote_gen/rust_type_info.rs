@@ -5,7 +5,7 @@ use strum::IntoEnumIterator;
 use syn::Index;
 
 use crate::bevy_util::demangle_str;
-use crate::quote_gen::demangle_and_qualify;
+use crate::quote_gen::demangle_and_fully_qualify;
 use crate::wgsl_type::WgslBuiltInMappedType;
 use crate::{
   WgslBindgenOption, WgslMatType, WgslType, WgslTypeAlignmentAndSize,
@@ -316,7 +316,7 @@ pub(crate) fn rust_type(
     } => {
       // TODO: Support structs?
       let name_str = ty.name.as_ref().unwrap();
-      let name = demangle_and_qualify(name_str);
+      let name = demangle_and_fully_qualify(name_str, None);
       let size = type_layout.size as usize;
 
       // custom map struct
