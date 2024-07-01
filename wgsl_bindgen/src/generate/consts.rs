@@ -53,7 +53,7 @@ pub fn pipeline_overridable_constants(
     .map(|o| {
       let name = Ident::new(o.name.as_ref().unwrap(), Span::call_site());
       // TODO: Do we only need to handle scalar types here?
-      let ty = rust_type(module, &module.types[o.ty], options);
+      let ty = rust_type(None, module, &module.types[o.ty], options);
 
       if o.init.is_some() {
         quote!(pub #name: Option<#ty>)

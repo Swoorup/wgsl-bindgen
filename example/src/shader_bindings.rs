@@ -512,6 +512,7 @@ pub mod testbed {
         }
     }
     pub mod bind_groups {
+        use super::{_root, _root::*};
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub color_texture: &'a wgpu::TextureView,
@@ -537,6 +538,7 @@ pub mod testbed {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Testbed::BindGroup0::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "color_texture"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -549,6 +551,7 @@ pub mod testbed {
                         },
                         count: None,
                     },
+                    /// @binding(1): "color_sampler"
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -604,13 +607,16 @@ pub mod testbed {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Testbed::BindGroup1::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "uniforms"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::testbed::Uniforms>() as _,
+                            ),
                         },
                         count: None,
                     },
@@ -696,6 +702,7 @@ pub mod testbed {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Testbed::BindGroup2::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(1): "rts"
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -708,6 +715,7 @@ pub mod testbed {
                         },
                         count: None,
                     },
+                    /// @binding(2): "a"
                     wgpu::BindGroupLayoutEntry {
                         binding: 2,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -716,10 +724,13 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<crate::MyScalars>() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(3): "b"
                     wgpu::BindGroupLayoutEntry {
                         binding: 3,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -728,10 +739,13 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::types::VectorsU32>() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(4): "c"
                     wgpu::BindGroupLayoutEntry {
                         binding: 4,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -740,10 +754,13 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::types::VectorsI32>() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(5): "d"
                     wgpu::BindGroupLayoutEntry {
                         binding: 5,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -752,10 +769,13 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::types::VectorsF32>() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(6): "f"
                     wgpu::BindGroupLayoutEntry {
                         binding: 6,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -764,10 +784,13 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::types::MatricesF32>() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(8): "h"
                     wgpu::BindGroupLayoutEntry {
                         binding: 8,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -776,10 +799,13 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::types::StaticArrays>() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(9): "i"
                     wgpu::BindGroupLayoutEntry {
                         binding: 9,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -788,7 +814,9 @@ pub mod testbed {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::types::Nested>() as _,
+                            ),
                         },
                         count: None,
                     },
@@ -1215,6 +1243,7 @@ pub mod triangle {
         }
     }
     pub mod bind_groups {
+        use super::{_root, _root::*};
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub color_texture: &'a wgpu::TextureView,
@@ -1240,6 +1269,7 @@ pub mod triangle {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Triangle::BindGroup0::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "color_texture"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -1252,6 +1282,7 @@ pub mod triangle {
                         },
                         count: None,
                     },
+                    /// @binding(1): "color_sampler"
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -1307,13 +1338,16 @@ pub mod triangle {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Triangle::BindGroup1::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "uniforms"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::triangle::Uniforms>() as _,
+                            ),
                         },
                         count: None,
                     },

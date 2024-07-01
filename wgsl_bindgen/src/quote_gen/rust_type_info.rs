@@ -29,6 +29,19 @@ impl RustTypeInfo {
     let size = self.size? as u32;
     Some(self.alignment.round_up(size) as usize)
   }
+
+  pub fn is_dynamic_array(&self) -> bool {
+    self.size.is_none()
+  }
+
+  pub fn quote_min_binding_size(&self) -> TokenStream {
+    if self.is_dynamic_array() {
+      quote!(None)
+    } else {
+      let ty = quote!(#self);
+      quote!(std::num::NonZeroU64::new(std::mem::size_of::<#ty>() as _))
+    }
+  }
 }
 
 impl ToTokens for RustTypeInfo {
@@ -217,7 +230,11 @@ fn map_naga_mat_type(
   ty.get_mapped_type(&options.type_map)
 }
 
+/// Generates a Rust type information for a Naga type.
+///
+/// Specify the invoke entry module to generate fully qualified type name.///
 pub(crate) fn rust_type(
+  invoking_entry_module: Option<&str>,
   module: &naga::Module,
   ty: &naga::Type,
   options: &WgslBindgenOption,
@@ -284,7 +301,8 @@ pub(crate) fn rust_type(
       size: naga::ArraySize::Constant(size),
       stride,
     } => {
-      let inner_ty = rust_type(module, &module.types[*base], options);
+      let inner_ty =
+        rust_type(invoking_entry_module, module, &module.types[*base], options);
       let count = Index::from(size.get() as usize);
 
       RustTypeInfo(quote!([#inner_ty; #count]), *stride as usize, alignment)
@@ -295,7 +313,8 @@ pub(crate) fn rust_type(
       ..
     } => {
       // panic!("Runtime-sized arrays can only be used in variable declarations or as the last field of a struct.");
-      let element_type = rust_type(module, &module.types[*base], &options);
+      let element_type =
+        rust_type(invoking_entry_module, module, &module.types[*base], &options);
       let member_type = match options.serialization_strategy {
         WgslTypeSerializeStrategy::Encase => {
           quote!(Vec<#element_type>)
@@ -310,21 +329,31 @@ pub(crate) fn rust_type(
         alignment,
       }
     }
-    naga::TypeInner::Struct {
-      members: _,
-      span: _,
-    } => {
-      // TODO: Support structs?
+    naga::TypeInner::Struct { members, span: _ } => {
       let name_str = ty.name.as_ref().unwrap();
-      let name = demangle_and_fully_qualify(name_str, None);
+      let name = demangle_and_fully_qualify(name_str, invoking_entry_module);
+
       let size = type_layout.size as usize;
 
       // custom map struct
-      let mapped_type = WgslType::Struct {
+      let mut mapped_type = WgslType::Struct {
         fully_qualified_name: demangle_str(name_str).into(),
       }
       .get_mapped_type(&options.type_map, size, alignment)
       .unwrap_or(RustTypeInfo(name, size, alignment));
+
+      // check if the last member is a runtime sized array
+      if let Some(last) = members.last() {
+        match &module.types[last.ty].inner {
+          naga::TypeInner::Array {
+            size: naga::ArraySize::Dynamic,
+            ..
+          } => {
+            mapped_type.size = None;
+          }
+          _ => {}
+        }
+      }
 
       mapped_type
     }

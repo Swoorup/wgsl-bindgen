@@ -144,6 +144,7 @@ fn create_rust_bindings(
       bind_group::bind_groups_module(
         &mod_name,
         &options,
+        naga_module,
         &bind_group_data,
         shader_stages,
       ),

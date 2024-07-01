@@ -83,6 +83,7 @@ pub mod padding {
         }
     }
     pub mod bind_groups {
+        use super::{_root, _root::*};
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub frame: wgpu::BufferBinding<'a>,
@@ -103,6 +104,7 @@ pub mod padding {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Padding::BindGroup0::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "frame"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -111,7 +113,9 @@ pub mod padding {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::padding::Style>() as _,
+                            ),
                         },
                         count: None,
                     },

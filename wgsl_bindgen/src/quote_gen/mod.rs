@@ -4,6 +4,8 @@ mod rust_mod_builder;
 mod rust_struct_builder;
 mod rust_type_info;
 
+use core::panic;
+
 pub(crate) use constants::*;
 use proc_macro2::TokenStream;
 pub(crate) use rust_item::*;
@@ -36,24 +38,34 @@ pub(crate) fn create_shader_raw_string_literal(shader_content: &str) -> TokenStr
 /// # Returns
 ///
 /// The demangled and qualified token stream.
-pub(crate) fn demangle_and_fully_qualify(
+pub(crate) fn demangle_and_fully_qualify_str(
   string: &str,
   default_mod_path: Option<&str>,
-) -> TokenStream {
+) -> String {
   let demangled = demangle_str(string);
 
   match (demangled.contains("::"), default_mod_path) {
     (true, _) => {
-      let fully_qualified = format!("{}::{}", MOD_REFERENCE_ROOT, demangled);
-      syn::parse_str(&fully_qualified).unwrap()
+      format!("{}::{}", MOD_REFERENCE_ROOT, demangled)
     }
-    (false, None) => syn::parse_str(&demangled).unwrap(),
+    (false, None) => demangled.to_string(),
     (false, Some(default_mod_path)) => {
+      if default_mod_path.is_empty() {
+        panic!("default_mod_path cannot be empty");
+      }
+
       let default_mod_path = default_mod_path.to_lowercase();
-      let path = format!("{MOD_REFERENCE_ROOT}::{default_mod_path}::{demangled}");
-      syn::parse_str(&path).unwrap()
+      format!("{MOD_REFERENCE_ROOT}::{default_mod_path}::{demangled}")
     }
   }
+}
+
+pub(crate) fn demangle_and_fully_qualify(
+  string: &str,
+  default_mod_path: Option<&str>,
+) -> TokenStream {
+  let raw_path = demangle_and_fully_qualify_str(string, default_mod_path);
+  syn::parse_str(&raw_path).unwrap()
 }
 
 #[cfg(test)]

@@ -80,6 +80,7 @@ pub mod minimal {
         }
     }
     pub mod bind_groups {
+        use super::{_root, _root::*};
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub uniform_buf: wgpu::BufferBinding<'a>,
@@ -100,13 +101,16 @@ pub mod minimal {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Minimal::BindGroup0::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "uniform_buf"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::minimal::Uniforms>() as _,
+                            ),
                         },
                         count: None,
                     },
