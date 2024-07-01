@@ -99,6 +99,7 @@ pub mod main {
         }
     }
     pub mod bind_groups {
+        use super::{_root, _root::*};
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub buffer: wgpu::BufferBinding<'a>,
@@ -134,6 +135,7 @@ pub mod main {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Main::BindGroup0::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "buffer"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -146,6 +148,7 @@ pub mod main {
                         },
                         count: None,
                     },
+                    /// @binding(1): "texture_float"
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -158,6 +161,7 @@ pub mod main {
                         },
                         count: None,
                     },
+                    /// @binding(2): "texture_sint"
                     wgpu::BindGroupLayoutEntry {
                         binding: 2,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -168,6 +172,7 @@ pub mod main {
                         },
                         count: None,
                     },
+                    /// @binding(3): "texture_uint"
                     wgpu::BindGroupLayoutEntry {
                         binding: 3,
                         visibility: wgpu::ShaderStages::COMPUTE,
@@ -225,13 +230,16 @@ pub mod main {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Main::BindGroup1::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "_root::bindings::ONE"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<f32>() as _,
+                            ),
                         },
                         count: None,
                     },

@@ -88,7 +88,7 @@ impl<'a> NagaToRustStructState<'a> {
       let name_ident = Ident::new(member_name, Span::call_site());
       let naga_type = &naga_module.types[naga_member.ty];
 
-      let rust_type = rust_type(naga_module, naga_type, &options);
+      let rust_type = rust_type(None, naga_module, naga_type, &options);
       let is_rsa = rust_type.size.is_none();
 
       if is_rsa && state.index != naga_members.len() - 1 {

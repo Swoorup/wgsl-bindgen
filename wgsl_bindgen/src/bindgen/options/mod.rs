@@ -245,6 +245,7 @@ pub struct WgslBindgenOption {
   pub type_map: WgslTypeMap,
 
   /// A vector of custom struct mappings to be added, which will override the struct to be generated.
+  /// This is merged with the default struct mappings.
   #[builder(default, setter(each(name = "add_override_struct_mapping", into)))]
   pub override_struct: Vec<OverrideStruct>,
 

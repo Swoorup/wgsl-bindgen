@@ -130,6 +130,7 @@ impl RustMod {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RustModBuilderConfig {
   use_relative_root: bool,
+  generate_relative_root: bool,
 }
 
 impl RustModBuilderConfig {
@@ -163,7 +164,7 @@ impl RustModBuilderConfig {
   }
 
   fn initial_modules(&self) -> FastIndexMap<String, RustMod> {
-    if self.use_relative_root {
+    if self.use_relative_root && self.generate_relative_root {
       let name = MOD_REFERENCE_ROOT.to_owned();
       let root_mod = self.build_module(name.as_str());
       FastIndexMap::from_iter([(name, root_mod)])
@@ -179,8 +180,11 @@ pub(crate) struct RustModBuilder {
 }
 
 impl RustModBuilder {
-  pub fn new(use_relative_root: bool) -> Self {
-    let config = RustModBuilderConfig { use_relative_root };
+  pub fn new(use_relative_root: bool, generate_relative_root: bool) -> Self {
+    let config = RustModBuilderConfig {
+      use_relative_root,
+      generate_relative_root,
+    };
 
     Self {
       modules: config.initial_modules(),
@@ -258,7 +262,7 @@ mod tests {
 
   #[test]
   fn test_module_generation_works() {
-    let mut mod_builder = RustModBuilder::new(false);
+    let mut mod_builder = RustModBuilder::new(false, false);
     mod_builder.add("a::b::c::d", quote! {struct A;});
     mod_builder.add("a::b::c", quote! {struct B;});
     mod_builder.add("a::b::c", quote! {struct C;});
@@ -285,7 +289,7 @@ mod tests {
 
   #[test]
   fn test_relative_root_feature() {
-    let mut mod_builder = RustModBuilder::new(true);
+    let mut mod_builder = RustModBuilder::new(true, true);
     mod_builder.add("a::b", quote! {struct A;});
     mod_builder.add(
       "a",
@@ -317,8 +321,38 @@ mod tests {
   }
 
   #[test]
+  fn test_include_relative_root_but_dont_generate_it() {
+    let mut mod_builder = RustModBuilder::new(true, false);
+    mod_builder.add("a::b", quote! {struct A;});
+    mod_builder.add(
+      "a",
+      quote! {struct B{
+        a: a::b::A
+      }},
+    );
+
+    let actual = mod_builder.generate();
+
+    assert_tokens_eq!(
+      actual,
+      quote! {
+        pub mod a {
+          use super::{_root, _root::*};
+          struct B {
+              a: a::b::A,
+          }
+          pub mod b {
+              use super::{_root, _root::*};
+              struct A;
+          }
+        }
+      }
+    );
+  }
+
+  #[test]
   fn test_module_add_duplicates() -> Result<(), RustModBuilderError> {
-    let mut mod_builder = RustModBuilder::new(false);
+    let mut mod_builder = RustModBuilder::new(false, false);
     mod_builder.add_unique("a::b", "A", quote! {struct A;})?;
     mod_builder.add_unique("a", "A", quote! {struct B;})?;
     mod_builder.add_unique("a::b", "A", quote! {struct A;})?;
@@ -341,7 +375,7 @@ mod tests {
 
   #[test]
   fn test_module_add_duplicates_different_contents() {
-    let mut mod_builder = RustModBuilder::new(false);
+    let mut mod_builder = RustModBuilder::new(false, false);
     mod_builder
       .add_unique("a::b", "A", quote! {struct A;})
       .unwrap();
@@ -353,11 +387,11 @@ mod tests {
 
   #[test]
   fn test_merge() {
-    let mut builder1 = RustModBuilder::new(false);
+    let mut builder1 = RustModBuilder::new(false, false);
     builder1.add("a::b::c", quote! {struct A;});
     builder1.add("a::b::d", quote! {struct B;});
 
-    let mut builder2 = RustModBuilder::new(false);
+    let mut builder2 = RustModBuilder::new(false, false);
     builder2.add("a::b::c", quote! {struct C;});
     builder2.add("a::b::e", quote! {struct D;});
 

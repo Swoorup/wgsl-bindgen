@@ -109,7 +109,7 @@ fn create_rust_bindings(
   entries: Vec<WgslEntryResult<'_>>,
   options: &WgslBindgenOption,
 ) -> Result<String, CreateModuleError> {
-  let mut mod_builder = RustModBuilder::new(true);
+  let mut mod_builder = RustModBuilder::new(true, true);
 
   if let Some(custom_wgsl_type_asserts) = custom_vector_matrix_assertions(options) {
     mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
@@ -144,6 +144,7 @@ fn create_rust_bindings(
       bind_group::bind_groups_module(
         &mod_name,
         &options,
+        naga_module,
         &bind_group_data,
         shader_stages,
       ),

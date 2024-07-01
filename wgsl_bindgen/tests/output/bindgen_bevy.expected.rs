@@ -699,6 +699,7 @@ pub mod bytemuck_impls {
 pub mod pbr {
     use super::{_root, _root::*};
     pub mod bind_groups {
+        use super::{_root, _root::*};
         #[derive(Debug)]
         pub struct WgpuBindGroupLayout0<'a> {
             pub view: wgpu::BufferBinding<'a>,
@@ -771,26 +772,37 @@ pub mod pbr {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Pbr::BindGroup0::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "_root::bevy_pbr::mesh_view_bindings::view"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<
+                                    _root::bevy_pbr::mesh_view_types::View,
+                                >() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(1): "_root::bevy_pbr::mesh_view_bindings::lights"
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<
+                                    _root::bevy_pbr::mesh_view_types::Lights,
+                                >() as _,
+                            ),
                         },
                         count: None,
                     },
+                    /// @binding(6): "_root::bevy_pbr::mesh_view_bindings::point_lights"
                     wgpu::BindGroupLayoutEntry {
                         binding: 6,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -803,6 +815,7 @@ pub mod pbr {
                         },
                         count: None,
                     },
+                    /// @binding(7): "_root::bevy_pbr::mesh_view_bindings::cluster_light_index_lists"
                     wgpu::BindGroupLayoutEntry {
                         binding: 7,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -815,6 +828,7 @@ pub mod pbr {
                         },
                         count: None,
                     },
+                    /// @binding(8): "_root::bevy_pbr::mesh_view_bindings::cluster_offsets_and_counts"
                     wgpu::BindGroupLayoutEntry {
                         binding: 8,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -827,6 +841,7 @@ pub mod pbr {
                         },
                         count: None,
                     },
+                    /// @binding(2): "_root::bevy_pbr::mesh_view_bindings::point_shadow_textures"
                     wgpu::BindGroupLayoutEntry {
                         binding: 2,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -837,6 +852,7 @@ pub mod pbr {
                         },
                         count: None,
                     },
+                    /// @binding(3): "_root::bevy_pbr::mesh_view_bindings::point_shadow_textures_sampler"
                     wgpu::BindGroupLayoutEntry {
                         binding: 3,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -845,6 +861,7 @@ pub mod pbr {
                         ),
                         count: None,
                     },
+                    /// @binding(4): "_root::bevy_pbr::mesh_view_bindings::directional_shadow_textures"
                     wgpu::BindGroupLayoutEntry {
                         binding: 4,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -855,6 +872,7 @@ pub mod pbr {
                         },
                         count: None,
                     },
+                    /// @binding(5): "_root::bevy_pbr::mesh_view_bindings::directional_shadow_textures_sampler"
                     wgpu::BindGroupLayoutEntry {
                         binding: 5,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -910,13 +928,18 @@ pub mod pbr {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Pbr::BindGroup1::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "_root::bevy_pbr::pbr::bindings::material"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<
+                                    _root::bevy_pbr::pbr::types::StandardMaterial,
+                                >() as _,
+                            ),
                         },
                         count: None,
                     },
@@ -967,13 +990,17 @@ pub mod pbr {
             pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
                 label: Some("Pbr::BindGroup2::LayoutDescriptor"),
                 entries: &[
+                    /// @binding(0): "_root::bevy_pbr::mesh_bindings::mesh"
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<_root::bevy_pbr::mesh_types::Mesh>()
+                                    as _,
+                            ),
                         },
                         count: None,
                     },
