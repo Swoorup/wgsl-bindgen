@@ -85,17 +85,24 @@ pub mod padding {
     pub mod bind_groups {
         use super::{_root, _root::*};
         #[derive(Debug)]
-        pub struct WgpuBindGroupLayout0<'a> {
+        pub struct WgpuBindGroup0EntryCollectionParams<'a> {
             pub frame: wgpu::BufferBinding<'a>,
         }
-        impl<'a> WgpuBindGroupLayout0<'a> {
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-                [
-                    wgpu::BindGroupEntry {
+        #[derive(Debug)]
+        pub struct WgpuBindGroup0EntryCollection<'a> {
+            pub frame: wgpu::BindGroupEntry<'a>,
+        }
+        impl<'a> WgpuBindGroup0EntryCollection<'a> {
+            pub fn new(params: WgpuBindGroup0EntryCollectionParams<'a>) -> Self {
+                Self {
+                    frame: wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer(self.frame),
+                        resource: wgpu::BindingResource::Buffer(params.frame),
                     },
-                ]
+                }
+            }
+            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+                [self.frame]
             }
         }
         #[derive(Debug)]
@@ -128,7 +135,7 @@ pub mod padding {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroupLayout0,
+                bindings: WgpuBindGroup0EntryCollection,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
                 let entries = bindings.entries();
@@ -156,6 +163,7 @@ pub mod padding {
             }
         }
     }
+    pub use self::bind_groups::*;
     pub fn set_bind_groups<'a>(
         pass: &mut wgpu::ComputePass<'a>,
         bind_group0: &'a bind_groups::WgpuBindGroup0,

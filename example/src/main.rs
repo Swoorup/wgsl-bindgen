@@ -27,8 +27,8 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     config: wgpu::SurfaceConfiguration,
     pipeline: wgpu::RenderPipeline,
-    bind_group0: shader_bindings::triangle::bind_groups::WgpuBindGroup0,
-    bind_group1: shader_bindings::triangle::bind_groups::WgpuBindGroup1,
+    bind_group0: shader_bindings::triangle::WgpuBindGroup0,
+    bind_group1: shader_bindings::triangle::WgpuBindGroup1,
     vertex_buffer: wgpu::Buffer,
 }
 
@@ -145,12 +145,14 @@ impl State {
         });
 
         // Use the generated types to ensure the correct bind group is assigned to each slot.
-        let bind_group0 = shader_bindings::triangle::bind_groups::WgpuBindGroup0::from_bindings(
+        let bind_group0 = shader_bindings::triangle::WgpuBindGroup0::from_bindings(
             &device,
-            shader_bindings::triangle::bind_groups::WgpuBindGroupLayout0 {
-                color_texture: &view,
-                color_sampler: &sampler,
-            },
+            shader_bindings::triangle::WgpuBindGroup0EntryCollection::new(
+                shader_bindings::triangle::WgpuBindGroup0EntryCollectionParams {
+                    color_texture: &view,
+                    color_sampler: &sampler,
+                },
+            ),
         );
 
         let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -161,11 +163,13 @@ impl State {
             usage: wgpu::BufferUsages::UNIFORM,
         });
 
-        let bind_group1 = shader_bindings::triangle::bind_groups::WgpuBindGroup1::from_bindings(
+        let bind_group1 = shader_bindings::triangle::WgpuBindGroup1::from_bindings(
             &device,
-            shader_bindings::triangle::bind_groups::WgpuBindGroupLayout1 {
-                uniforms: uniforms_buffer.as_entire_buffer_binding(),
-            },
+            shader_bindings::triangle::WgpuBindGroup1EntryCollection::new(
+                shader_bindings::triangle::WgpuBindGroup1EntryCollectionParams {
+                    uniforms: uniforms_buffer.as_entire_buffer_binding(),
+                },
+            ),
         );
 
         // Initialize the vertex buffer based on the expected input structs.
