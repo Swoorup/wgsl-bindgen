@@ -6,6 +6,7 @@ edition.workspace = true
 repository.workspace = true
 documentation.workspace = true
 license.workspace = true
+publish = true
 description = "Type safe Rust bindings workflow for wgsl shaders in wgpu"
 readme = "../README.md"
 
