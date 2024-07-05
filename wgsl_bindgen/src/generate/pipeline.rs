@@ -46,7 +46,10 @@ pub fn create_pipeline_layout_fn(
   let bind_group_layouts: Vec<_> = bind_group_data
     .keys()
     .map(|group_no| {
-      let group = indexed_name_ident("WgpuBindGroup", *group_no);
+      let group = options
+        .wgpu_binding_generator
+        .bind_group_layout
+        .bind_group_name_ident(*group_no);
       quote!(bind_groups::#group::get_bind_group_layout(device))
     })
     .collect();

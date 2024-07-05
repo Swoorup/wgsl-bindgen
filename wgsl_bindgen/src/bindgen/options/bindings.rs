@@ -1,3 +1,6 @@
+use quote::format_ident;
+use syn::Ident;
+
 use crate::qs::{quote, Index, TokenStream};
 use crate::FastIndexMap;
 
@@ -30,10 +33,8 @@ impl std::fmt::Debug for BindingGenerator {
 /// and a map of binding resource types to their corresponding token streams.
 #[derive(Clone, Debug)]
 pub struct BindGroupLayoutGenerator {
-  /// The prefix name for the bind group layout.
-  ///
-  /// This is used as the prefix for the names of the generated bind group layout structures.
-  pub layout_prefix_name: String,
+  /// The prefix for the bind group layout.
+  pub name_prefix: String,
 
   /// Indicates whether the generated code uses lifetimes.
   ///
@@ -55,6 +56,19 @@ pub struct BindGroupLayoutGenerator {
   ///
   /// This map is used to generate the code for the binding resources in the bind group layout.
   pub binding_type_map: FastIndexMap<BindResourceType, TokenStream>,
+}
+
+impl BindGroupLayoutGenerator {
+  pub(crate) fn bind_group_name_ident(&self, group_index: u32) -> Ident {
+    format_ident!("{}{}", self.name_prefix, group_index)
+  }
+
+  pub(crate) fn bind_group_entry_collection_struct_name_ident(
+    &self,
+    group_index: u32,
+  ) -> Ident {
+    format_ident!("{}{}{}", self.name_prefix, group_index, "EntryCollection")
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -116,7 +130,7 @@ impl WgpuGetBindingsGeneratorConfig {
     }
 
     BindGroupLayoutGenerator {
-      layout_prefix_name: "WgpuBindGroupLayout".into(),
+      name_prefix: "WgpuBindGroup".into(),
       uses_lifetime: true,
       entry_struct_type: quote!(wgpu::BindGroupEntry<'a>),
       entry_constructor,

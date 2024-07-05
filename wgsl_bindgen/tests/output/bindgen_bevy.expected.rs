@@ -701,7 +701,7 @@ pub mod pbr {
     pub mod bind_groups {
         use super::{_root, _root::*};
         #[derive(Debug)]
-        pub struct WgpuBindGroupLayout0<'a> {
+        pub struct WgpuBindGroup0EntryCollectionParams<'a> {
             pub view: wgpu::BufferBinding<'a>,
             pub lights: wgpu::BufferBinding<'a>,
             pub point_lights: wgpu::BufferBinding<'a>,
@@ -712,57 +712,82 @@ pub mod pbr {
             pub directional_shadow_textures: &'a wgpu::TextureView,
             pub directional_shadow_textures_sampler: &'a wgpu::Sampler,
         }
-        impl<'a> WgpuBindGroupLayout0<'a> {
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 9] {
-                [
-                    wgpu::BindGroupEntry {
+        #[derive(Debug)]
+        pub struct WgpuBindGroup0EntryCollection<'a> {
+            pub view: wgpu::BindGroupEntry<'a>,
+            pub lights: wgpu::BindGroupEntry<'a>,
+            pub point_lights: wgpu::BindGroupEntry<'a>,
+            pub cluster_light_index_lists: wgpu::BindGroupEntry<'a>,
+            pub cluster_offsets_and_counts: wgpu::BindGroupEntry<'a>,
+            pub point_shadow_textures: wgpu::BindGroupEntry<'a>,
+            pub point_shadow_textures_sampler: wgpu::BindGroupEntry<'a>,
+            pub directional_shadow_textures: wgpu::BindGroupEntry<'a>,
+            pub directional_shadow_textures_sampler: wgpu::BindGroupEntry<'a>,
+        }
+        impl<'a> WgpuBindGroup0EntryCollection<'a> {
+            pub fn new(params: WgpuBindGroup0EntryCollectionParams<'a>) -> Self {
+                Self {
+                    view: wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer(self.view),
+                        resource: wgpu::BindingResource::Buffer(params.view),
                     },
-                    wgpu::BindGroupEntry {
+                    lights: wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: wgpu::BindingResource::Buffer(self.lights),
+                        resource: wgpu::BindingResource::Buffer(params.lights),
                     },
-                    wgpu::BindGroupEntry {
+                    point_lights: wgpu::BindGroupEntry {
                         binding: 6,
-                        resource: wgpu::BindingResource::Buffer(self.point_lights),
+                        resource: wgpu::BindingResource::Buffer(params.point_lights),
                     },
-                    wgpu::BindGroupEntry {
+                    cluster_light_index_lists: wgpu::BindGroupEntry {
                         binding: 7,
                         resource: wgpu::BindingResource::Buffer(
-                            self.cluster_light_index_lists,
+                            params.cluster_light_index_lists,
                         ),
                     },
-                    wgpu::BindGroupEntry {
+                    cluster_offsets_and_counts: wgpu::BindGroupEntry {
                         binding: 8,
                         resource: wgpu::BindingResource::Buffer(
-                            self.cluster_offsets_and_counts,
+                            params.cluster_offsets_and_counts,
                         ),
                     },
-                    wgpu::BindGroupEntry {
+                    point_shadow_textures: wgpu::BindGroupEntry {
                         binding: 2,
                         resource: wgpu::BindingResource::TextureView(
-                            self.point_shadow_textures,
+                            params.point_shadow_textures,
                         ),
                     },
-                    wgpu::BindGroupEntry {
+                    point_shadow_textures_sampler: wgpu::BindGroupEntry {
                         binding: 3,
                         resource: wgpu::BindingResource::Sampler(
-                            self.point_shadow_textures_sampler,
+                            params.point_shadow_textures_sampler,
                         ),
                     },
-                    wgpu::BindGroupEntry {
+                    directional_shadow_textures: wgpu::BindGroupEntry {
                         binding: 4,
                         resource: wgpu::BindingResource::TextureView(
-                            self.directional_shadow_textures,
+                            params.directional_shadow_textures,
                         ),
                     },
-                    wgpu::BindGroupEntry {
+                    directional_shadow_textures_sampler: wgpu::BindGroupEntry {
                         binding: 5,
                         resource: wgpu::BindingResource::Sampler(
-                            self.directional_shadow_textures_sampler,
+                            params.directional_shadow_textures_sampler,
                         ),
                     },
+                }
+            }
+            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 9] {
+                [
+                    self.view,
+                    self.lights,
+                    self.point_lights,
+                    self.cluster_light_index_lists,
+                    self.cluster_offsets_and_counts,
+                    self.point_shadow_textures,
+                    self.point_shadow_textures_sampler,
+                    self.directional_shadow_textures,
+                    self.directional_shadow_textures_sampler,
                 ]
             }
         }
@@ -890,7 +915,7 @@ pub mod pbr {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroupLayout0,
+                bindings: WgpuBindGroup0EntryCollection,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
                 let entries = bindings.entries();
@@ -909,17 +934,24 @@ pub mod pbr {
             }
         }
         #[derive(Debug)]
-        pub struct WgpuBindGroupLayout1<'a> {
+        pub struct WgpuBindGroup1EntryCollectionParams<'a> {
             pub material: wgpu::BufferBinding<'a>,
         }
-        impl<'a> WgpuBindGroupLayout1<'a> {
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-                [
-                    wgpu::BindGroupEntry {
+        #[derive(Debug)]
+        pub struct WgpuBindGroup1EntryCollection<'a> {
+            pub material: wgpu::BindGroupEntry<'a>,
+        }
+        impl<'a> WgpuBindGroup1EntryCollection<'a> {
+            pub fn new(params: WgpuBindGroup1EntryCollectionParams<'a>) -> Self {
+                Self {
+                    material: wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer(self.material),
+                        resource: wgpu::BindingResource::Buffer(params.material),
                     },
-                ]
+                }
+            }
+            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+                [self.material]
             }
         }
         #[derive(Debug)]
@@ -952,7 +984,7 @@ pub mod pbr {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroupLayout1,
+                bindings: WgpuBindGroup1EntryCollection,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
                 let entries = bindings.entries();
@@ -971,17 +1003,24 @@ pub mod pbr {
             }
         }
         #[derive(Debug)]
-        pub struct WgpuBindGroupLayout2<'a> {
+        pub struct WgpuBindGroup2EntryCollectionParams<'a> {
             pub mesh: wgpu::BufferBinding<'a>,
         }
-        impl<'a> WgpuBindGroupLayout2<'a> {
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-                [
-                    wgpu::BindGroupEntry {
+        #[derive(Debug)]
+        pub struct WgpuBindGroup2EntryCollection<'a> {
+            pub mesh: wgpu::BindGroupEntry<'a>,
+        }
+        impl<'a> WgpuBindGroup2EntryCollection<'a> {
+            pub fn new(params: WgpuBindGroup2EntryCollectionParams<'a>) -> Self {
+                Self {
+                    mesh: wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer(self.mesh),
+                        resource: wgpu::BindingResource::Buffer(params.mesh),
                     },
-                ]
+                }
+            }
+            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+                [self.mesh]
             }
         }
         #[derive(Debug)]
@@ -1013,7 +1052,7 @@ pub mod pbr {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroupLayout2,
+                bindings: WgpuBindGroup2EntryCollection,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
                 let entries = bindings.entries();
@@ -1045,6 +1084,7 @@ pub mod pbr {
             }
         }
     }
+    pub use self::bind_groups::*;
     pub fn set_bind_groups<'a>(
         pass: &mut wgpu::RenderPass<'a>,
         bind_group0: &'a bind_groups::WgpuBindGroup0,

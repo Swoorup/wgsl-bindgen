@@ -82,17 +82,24 @@ pub mod minimal {
     pub mod bind_groups {
         use super::{_root, _root::*};
         #[derive(Debug)]
-        pub struct WgpuBindGroupLayout0<'a> {
+        pub struct WgpuBindGroup0EntryCollectionParams<'a> {
             pub uniform_buf: wgpu::BufferBinding<'a>,
         }
-        impl<'a> WgpuBindGroupLayout0<'a> {
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-                [
-                    wgpu::BindGroupEntry {
+        #[derive(Debug)]
+        pub struct WgpuBindGroup0EntryCollection<'a> {
+            pub uniform_buf: wgpu::BindGroupEntry<'a>,
+        }
+        impl<'a> WgpuBindGroup0EntryCollection<'a> {
+            pub fn new(params: WgpuBindGroup0EntryCollectionParams<'a>) -> Self {
+                Self {
+                    uniform_buf: wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer(self.uniform_buf),
+                        resource: wgpu::BindingResource::Buffer(params.uniform_buf),
                     },
-                ]
+                }
+            }
+            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+                [self.uniform_buf]
             }
         }
         #[derive(Debug)]
@@ -123,7 +130,7 @@ pub mod minimal {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroupLayout0,
+                bindings: WgpuBindGroup0EntryCollection,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
                 let entries = bindings.entries();
@@ -151,6 +158,7 @@ pub mod minimal {
             }
         }
     }
+    pub use self::bind_groups::*;
     pub fn set_bind_groups<'a>(
         pass: &mut wgpu::ComputePass<'a>,
         bind_group0: &'a bind_groups::WgpuBindGroup0,
