@@ -7,8 +7,8 @@ use quote_gen::{demangle_and_fully_qualify_str, rust_type};
 use crate::wgsl::buffer_binding_type;
 use crate::*;
 
-mod layout_builder;
-use layout_builder::*;
+mod entry_collection_builder;
+use entry_collection_builder::*;
 
 pub struct GroupData<'a> {
   pub bindings: Vec<GroupBinding<'a>>,
@@ -152,7 +152,7 @@ pub fn bind_groups_module(
     .map(|(group_no, group)| {
       let wgpu_generator = &options.wgpu_binding_generator;
 
-      let wgpu_layout = BindGroupLayoutBuilder::new(
+      let bind_group_entry_collection = BindGroupEntryCollectionBuilder::new(
         invoking_entry_module,
         *group_no,
         group,
@@ -162,7 +162,7 @@ pub fn bind_groups_module(
 
       let additional_layout =
         if let Some(additional_generator) = &options.extra_binding_generator {
-          BindGroupLayoutBuilder::new(
+          BindGroupEntryCollectionBuilder::new(
             invoking_entry_module,
             *group_no,
             group,
@@ -186,7 +186,7 @@ pub fn bind_groups_module(
 
       quote! {
         #additional_layout
-        #wgpu_layout
+        #bind_group_entry_collection
         #bindgroup
       }
     })
@@ -544,7 +544,7 @@ mod tests {
                   pub vertex_weights: wgpu::BufferBinding<'a>,
                   pub dst: wgpu::BufferBinding<'a>,
               }
-              #[derive(Debug)]
+              #[derive(Clone, Debug)]
               pub struct WgpuBindGroup0EntryCollection<'a> {
                   pub src: wgpu::BindGroupEntry<'a>,
                   pub vertex_weights: wgpu::BindGroupEntry<'a>,
@@ -646,7 +646,7 @@ mod tests {
               pub struct WgpuBindGroup1EntryCollectionParams<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
               }
-              #[derive(Debug)]
+              #[derive(Clone, Debug)]
               pub struct WgpuBindGroup1EntryCollection<'a> {
                   pub transforms: wgpu::BindGroupEntry<'a>,
               }
@@ -803,7 +803,7 @@ mod tests {
                   pub color_texture_msaa: &'a wgpu::TextureView,
                   pub depth_texture_msaa: &'a wgpu::TextureView,
               }
-              #[derive(Debug)]
+              #[derive(Clone, Debug)]
               pub struct WgpuBindGroup0EntryCollection<'a> {
                   pub color_texture: wgpu::BindGroupEntry<'a>,
                   pub color_texture_i32: wgpu::BindGroupEntry<'a>,
@@ -1055,7 +1055,7 @@ mod tests {
                   pub transforms: wgpu::BufferBinding<'a>,
                   pub one: wgpu::BufferBinding<'a>,
               }
-              #[derive(Debug)]
+              #[derive(Clone, Debug)]
               pub struct WgpuBindGroup1EntryCollection<'a> {
                   pub transforms: wgpu::BindGroupEntry<'a>,
                   pub one: wgpu::BindGroupEntry<'a>,
@@ -1190,7 +1190,7 @@ mod tests {
               pub struct WgpuBindGroup0EntryCollectionParams<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
               }
-              #[derive(Debug)]
+              #[derive(Clone, Debug)]
               pub struct WgpuBindGroup0EntryCollection<'a> {
                   pub transforms: wgpu::BindGroupEntry<'a>,
               }
@@ -1304,7 +1304,7 @@ mod tests {
               pub struct WgpuBindGroup0EntryCollectionParams<'a> {
                   pub transforms: wgpu::BufferBinding<'a>,
               }
-              #[derive(Debug)]
+              #[derive(Clone, Debug)]
               pub struct WgpuBindGroup0EntryCollection<'a> {
                   pub transforms: wgpu::BindGroupEntry<'a>,
               }

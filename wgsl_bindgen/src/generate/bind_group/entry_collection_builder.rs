@@ -4,14 +4,14 @@ use self::quote_gen::RustItemPath;
 use super::*;
 
 #[derive(Constructor)]
-pub(super) struct BindGroupLayoutBuilder<'a> {
+pub(super) struct BindGroupEntryCollectionBuilder<'a> {
   invoking_entry_module: &'a str,
   group_no: u32,
   data: &'a GroupData<'a>,
   generator: &'a BindGroupLayoutGenerator,
 }
 
-impl<'a> BindGroupLayoutBuilder<'a> {
+impl<'a> BindGroupEntryCollectionBuilder<'a> {
   /// Generates a binding entry from a parameter variable and a group binding.
   fn create_entry_from_parameter(
     &self,
@@ -116,11 +116,14 @@ impl<'a> BindGroupLayoutBuilder<'a> {
       .map(|binding| self.binding_field_tuple(binding))
       .collect();
 
-    let entry_collection_name =
-      self.generator.bind_group_entry_collection_struct_name_ident(self.group_no);
+    let entry_collection_name = self
+      .generator
+      .bind_group_entry_collection_struct_name_ident(self.group_no);
     let entry_collection_param_name = format_ident!(
       "{}Params",
-      self.generator.bind_group_entry_collection_struct_name_ident(self.group_no)
+      self
+        .generator
+        .bind_group_entry_collection_struct_name_ident(self.group_no)
     );
     let entry_struct_type = self.generator.entry_struct_type.clone();
 
@@ -141,7 +144,7 @@ impl<'a> BindGroupLayoutBuilder<'a> {
             #(#entries_param_fields),*
         }
 
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct #entry_collection_name #lifetime {
             #(#entries_fields),*
         }

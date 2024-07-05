@@ -107,7 +107,7 @@ pub mod main {
             pub texture_sint: &'a wgpu::TextureView,
             pub texture_uint: &'a wgpu::TextureView,
         }
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct WgpuBindGroup0EntryCollection<'a> {
             pub buffer: wgpu::BindGroupEntry<'a>,
             pub texture_float: wgpu::BindGroupEntry<'a>,
@@ -226,7 +226,7 @@ pub mod main {
         pub struct WgpuBindGroup1EntryCollectionParams<'a> {
             pub ONE: wgpu::BufferBinding<'a>,
         }
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct WgpuBindGroup1EntryCollection<'a> {
             pub ONE: wgpu::BindGroupEntry<'a>,
         }

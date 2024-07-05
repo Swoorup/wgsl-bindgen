@@ -88,7 +88,7 @@ pub mod padding {
         pub struct WgpuBindGroup0EntryCollectionParams<'a> {
             pub frame: wgpu::BufferBinding<'a>,
         }
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct WgpuBindGroup0EntryCollection<'a> {
             pub frame: wgpu::BindGroupEntry<'a>,
         }

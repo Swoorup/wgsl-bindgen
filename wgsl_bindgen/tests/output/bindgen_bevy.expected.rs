@@ -712,7 +712,7 @@ pub mod pbr {
             pub directional_shadow_textures: &'a wgpu::TextureView,
             pub directional_shadow_textures_sampler: &'a wgpu::Sampler,
         }
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct WgpuBindGroup0EntryCollection<'a> {
             pub view: wgpu::BindGroupEntry<'a>,
             pub lights: wgpu::BindGroupEntry<'a>,
@@ -937,7 +937,7 @@ pub mod pbr {
         pub struct WgpuBindGroup1EntryCollectionParams<'a> {
             pub material: wgpu::BufferBinding<'a>,
         }
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct WgpuBindGroup1EntryCollection<'a> {
             pub material: wgpu::BindGroupEntry<'a>,
         }
@@ -1006,7 +1006,7 @@ pub mod pbr {
         pub struct WgpuBindGroup2EntryCollectionParams<'a> {
             pub mesh: wgpu::BufferBinding<'a>,
         }
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct WgpuBindGroup2EntryCollection<'a> {
             pub mesh: wgpu::BindGroupEntry<'a>,
         }

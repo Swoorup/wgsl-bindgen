@@ -707,7 +707,7 @@ mod test {
               }
           }
           pub fn vs_main_entry(
-            input0: wgpu::VertexStepMode, 
+            input0: wgpu::VertexStepMode,
             input1: wgpu::VertexStepMode,
             overrides: &OverrideConstants
           ) -> VertexEntry<2> {
