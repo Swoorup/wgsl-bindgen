@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.12.0...wgsl_bindgen-v0.12.1) - 2024-07-05
+
+### Other
+- Added release-plz workflow
+- Reference version from workspace root
+- For bindgroup generation, rename Layout to EntryCollection with helper structs
+- Added `min_binding_size` for buffer types where possible
+- Allow to fully qualify or use relative name
+- Added a way to skip generating `_root_`
+
 ## v0.12.0 (2024-06-10)
 
 <csr-id-e52a9dbe660a417afa371f480be161d58f1dd642/>
