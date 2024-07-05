@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.13.1...wgsl_bindgen-v0.13.2) - 2024-07-05
+
+### Other
+- Bind Group Entry Collections can be cloned
+
 ## [0.13.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.13.0...wgsl_bindgen-v0.13.1) - 2024-07-05
 
 ### Other
