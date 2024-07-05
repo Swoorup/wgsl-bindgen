@@ -23,7 +23,8 @@ pub struct GroupBinding<'a> {
 
 #[derive(Constructor)]
 struct BindGroupBuilder<'a> {
-  entry_name: &'a str,
+  invoking_entry_name: &'a str,
+  sanitized_entry_name: &'a str,
   group_no: u32,
   data: &'a GroupData<'a>,
   shader_stages: wgpu::ShaderStages,
@@ -39,7 +40,7 @@ impl<'a> BindGroupBuilder<'a> {
       .iter()
       .map(|binding| {
         bind_group_layout_entry(
-          &self.entry_name,
+          &self.invoking_entry_name,
           self.naga_module,
           self.options,
           self.shader_stages,
@@ -48,8 +49,10 @@ impl<'a> BindGroupBuilder<'a> {
       })
       .collect();
 
-    let bind_group_label =
-      format!("{}::BindGroup{}::LayoutDescriptor", self.entry_name, self.group_no);
+    let bind_group_label = format!(
+      "{}::BindGroup{}::LayoutDescriptor",
+      self.sanitized_entry_name, self.group_no
+    );
 
     quote! {
         wgpu::BindGroupLayoutDescriptor {
@@ -89,7 +92,8 @@ impl<'a> BindGroupBuilder<'a> {
     let bind_group_layout_descriptor = self.bind_group_layout_descriptor();
 
     let group_no = Index::from(self.group_no as usize);
-    let bind_group_label = format!("{}::BindGroup{}", self.entry_name, self.group_no);
+    let bind_group_label =
+      format!("{}::BindGroup{}", self.sanitized_entry_name, self.group_no);
 
     quote! {
         impl #bind_group_name {
@@ -142,7 +146,7 @@ pub fn bind_groups_module(
   bind_group_data: &BTreeMap<u32, GroupData>,
   shader_stages: wgpu::ShaderStages,
 ) -> TokenStream {
-  let entry_name = sanitize_and_pascal_case(invoking_entry_module);
+  let sanitized_entry_name = sanitize_and_pascal_case(invoking_entry_module);
   let bind_groups: Vec<_> = bind_group_data
     .iter()
     .map(|(group_no, group)| {
@@ -170,7 +174,8 @@ pub fn bind_groups_module(
         };
 
       let bindgroup = BindGroupBuilder::new(
-        &entry_name,
+        &invoking_entry_module,
+        &sanitized_entry_name,
         *group_no,
         group,
         shader_stages,
