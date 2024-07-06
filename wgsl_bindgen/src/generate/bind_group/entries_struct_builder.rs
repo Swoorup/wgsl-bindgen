@@ -4,14 +4,14 @@ use self::quote_gen::RustItemPath;
 use super::*;
 
 #[derive(Constructor)]
-pub(super) struct BindGroupEntryCollectionBuilder<'a> {
+pub(super) struct BindGroupEntriesStructBuilder<'a> {
   invoking_entry_module: &'a str,
   group_no: u32,
   data: &'a GroupData<'a>,
   generator: &'a BindGroupLayoutGenerator,
 }
 
-impl<'a> BindGroupEntryCollectionBuilder<'a> {
+impl<'a> BindGroupEntriesStructBuilder<'a> {
   /// Generates a binding entry from a parameter variable and a group binding.
   fn create_entry_from_parameter(
     &self,
@@ -118,12 +118,12 @@ impl<'a> BindGroupEntryCollectionBuilder<'a> {
 
     let entry_collection_name = self
       .generator
-      .bind_group_entry_collection_struct_name_ident(self.group_no);
+      .bind_group_entries_struct_name_ident(self.group_no);
     let entry_collection_param_name = format_ident!(
       "{}Params",
       self
         .generator
-        .bind_group_entry_collection_struct_name_ident(self.group_no)
+        .bind_group_entries_struct_name_ident(self.group_no)
     );
     let entry_struct_type = self.generator.entry_struct_type.clone();
 
@@ -156,8 +156,12 @@ impl<'a> BindGroupEntryCollectionBuilder<'a> {
             }
           }
 
-          pub fn entries(self) -> [#entry_struct_type; #entries_length] {
+          pub fn as_array(self) -> [#entry_struct_type; #entries_length] {
             [ #(#all_entries),* ]
+          }
+
+          pub fn collect<B: FromIterator<#entry_struct_type>>(self) -> B {
+            self.as_array().into_iter().collect()
           }
         }
     }

@@ -85,15 +85,15 @@ pub mod padding {
     pub mod bind_groups {
         use super::{_root, _root::*};
         #[derive(Debug)]
-        pub struct WgpuBindGroup0EntryCollectionParams<'a> {
+        pub struct WgpuBindGroup0EntriesParams<'a> {
             pub frame: wgpu::BufferBinding<'a>,
         }
         #[derive(Clone, Debug)]
-        pub struct WgpuBindGroup0EntryCollection<'a> {
+        pub struct WgpuBindGroup0Entries<'a> {
             pub frame: wgpu::BindGroupEntry<'a>,
         }
-        impl<'a> WgpuBindGroup0EntryCollection<'a> {
-            pub fn new(params: WgpuBindGroup0EntryCollectionParams<'a>) -> Self {
+        impl<'a> WgpuBindGroup0Entries<'a> {
+            pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
                 Self {
                     frame: wgpu::BindGroupEntry {
                         binding: 0,
@@ -101,8 +101,11 @@ pub mod padding {
                     },
                 }
             }
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
                 [self.frame]
+            }
+            pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+                self.as_array().into_iter().collect()
             }
         }
         #[derive(Debug)]
@@ -135,10 +138,10 @@ pub mod padding {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroup0EntryCollection,
+                bindings: WgpuBindGroup0Entries,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
-                let entries = bindings.entries();
+                let entries = bindings.as_array();
                 let bind_group = device
                     .create_bind_group(
                         &wgpu::BindGroupDescriptor {

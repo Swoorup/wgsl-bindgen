@@ -1,13 +1,4 @@
-#import "../../more-shader-files/reachme" as reachme 
-#import types::{Scalars, VectorsU32, VectorsI32, VectorsF32, MatricesF32, StaticArrays, Nested}
-
-// The following also works
-// #import "../more-shader-files/reachme.wgsl" as reachme
-
-@group(2) @binding(1)
-// TODO: Fix this, I think the bug is in naga_oil.
-// var<storage> rts: array<reachme::rtsStruct>;
-var<storage> rts: reachme::rtsStruct;
+#import utils::types::{Scalars, VectorsU32, VectorsI32, VectorsF32, MatricesF32, StaticArrays, Nested}
 
 @group(2) @binding(2)
 var<storage> a: Scalars;
