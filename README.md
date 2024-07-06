@@ -27,9 +27,9 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 
 ### Type Handling:
 
--   Byot - Bring your own types for Wgsl matrix, vectors types. Bindgen automatically also include assertion to test alignment and sizes for your types.
--   Override struct types entirely (replace all usage of struct) or a particular field of the struct from your crate, which is handy for small primitive types and overcome limitation of uniform buffer type restriction in wgsl.
--   Rust structs for vertex, storage, and uniform buffers
+-   BYO - **B**ring **Y**our **O**wn **T**ypes for Wgsl matrix, vector types. Bindgen will automatically include assertions to test alignment and sizes for your types at compile time.
+-   Override generated struct types either entirely or just particular field of struct from your crate, which is handy for small primitive types. You can also use this to overcome the limitation of uniform buffer type restrictions in wgsl.
+-   Rust structs for vertex, storage, and uniform buffers.
 -   Either use encase or bytemuck derives, and optionally serde for generated structs.
 -   Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
 -   Override the alignment for the struct generated. This also affects the size of the struct generated.
