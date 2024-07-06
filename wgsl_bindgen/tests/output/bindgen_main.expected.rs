@@ -101,21 +101,21 @@ pub mod main {
     pub mod bind_groups {
         use super::{_root, _root::*};
         #[derive(Debug)]
-        pub struct WgpuBindGroup0EntryCollectionParams<'a> {
+        pub struct WgpuBindGroup0EntriesParams<'a> {
             pub buffer: wgpu::BufferBinding<'a>,
             pub texture_float: &'a wgpu::TextureView,
             pub texture_sint: &'a wgpu::TextureView,
             pub texture_uint: &'a wgpu::TextureView,
         }
         #[derive(Clone, Debug)]
-        pub struct WgpuBindGroup0EntryCollection<'a> {
+        pub struct WgpuBindGroup0Entries<'a> {
             pub buffer: wgpu::BindGroupEntry<'a>,
             pub texture_float: wgpu::BindGroupEntry<'a>,
             pub texture_sint: wgpu::BindGroupEntry<'a>,
             pub texture_uint: wgpu::BindGroupEntry<'a>,
         }
-        impl<'a> WgpuBindGroup0EntryCollection<'a> {
-            pub fn new(params: WgpuBindGroup0EntryCollectionParams<'a>) -> Self {
+        impl<'a> WgpuBindGroup0Entries<'a> {
+            pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
                 Self {
                     buffer: wgpu::BindGroupEntry {
                         binding: 0,
@@ -137,8 +137,11 @@ pub mod main {
                     },
                 }
             }
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 4] {
+            pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
                 [self.buffer, self.texture_float, self.texture_sint, self.texture_uint]
+            }
+            pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+                self.as_array().into_iter().collect()
             }
         }
         #[derive(Debug)]
@@ -204,10 +207,10 @@ pub mod main {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroup0EntryCollection,
+                bindings: WgpuBindGroup0Entries,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
-                let entries = bindings.entries();
+                let entries = bindings.as_array();
                 let bind_group = device
                     .create_bind_group(
                         &wgpu::BindGroupDescriptor {
@@ -223,15 +226,15 @@ pub mod main {
             }
         }
         #[derive(Debug)]
-        pub struct WgpuBindGroup1EntryCollectionParams<'a> {
+        pub struct WgpuBindGroup1EntriesParams<'a> {
             pub ONE: wgpu::BufferBinding<'a>,
         }
         #[derive(Clone, Debug)]
-        pub struct WgpuBindGroup1EntryCollection<'a> {
+        pub struct WgpuBindGroup1Entries<'a> {
             pub ONE: wgpu::BindGroupEntry<'a>,
         }
-        impl<'a> WgpuBindGroup1EntryCollection<'a> {
-            pub fn new(params: WgpuBindGroup1EntryCollectionParams<'a>) -> Self {
+        impl<'a> WgpuBindGroup1Entries<'a> {
+            pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
                 Self {
                     ONE: wgpu::BindGroupEntry {
                         binding: 0,
@@ -239,8 +242,11 @@ pub mod main {
                     },
                 }
             }
-            pub fn entries(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
                 [self.ONE]
+            }
+            pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+                self.as_array().into_iter().collect()
             }
         }
         #[derive(Debug)]
@@ -271,10 +277,10 @@ pub mod main {
             }
             pub fn from_bindings(
                 device: &wgpu::Device,
-                bindings: WgpuBindGroup1EntryCollection,
+                bindings: WgpuBindGroup1Entries,
             ) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(&device);
-                let entries = bindings.entries();
+                let entries = bindings.as_array();
                 let bind_group = device
                     .create_bind_group(
                         &wgpu::BindGroupDescriptor {
