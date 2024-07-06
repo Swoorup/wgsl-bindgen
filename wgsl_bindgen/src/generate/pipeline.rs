@@ -50,7 +50,7 @@ pub fn create_pipeline_layout_fn(
         .wgpu_binding_generator
         .bind_group_layout
         .bind_group_name_ident(*group_no);
-      quote!(bind_groups::#group::get_bind_group_layout(device))
+      quote!(#group::get_bind_group_layout(device))
     })
     .collect();
 

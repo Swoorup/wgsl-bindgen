@@ -698,407 +698,391 @@ pub mod bytemuck_impls {
 }
 pub mod pbr {
     use super::{_root, _root::*};
-    pub mod bind_groups {
-        use super::{_root, _root::*};
-        #[derive(Debug)]
-        pub struct WgpuBindGroup0EntriesParams<'a> {
-            pub view: wgpu::BufferBinding<'a>,
-            pub lights: wgpu::BufferBinding<'a>,
-            pub point_lights: wgpu::BufferBinding<'a>,
-            pub cluster_light_index_lists: wgpu::BufferBinding<'a>,
-            pub cluster_offsets_and_counts: wgpu::BufferBinding<'a>,
-            pub point_shadow_textures: &'a wgpu::TextureView,
-            pub point_shadow_textures_sampler: &'a wgpu::Sampler,
-            pub directional_shadow_textures: &'a wgpu::TextureView,
-            pub directional_shadow_textures_sampler: &'a wgpu::Sampler,
-        }
-        #[derive(Clone, Debug)]
-        pub struct WgpuBindGroup0Entries<'a> {
-            pub view: wgpu::BindGroupEntry<'a>,
-            pub lights: wgpu::BindGroupEntry<'a>,
-            pub point_lights: wgpu::BindGroupEntry<'a>,
-            pub cluster_light_index_lists: wgpu::BindGroupEntry<'a>,
-            pub cluster_offsets_and_counts: wgpu::BindGroupEntry<'a>,
-            pub point_shadow_textures: wgpu::BindGroupEntry<'a>,
-            pub point_shadow_textures_sampler: wgpu::BindGroupEntry<'a>,
-            pub directional_shadow_textures: wgpu::BindGroupEntry<'a>,
-            pub directional_shadow_textures_sampler: wgpu::BindGroupEntry<'a>,
-        }
-        impl<'a> WgpuBindGroup0Entries<'a> {
-            pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-                Self {
-                    view: wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(params.view),
-                    },
-                    lights: wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Buffer(params.lights),
-                    },
-                    point_lights: wgpu::BindGroupEntry {
-                        binding: 6,
-                        resource: wgpu::BindingResource::Buffer(params.point_lights),
-                    },
-                    cluster_light_index_lists: wgpu::BindGroupEntry {
-                        binding: 7,
-                        resource: wgpu::BindingResource::Buffer(
-                            params.cluster_light_index_lists,
-                        ),
-                    },
-                    cluster_offsets_and_counts: wgpu::BindGroupEntry {
-                        binding: 8,
-                        resource: wgpu::BindingResource::Buffer(
-                            params.cluster_offsets_and_counts,
-                        ),
-                    },
-                    point_shadow_textures: wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::TextureView(
-                            params.point_shadow_textures,
-                        ),
-                    },
-                    point_shadow_textures_sampler: wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: wgpu::BindingResource::Sampler(
-                            params.point_shadow_textures_sampler,
-                        ),
-                    },
-                    directional_shadow_textures: wgpu::BindGroupEntry {
-                        binding: 4,
-                        resource: wgpu::BindingResource::TextureView(
-                            params.directional_shadow_textures,
-                        ),
-                    },
-                    directional_shadow_textures_sampler: wgpu::BindGroupEntry {
-                        binding: 5,
-                        resource: wgpu::BindingResource::Sampler(
-                            params.directional_shadow_textures_sampler,
-                        ),
-                    },
-                }
-            }
-            pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 9] {
-                [
-                    self.view,
-                    self.lights,
-                    self.point_lights,
-                    self.cluster_light_index_lists,
-                    self.cluster_offsets_and_counts,
-                    self.point_shadow_textures,
-                    self.point_shadow_textures_sampler,
-                    self.directional_shadow_textures,
-                    self.directional_shadow_textures_sampler,
-                ]
-            }
-            pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-                self.as_array().into_iter().collect()
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+        pub view: wgpu::BufferBinding<'a>,
+        pub lights: wgpu::BufferBinding<'a>,
+        pub point_lights: wgpu::BufferBinding<'a>,
+        pub cluster_light_index_lists: wgpu::BufferBinding<'a>,
+        pub cluster_offsets_and_counts: wgpu::BufferBinding<'a>,
+        pub point_shadow_textures: &'a wgpu::TextureView,
+        pub point_shadow_textures_sampler: &'a wgpu::Sampler,
+        pub directional_shadow_textures: &'a wgpu::TextureView,
+        pub directional_shadow_textures_sampler: &'a wgpu::Sampler,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+        pub view: wgpu::BindGroupEntry<'a>,
+        pub lights: wgpu::BindGroupEntry<'a>,
+        pub point_lights: wgpu::BindGroupEntry<'a>,
+        pub cluster_light_index_lists: wgpu::BindGroupEntry<'a>,
+        pub cluster_offsets_and_counts: wgpu::BindGroupEntry<'a>,
+        pub point_shadow_textures: wgpu::BindGroupEntry<'a>,
+        pub point_shadow_textures_sampler: wgpu::BindGroupEntry<'a>,
+        pub directional_shadow_textures: wgpu::BindGroupEntry<'a>,
+        pub directional_shadow_textures_sampler: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+        pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+            Self {
+                view: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(params.view),
+                },
+                lights: wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Buffer(params.lights),
+                },
+                point_lights: wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: wgpu::BindingResource::Buffer(params.point_lights),
+                },
+                cluster_light_index_lists: wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: wgpu::BindingResource::Buffer(
+                        params.cluster_light_index_lists,
+                    ),
+                },
+                cluster_offsets_and_counts: wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: wgpu::BindingResource::Buffer(
+                        params.cluster_offsets_and_counts,
+                    ),
+                },
+                point_shadow_textures: wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::TextureView(
+                        params.point_shadow_textures,
+                    ),
+                },
+                point_shadow_textures_sampler: wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::Sampler(
+                        params.point_shadow_textures_sampler,
+                    ),
+                },
+                directional_shadow_textures: wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(
+                        params.directional_shadow_textures,
+                    ),
+                },
+                directional_shadow_textures_sampler: wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::Sampler(
+                        params.directional_shadow_textures_sampler,
+                    ),
+                },
             }
         }
-        #[derive(Debug)]
-        pub struct WgpuBindGroup0(wgpu::BindGroup);
-        impl WgpuBindGroup0 {
-            pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-                label: Some("Pbr::BindGroup0::LayoutDescriptor"),
-                entries: &[
-                    /// @binding(0): "_root::bevy_pbr::mesh_view_bindings::view"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: std::num::NonZeroU64::new(
-                                std::mem::size_of::<
-                                    _root::bevy_pbr::mesh_view_types::View,
-                                >() as _,
-                            ),
-                        },
-                        count: None,
-                    },
-                    /// @binding(1): "_root::bevy_pbr::mesh_view_bindings::lights"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: std::num::NonZeroU64::new(
-                                std::mem::size_of::<
-                                    _root::bevy_pbr::mesh_view_types::Lights,
-                                >() as _,
-                            ),
-                        },
-                        count: None,
-                    },
-                    /// @binding(6): "_root::bevy_pbr::mesh_view_bindings::point_lights"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 6,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage {
-                                read_only: true,
-                            },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                    /// @binding(7): "_root::bevy_pbr::mesh_view_bindings::cluster_light_index_lists"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 7,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage {
-                                read_only: true,
-                            },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                    /// @binding(8): "_root::bevy_pbr::mesh_view_bindings::cluster_offsets_and_counts"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 8,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage {
-                                read_only: true,
-                            },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                    /// @binding(2): "_root::bevy_pbr::mesh_view_bindings::point_shadow_textures"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Depth,
-                            view_dimension: wgpu::TextureViewDimension::Cube,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    /// @binding(3): "_root::bevy_pbr::mesh_view_bindings::point_shadow_textures_sampler"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 3,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::Comparison,
-                        ),
-                        count: None,
-                    },
-                    /// @binding(4): "_root::bevy_pbr::mesh_view_bindings::directional_shadow_textures"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Depth,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    /// @binding(5): "_root::bevy_pbr::mesh_view_bindings::directional_shadow_textures_sampler"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 5,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::Comparison,
-                        ),
-                        count: None,
-                    },
-                ],
-            };
-            pub fn get_bind_group_layout(
-                device: &wgpu::Device,
-            ) -> wgpu::BindGroupLayout {
-                device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-            }
-            pub fn from_bindings(
-                device: &wgpu::Device,
-                bindings: WgpuBindGroup0Entries,
-            ) -> Self {
-                let bind_group_layout = Self::get_bind_group_layout(&device);
-                let entries = bindings.as_array();
-                let bind_group = device
-                    .create_bind_group(
-                        &wgpu::BindGroupDescriptor {
-                            label: Some("Pbr::BindGroup0"),
-                            layout: &bind_group_layout,
-                            entries: &entries,
-                        },
-                    );
-                Self(bind_group)
-            }
-            pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-                render_pass.set_bind_group(0, &self.0, &[]);
-            }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 9] {
+            [
+                self.view,
+                self.lights,
+                self.point_lights,
+                self.cluster_light_index_lists,
+                self.cluster_offsets_and_counts,
+                self.point_shadow_textures,
+                self.point_shadow_textures_sampler,
+                self.directional_shadow_textures,
+                self.directional_shadow_textures_sampler,
+            ]
         }
-        #[derive(Debug)]
-        pub struct WgpuBindGroup1EntriesParams<'a> {
-            pub material: wgpu::BufferBinding<'a>,
-        }
-        #[derive(Clone, Debug)]
-        pub struct WgpuBindGroup1Entries<'a> {
-            pub material: wgpu::BindGroupEntry<'a>,
-        }
-        impl<'a> WgpuBindGroup1Entries<'a> {
-            pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
-                Self {
-                    material: wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(params.material),
-                    },
-                }
-            }
-            pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-                [self.material]
-            }
-            pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-                self.as_array().into_iter().collect()
-            }
-        }
-        #[derive(Debug)]
-        pub struct WgpuBindGroup1(wgpu::BindGroup);
-        impl WgpuBindGroup1 {
-            pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-                label: Some("Pbr::BindGroup1::LayoutDescriptor"),
-                entries: &[
-                    /// @binding(0): "_root::bevy_pbr::pbr::bindings::material"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: std::num::NonZeroU64::new(
-                                std::mem::size_of::<
-                                    _root::bevy_pbr::pbr::types::StandardMaterial,
-                                >() as _,
-                            ),
-                        },
-                        count: None,
-                    },
-                ],
-            };
-            pub fn get_bind_group_layout(
-                device: &wgpu::Device,
-            ) -> wgpu::BindGroupLayout {
-                device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-            }
-            pub fn from_bindings(
-                device: &wgpu::Device,
-                bindings: WgpuBindGroup1Entries,
-            ) -> Self {
-                let bind_group_layout = Self::get_bind_group_layout(&device);
-                let entries = bindings.as_array();
-                let bind_group = device
-                    .create_bind_group(
-                        &wgpu::BindGroupDescriptor {
-                            label: Some("Pbr::BindGroup1"),
-                            layout: &bind_group_layout,
-                            entries: &entries,
-                        },
-                    );
-                Self(bind_group)
-            }
-            pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-                render_pass.set_bind_group(1, &self.0, &[]);
-            }
-        }
-        #[derive(Debug)]
-        pub struct WgpuBindGroup2EntriesParams<'a> {
-            pub mesh: wgpu::BufferBinding<'a>,
-        }
-        #[derive(Clone, Debug)]
-        pub struct WgpuBindGroup2Entries<'a> {
-            pub mesh: wgpu::BindGroupEntry<'a>,
-        }
-        impl<'a> WgpuBindGroup2Entries<'a> {
-            pub fn new(params: WgpuBindGroup2EntriesParams<'a>) -> Self {
-                Self {
-                    mesh: wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(params.mesh),
-                    },
-                }
-            }
-            pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-                [self.mesh]
-            }
-            pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-                self.as_array().into_iter().collect()
-            }
-        }
-        #[derive(Debug)]
-        pub struct WgpuBindGroup2(wgpu::BindGroup);
-        impl WgpuBindGroup2 {
-            pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-                label: Some("Pbr::BindGroup2::LayoutDescriptor"),
-                entries: &[
-                    /// @binding(0): "_root::bevy_pbr::mesh_bindings::mesh"
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: std::num::NonZeroU64::new(
-                                std::mem::size_of::<_root::bevy_pbr::mesh_types::Mesh>()
-                                    as _,
-                            ),
-                        },
-                        count: None,
-                    },
-                ],
-            };
-            pub fn get_bind_group_layout(
-                device: &wgpu::Device,
-            ) -> wgpu::BindGroupLayout {
-                device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-            }
-            pub fn from_bindings(
-                device: &wgpu::Device,
-                bindings: WgpuBindGroup2Entries,
-            ) -> Self {
-                let bind_group_layout = Self::get_bind_group_layout(&device);
-                let entries = bindings.as_array();
-                let bind_group = device
-                    .create_bind_group(
-                        &wgpu::BindGroupDescriptor {
-                            label: Some("Pbr::BindGroup2"),
-                            layout: &bind_group_layout,
-                            entries: &entries,
-                        },
-                    );
-                Self(bind_group)
-            }
-            pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-                render_pass.set_bind_group(2, &self.0, &[]);
-            }
-        }
-        #[derive(Debug, Copy, Clone)]
-        pub struct WgpuBindGroups<'a> {
-            pub bind_group0: &'a WgpuBindGroup0,
-            pub bind_group1: &'a WgpuBindGroup1,
-            pub bind_group2: &'a WgpuBindGroup2,
-        }
-        impl<'a> WgpuBindGroups<'a> {
-            pub fn set(&self, pass: &mut wgpu::RenderPass<'a>) {
-                self.bind_group0.set(pass);
-                self.bind_group1.set(pass);
-                self.bind_group2.set(pass);
-            }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
         }
     }
-    pub use self::bind_groups::*;
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("Pbr::BindGroup0::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "_root::bevy_pbr::mesh_view_bindings::view"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<_root::bevy_pbr::mesh_view_types::View>()
+                                as _,
+                        ),
+                    },
+                    count: None,
+                },
+                /// @binding(1): "_root::bevy_pbr::mesh_view_bindings::lights"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<
+                                _root::bevy_pbr::mesh_view_types::Lights,
+                            >() as _,
+                        ),
+                    },
+                    count: None,
+                },
+                /// @binding(6): "_root::bevy_pbr::mesh_view_bindings::point_lights"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage {
+                            read_only: true,
+                        },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                /// @binding(7): "_root::bevy_pbr::mesh_view_bindings::cluster_light_index_lists"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage {
+                            read_only: true,
+                        },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                /// @binding(8): "_root::bevy_pbr::mesh_view_bindings::cluster_offsets_and_counts"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage {
+                            read_only: true,
+                        },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                /// @binding(2): "_root::bevy_pbr::mesh_view_bindings::point_shadow_textures"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth,
+                        view_dimension: wgpu::TextureViewDimension::Cube,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                /// @binding(3): "_root::bevy_pbr::mesh_view_bindings::point_shadow_textures_sampler"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+                /// @binding(4): "_root::bevy_pbr::mesh_view_bindings::directional_shadow_textures"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                /// @binding(5): "_root::bevy_pbr::mesh_view_bindings::directional_shadow_textures_sampler"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup0Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("Pbr::BindGroup0"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+            render_pass.set_bind_group(0, &self.0, &[]);
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup1EntriesParams<'a> {
+        pub material: wgpu::BufferBinding<'a>,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup1Entries<'a> {
+        pub material: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup1Entries<'a> {
+        pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+            Self {
+                material: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(params.material),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            [self.material]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup1(wgpu::BindGroup);
+    impl WgpuBindGroup1 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("Pbr::BindGroup1::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "_root::bevy_pbr::pbr::bindings::material"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<
+                                _root::bevy_pbr::pbr::types::StandardMaterial,
+                            >() as _,
+                        ),
+                    },
+                    count: None,
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup1Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("Pbr::BindGroup1"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+            render_pass.set_bind_group(1, &self.0, &[]);
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup2EntriesParams<'a> {
+        pub mesh: wgpu::BufferBinding<'a>,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup2Entries<'a> {
+        pub mesh: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup2Entries<'a> {
+        pub fn new(params: WgpuBindGroup2EntriesParams<'a>) -> Self {
+            Self {
+                mesh: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(params.mesh),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            [self.mesh]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup2(wgpu::BindGroup);
+    impl WgpuBindGroup2 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("Pbr::BindGroup2::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "_root::bevy_pbr::mesh_bindings::mesh"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<_root::bevy_pbr::mesh_types::Mesh>() as _,
+                        ),
+                    },
+                    count: None,
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup2Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("Pbr::BindGroup2"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+            render_pass.set_bind_group(2, &self.0, &[]);
+        }
+    }
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+        pub bind_group0: &'a WgpuBindGroup0,
+        pub bind_group1: &'a WgpuBindGroup1,
+        pub bind_group2: &'a WgpuBindGroup2,
+    }
+    impl<'a> WgpuBindGroups<'a> {
+        pub fn set(&self, pass: &mut wgpu::RenderPass<'a>) {
+            self.bind_group0.set(pass);
+            self.bind_group1.set(pass);
+            self.bind_group2.set(pass);
+        }
+    }
     pub fn set_bind_groups<'a>(
         pass: &mut wgpu::RenderPass<'a>,
-        bind_group0: &'a bind_groups::WgpuBindGroup0,
-        bind_group1: &'a bind_groups::WgpuBindGroup1,
-        bind_group2: &'a bind_groups::WgpuBindGroup2,
+        bind_group0: &'a WgpuBindGroup0,
+        bind_group1: &'a WgpuBindGroup1,
+        bind_group2: &'a WgpuBindGroup2,
     ) {
         bind_group0.set(pass);
         bind_group1.set(pass);
@@ -1149,9 +1133,9 @@ pub mod pbr {
                 &wgpu::PipelineLayoutDescriptor {
                     label: Some("Pbr::PipelineLayout"),
                     bind_group_layouts: &[
-                        &bind_groups::WgpuBindGroup0::get_bind_group_layout(device),
-                        &bind_groups::WgpuBindGroup1::get_bind_group_layout(device),
-                        &bind_groups::WgpuBindGroup2::get_bind_group_layout(device),
+                        &WgpuBindGroup0::get_bind_group_layout(device),
+                        &WgpuBindGroup1::get_bind_group_layout(device),
+                        &WgpuBindGroup2::get_bind_group_layout(device),
                     ],
                     push_constant_ranges: &[],
                 },
