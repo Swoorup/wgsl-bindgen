@@ -147,8 +147,8 @@ impl State {
         // Use the generated types to ensure the correct bind group is assigned to each slot.
         let bind_group0 = shader_bindings::triangle::WgpuBindGroup0::from_bindings(
             &device,
-            shader_bindings::triangle::WgpuBindGroup0EntryCollection::new(
-                shader_bindings::triangle::WgpuBindGroup0EntryCollectionParams {
+            shader_bindings::triangle::WgpuBindGroup0Entries::new(
+                shader_bindings::triangle::WgpuBindGroup0EntriesParams {
                     color_texture: &view,
                     color_sampler: &sampler,
                 },
@@ -165,8 +165,8 @@ impl State {
 
         let bind_group1 = shader_bindings::triangle::WgpuBindGroup1::from_bindings(
             &device,
-            shader_bindings::triangle::WgpuBindGroup1EntryCollection::new(
-                shader_bindings::triangle::WgpuBindGroup1EntryCollectionParams {
+            shader_bindings::triangle::WgpuBindGroup1Entries::new(
+                shader_bindings::triangle::WgpuBindGroup1EntriesParams {
                     uniforms: uniforms_buffer.as_entire_buffer_binding(),
                 },
             ),

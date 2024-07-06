@@ -63,11 +63,8 @@ impl BindGroupLayoutGenerator {
     format_ident!("{}{}", self.name_prefix, group_index)
   }
 
-  pub(crate) fn bind_group_entry_collection_struct_name_ident(
-    &self,
-    group_index: u32,
-  ) -> Ident {
-    format_ident!("{}{}{}", self.name_prefix, group_index, "EntryCollection")
+  pub(crate) fn bind_group_entries_struct_name_ident(&self, group_index: u32) -> Ident {
+    format_ident!("{}{}{}", self.name_prefix, group_index, "Entries")
   }
 }
 
