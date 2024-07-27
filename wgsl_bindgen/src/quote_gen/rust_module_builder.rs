@@ -8,12 +8,12 @@ use syn::Ident;
 use thiserror::Error;
 
 use super::constants::MOD_REFERENCE_ROOT;
-use super::RustItem;
+use super::{RustItem, RustItemKind};
 use crate::quote_gen::constants::mod_reference_root;
 use crate::FastIndexMap;
 
 #[derive(Debug, Error, Diagnostic)]
-pub enum RustModBuilderError {
+pub enum RustModuleBuilderError {
   #[error("Different Content for unique id {id}")]
   DuplicateContentError {
     id: String,
@@ -22,18 +22,23 @@ pub enum RustModBuilderError {
   },
 }
 
+struct UniqueItemInfo {
+  index: usize,
+  kind: RustItemKind,
+}
+
 #[derive(Default)]
-struct RustMod {
+struct RustModule {
   name: String,
   is_public: bool,
   module_attributes: TokenStream,
   initial_contents: TokenStream,
   content: Vec<TokenStream>,
-  unique_content: FastIndexMap<String, usize>,
-  submodules: FastIndexMap<String, RustMod>,
+  unique_content_info: FastIndexMap<String, UniqueItemInfo>,
+  submodules: FastIndexMap<String, RustModule>,
 }
 
-impl RustMod {
+impl RustModule {
   fn new(name: &str, is_public_visibility: bool, initial_contents: TokenStream) -> Self {
     Self {
       module_attributes: quote!(),
@@ -41,7 +46,7 @@ impl RustMod {
       is_public: is_public_visibility,
       initial_contents,
       content: Vec::new(),
-      unique_content: FastIndexMap::default(),
+      unique_content_info: FastIndexMap::default(),
       submodules: FastIndexMap::default(),
     }
   }
@@ -50,46 +55,62 @@ impl RustMod {
     self.content.push(content);
   }
 
+  /// Adds unique content to the `RustModule`.
+  ///
+  /// This function checks if the provided `id` already exists in the `unique_content_info` map.
+  /// If it does, it compares the existing content with the new content.
+  /// If the content is the same, it does nothing.
+  /// If the content is different but the `RustItemKind` is the same, it appends the new content to the existing content.
+  /// If the `RustItemKind` is different, it returns an error.
   fn add_unique(
     &mut self,
     id: &str,
+    kind: RustItemKind,
     content: TokenStream,
-  ) -> Result<(), RustModBuilderError> {
-    if let Some(existing_content) = self
-      .unique_content
-      .get(id)
-      .and_then(|&index| self.content.get(index))
+  ) -> Result<(), RustModuleBuilderError> {
+    if let Some((prev_kind, existing_content)) =
+      self.unique_content_info.get(id).and_then(|info| {
+        let content = self.content.get_mut(info.index)?;
+        Some((info.kind, content))
+      })
     {
-      let existing = existing_content.to_string();
-      let received = content.to_string();
-
-      if existing != received {
-        return Err(RustModBuilderError::DuplicateContentError {
-          id: id.to_string(),
-          existing,
-          received,
-        });
+      if prev_kind == kind {
+        let existing = existing_content.to_string();
+        let received = content.to_string();
+        if existing != received {
+          return Err(RustModuleBuilderError::DuplicateContentError {
+            id: id.to_string(),
+            existing,
+            received,
+          });
+        }
+      } else {
+        existing_content.extend(content);
       }
     } else {
-      self
-        .unique_content
-        .insert(id.to_string(), self.content.len());
+      self.unique_content_info.insert(
+        id.to_string(),
+        UniqueItemInfo {
+          index: self.content.len(),
+          kind,
+        },
+      );
       self.content.push(content);
     }
 
     Ok(())
   }
 
-  fn get_or_create_submodule(&mut self, name: &str) -> &mut RustMod {
+  fn get_or_create_submodule(&mut self, name: &str) -> &mut RustModule {
     self
       .submodules
       .entry(name.to_owned())
-      .or_insert_with(|| RustMod::new(name, true, self.initial_contents.clone()))
+      .or_insert_with(|| RustModule::new(name, true, self.initial_contents.clone()))
   }
 
   fn merge(&mut self, other: Self) {
     self.content.extend(other.content);
-    self.unique_content.extend(other.unique_content);
+    self.unique_content_info.extend(other.unique_content_info);
     for (name, other_submodule) in other.submodules {
       let self_submodule = self.get_or_create_submodule(&name);
       self_submodule.merge(other_submodule);
@@ -134,13 +155,13 @@ pub struct RustModBuilderConfig {
 }
 
 impl RustModBuilderConfig {
-  fn build_module(&self, mod_name: &str) -> RustMod {
+  fn build_module(&self, mod_name: &str) -> RustModule {
     if self.use_relative_root {
       // this helps import relative items for nested mods under this root
       // https://discord.com/channels/442252698964721669/448238009733742612/1207323647203868712
       let root = mod_reference_root();
       if mod_name == MOD_REFERENCE_ROOT {
-        RustMod {
+        RustModule {
           name: mod_name.into(),
           is_public: false,
           module_attributes: quote!(),
@@ -148,7 +169,7 @@ impl RustModBuilderConfig {
           ..Default::default()
         }
       } else {
-        RustMod {
+        RustModule {
           name: mod_name.into(),
           is_public: true,
           module_attributes: quote!(),
@@ -159,11 +180,11 @@ impl RustModBuilderConfig {
         }
       }
     } else {
-      RustMod::new(mod_name, true, quote!())
+      RustModule::new(mod_name, true, quote!())
     }
   }
 
-  fn initial_modules(&self) -> FastIndexMap<String, RustMod> {
+  fn initial_modules(&self) -> FastIndexMap<String, RustModule> {
     if self.use_relative_root && self.generate_relative_root {
       let name = MOD_REFERENCE_ROOT.to_owned();
       let root_mod = self.build_module(name.as_str());
@@ -175,7 +196,7 @@ impl RustModBuilderConfig {
 }
 
 pub(crate) struct RustModBuilder {
-  modules: FastIndexMap<String, RustMod>,
+  modules: FastIndexMap<String, RustModule>,
   config: RustModBuilderConfig,
 }
 
@@ -192,7 +213,7 @@ impl RustModBuilder {
     }
   }
 
-  fn get_or_create_module(&mut self, path: &str) -> &mut RustMod {
+  fn get_or_create_module(&mut self, path: &str) -> &mut RustModule {
     if path.is_empty() {
       panic!("path cannot be empty");
     }
@@ -210,12 +231,16 @@ impl RustModBuilder {
     current_module
   }
 
-  pub fn add_items(&mut self, items: Vec<RustItem>) -> Result<(), RustModBuilderError> {
+  pub fn add_items(
+    &mut self,
+    items: Vec<RustItem>,
+  ) -> Result<(), RustModuleBuilderError> {
     for item in items {
-      let module_path = item.path.parent_module_path;
-      let name = item.path.item_name;
+      let module_path = item.path.module;
+      let name = item.path.name;
 
-      self.add_unique(module_path.as_str(), &name, item.item)?;
+      let mut m = self.get_or_create_module(&module_path);
+      m.add_unique(&name, item.kind, item.item)?;
     }
 
     Ok(())
@@ -225,13 +250,15 @@ impl RustModBuilder {
     self.get_or_create_module(path).add_content(content);
   }
 
-  pub fn add_unique(
+  fn add_unique(
     &mut self,
     path: &str,
     id: &str,
     content: TokenStream,
-  ) -> Result<(), RustModBuilderError> {
-    self.get_or_create_module(path).add_unique(id, content)
+  ) -> Result<(), RustModuleBuilderError> {
+    self
+      .get_or_create_module(path)
+      .add_unique(id, RustItemKind::Any, content)
   }
 
   pub fn merge(mut self, other: Self) -> Self {
@@ -257,7 +284,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use quote::quote;
 
-  use super::{RustModBuilder, RustModBuilderError};
+  use super::{RustModBuilder, RustModuleBuilderError};
   use crate::assert_tokens_eq;
 
   #[test]
@@ -351,7 +378,7 @@ mod tests {
   }
 
   #[test]
-  fn test_module_add_duplicates() -> Result<(), RustModBuilderError> {
+  fn test_module_add_duplicates() -> Result<(), RustModuleBuilderError> {
     let mut mod_builder = RustModBuilder::new(false, false);
     mod_builder.add_unique("a::b", "A", quote! {struct A;})?;
     mod_builder.add_unique("a", "A", quote! {struct B;})?;

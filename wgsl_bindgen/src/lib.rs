@@ -42,9 +42,7 @@ extern crate wgpu_types as wgpu;
 use bevy_util::SourceWithFullDependenciesResult;
 use case::CaseExt;
 use derive_more::IsVariant;
-use generate::entry::{
-  entry_point_constants, fragment_states, vertex_states, vertex_struct_methods,
-};
+use generate::entry::{self, entry_point_constants, vertex_struct_impls};
 use generate::{bind_group, consts, pipeline, shader_module, shader_registry};
 use heck::ToPascalCase;
 use proc_macro2::{Span, TokenStream};
@@ -137,7 +135,9 @@ fn create_rust_bindings(
     mod_builder
       .add(mod_name, consts::pipeline_overridable_constants(naga_module, options));
 
-    mod_builder.add(mod_name, vertex_struct_methods(naga_module));
+    mod_builder
+      .add_items(vertex_struct_impls(mod_name, naga_module))
+      .unwrap();
 
     mod_builder.add(
       mod_name,
@@ -155,8 +155,9 @@ fn create_rust_bindings(
       shader_module::compute_module(naga_module, options.shader_source_type),
     );
     mod_builder.add(mod_name, entry_point_constants(naga_module));
-    mod_builder.add(mod_name, vertex_states(naga_module));
-    mod_builder.add(mod_name, fragment_states(naga_module));
+
+    mod_builder.add(mod_name, entry::vertex_states(mod_name, naga_module));
+    mod_builder.add(mod_name, entry::fragment_states(naga_module));
 
     let create_pipeline_layout =
       pipeline::create_pipeline_layout_fn(&entry_name, &options, &bind_group_data);
@@ -396,247 +397,5 @@ mod test {
 
     let result = create_shader_module(source, WgslBindgenOption::default());
     assert!(matches!(result, Err(CreateModuleError::DuplicateBinding { binding: 2 })));
-  }
-
-  #[test]
-  fn write_vertex_module_empty() {
-    let source = indoc! {r#"
-            @vertex
-            fn main() {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = vertex_struct_methods(&module);
-
-    assert_tokens_eq!(quote!(), actual);
-  }
-
-  #[test]
-  fn write_vertex_module_single_input_float32() {
-    let source = indoc! {r#"
-            struct VertexInput0 {
-                @location(0) a: f32,
-                @location(1) b: vec2<f32>,
-                @location(2) c: vec3<f32>,
-                @location(3) d: vec4<f32>,
-            };
-
-            @vertex
-            fn main(in0: VertexInput0) {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = vertex_struct_methods(&module);
-
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32x2,
-                      offset: std::mem::offset_of!(VertexInput0, b) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32x3,
-                      offset: std::mem::offset_of!(VertexInput0, c) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32x4,
-                      offset: std::mem::offset_of!(VertexInput0, d) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<VertexInput0>() as u64,
-                      step_mode,
-                      attributes: &VertexInput0::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
-  }
-
-  #[test]
-  fn write_vertex_module_single_input_float64() {
-    let source = indoc! {r#"
-            struct VertexInput0 {
-                @location(0) a: f64,
-                @location(1) b: vec2<f64>,
-                @location(2) c: vec3<f64>,
-                @location(3) d: vec4<f64>,
-            };
-
-            @vertex
-            fn main(in0: VertexInput0) {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = vertex_struct_methods(&module);
-
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64x2,
-                      offset: std::mem::offset_of!(VertexInput0, b) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64x3,
-                      offset: std::mem::offset_of!(VertexInput0, c) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64x4,
-                      offset: std::mem::offset_of!(VertexInput0, d) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<VertexInput0>() as u64,
-                      step_mode,
-                      attributes: &VertexInput0::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
-  }
-
-  #[test]
-  fn write_vertex_module_single_input_sint32() {
-    let source = indoc! {r#"
-            struct VertexInput0 {
-                @location(0) a: i32,
-                @location(1) a: vec2<i32>,
-                @location(2) a: vec3<i32>,
-                @location(3) a: vec4<i32>,
-
-            };
-
-            @vertex
-            fn main(in0: VertexInput0) {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = vertex_struct_methods(&module);
-
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32x2,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32x3,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32x4,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<VertexInput0>() as u64,
-                      step_mode,
-                      attributes: &VertexInput0::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
-  }
-
-  #[test]
-  fn write_vertex_module_single_input_uint32() {
-    let source = indoc! {r#"
-            struct VertexInput0 {
-                @location(0) a: u32,
-                @location(1) b: vec2<u32>,
-                @location(2) c: vec3<u32>,
-                @location(3) d: vec4<u32>,
-            };
-
-            @vertex
-            fn main(in0: VertexInput0) {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = vertex_struct_methods(&module);
-
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32,
-                      offset: std::mem::offset_of!(VertexInput0, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32x2,
-                      offset: std::mem::offset_of!(VertexInput0, b) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32x3,
-                      offset: std::mem::offset_of!(VertexInput0, c) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32x4,
-                      offset: std::mem::offset_of!(VertexInput0, d) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<VertexInput0>() as u64,
-                      step_mode,
-                      attributes: &VertexInput0::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
   }
 }

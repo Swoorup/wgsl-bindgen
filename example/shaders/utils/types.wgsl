@@ -46,3 +46,7 @@ struct Nested {
   a: MatricesF32,
   b: VectorsF32
 };
+
+struct VertexIn {
+    @location(0) position: vec4<f32>,
+}

@@ -244,7 +244,7 @@ pub struct RustStructBuilder<'a> {
 
 impl<'a> RustStructBuilder<'a> {
   fn name_ident(&self) -> Ident {
-    Ident::new(&self.item_path.item_name.as_ref(), Span::call_site())
+    Ident::new(&self.item_path.name.as_ref(), Span::call_site())
   }
 
   fn is_directly_shareable(&self) -> bool {
@@ -298,14 +298,14 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn init_struct_name_in_usage_fragment(&self) -> TokenStream {
-    let name = format!("{}Init", self.item_path.item_name);
+    let name = format!("{}Init", self.item_path.name);
     let ident = Ident::new(&name, Span::call_site());
     let ty_param_use = self.ty_param_use();
     quote!(#ident #ty_param_use)
   }
 
   fn init_struct_name_in_definition_fragment(&self) -> TokenStream {
-    let name = format!("{}Init", self.item_path.item_name);
+    let name = format!("{}Init", self.item_path.name);
     let ident = Ident::new(&name, Span::call_site());
     let ty_param_def = self.ty_param_def();
     quote!(#ident #ty_param_def)
@@ -613,7 +613,7 @@ impl<'a> RustStructBuilder<'a> {
 
     vec![
       RustItem::new(
-        RustItemKind::Any,
+        RustItemKind::TypeDefAndImpls,
         self.item_path.clone(),
         quote! {
           #repr_c
@@ -627,12 +627,12 @@ impl<'a> RustStructBuilder<'a> {
         },
       ),
       RustItem::new(
-        RustItemKind::Any,
+        RustItemKind::TypeDefAndImpls,
         RustItemPath::new(MOD_STRUCT_ASSERTIONS.into(), fully_qualified_name.clone()),
         assert_layout,
       ),
       RustItem::new(
-        RustItemKind::Any,
+        RustItemKind::TypeDefAndImpls,
         RustItemPath::new(MOD_BYTEMUCK_IMPLS.into(), fully_qualified_name.clone()),
         unsafe_bytemuck_pod_impl,
       ),

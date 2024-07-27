@@ -27,8 +27,8 @@ impl RustItemPath {
     };
 
     Self {
-      parent_module_path: mod_path,
-      item_name: item.into(),
+      module: mod_path,
+      name: item.into(),
     }
   }
 }
@@ -101,16 +101,16 @@ mod tests {
     assert_eq!(
       RustItemPath::from_mangled("SnehaDataX_naga_oil_mod_XOM5DU5DZOBSXGX", ""),
       RustItemPath {
-        parent_module_path: "s::types".into(),
-        item_name: "SnehaData".into()
+        module: "s::types".into(),
+        name: "SnehaData".into()
       }
     );
 
     assert_eq!(
       RustItemPath::from_mangled("UniformsX_naga_oil_mod_XOR4XAZLTX", ""),
       RustItemPath {
-        parent_module_path: "types".into(),
-        item_name: "Uniforms".into()
+        module: "types".into(),
+        name: "Uniforms".into()
       }
     );
   }
