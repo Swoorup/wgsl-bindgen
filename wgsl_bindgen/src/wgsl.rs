@@ -2,6 +2,8 @@ use naga::StructMember;
 use proc_macro2::TokenStream;
 use quote::quote;
 
+use crate::quote_gen::RustItemPath;
+
 pub fn shader_stages(module: &naga::Module) -> wgpu::ShaderStages {
   module
     .entry_points
@@ -78,13 +80,16 @@ pub fn vertex_format(ty: &naga::Type) -> wgpu::VertexFormat {
 }
 
 pub struct VertexInput {
-  pub name: String,
+  pub item_path: RustItemPath,
   pub fields: Vec<(u32, StructMember)>,
 }
 
 // TODO: Handle errors.
 // Collect the necessary data to generate an equivalent Rust struct.
-pub fn get_vertex_input_structs(module: &naga::Module) -> Vec<VertexInput> {
+pub fn get_vertex_input_structs(
+  invoking_entry_module: &str,
+  module: &naga::Module,
+) -> Vec<VertexInput> {
   // TODO: Handle multiple entries?
   module
     .entry_points
@@ -100,8 +105,13 @@ pub fn get_vertex_input_structs(module: &naga::Module) -> Vec<VertexInput> {
           let arg_type = &module.types[argument.ty];
           match &arg_type.inner {
             naga::TypeInner::Struct { members, span: _ } => {
+              let item_path = RustItemPath::from_mangled(
+                arg_type.name.as_ref().unwrap(),
+                invoking_entry_module,
+              );
+
               let input = VertexInput {
-                name: arg_type.name.as_ref().unwrap().clone(),
+                item_path,
                 fields: members
                   .iter()
                   .filter_map(|member| {
@@ -240,16 +250,16 @@ mod tests {
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
 
-    let vertex_inputs = get_vertex_input_structs(&module);
+    let vertex_inputs = get_vertex_input_structs("", &module);
     // Only structures should be included.
     assert_eq!(2, vertex_inputs.len());
 
-    assert_eq!("VertexInput0", vertex_inputs[0].name);
+    assert_eq!("VertexInput0", vertex_inputs[0].item_path.name);
     assert_eq!(3, vertex_inputs[0].fields.len());
     assert_eq!("in1", vertex_inputs[0].fields[1].1.name.as_ref().unwrap());
     assert_eq!(1, vertex_inputs[0].fields[1].0);
 
-    assert_eq!("VertexInput1", vertex_inputs[1].name);
+    assert_eq!("VertexInput1", vertex_inputs[1].item_path.name);
     assert_eq!(4, vertex_inputs[1].fields.len());
     assert_eq!("in5", vertex_inputs[1].fields[2].1.name.as_ref().unwrap());
     assert_eq!(5, vertex_inputs[1].fields[2].0);

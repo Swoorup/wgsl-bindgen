@@ -15,7 +15,7 @@ pub fn consts_items(invoking_entry_module: &str, module: &naga::Module) -> Vec<R
 
       // we don't need full qualification here
       let rust_item_path = RustItemPath::from_mangled(name_str, invoking_entry_module);
-      let name = Ident::new(&rust_item_path.item_name, Span::call_site());
+      let name = Ident::new(&rust_item_path.name, Span::call_site());
 
       // TODO: Add support for f64 and f16 once naga supports them.
       let type_and_value = match &module.global_expressions[t.init] {

@@ -259,7 +259,7 @@ pub fn bind_groups_module(
               #(self.#set_groups)*
           }
       }
-      
+
       #set_bind_groups
     }
   }
@@ -280,7 +280,20 @@ fn bind_group_layout_entry(
     wgpu::ShaderStages::COMPUTE => quote!(wgpu::ShaderStages::COMPUTE),
     wgpu::ShaderStages::VERTEX => quote!(wgpu::ShaderStages::VERTEX),
     wgpu::ShaderStages::FRAGMENT => quote!(wgpu::ShaderStages::FRAGMENT),
-    _ => todo!(),
+    _ => {
+      let mut stage_tokens = vec![];
+      if shader_stages.contains(wgpu::ShaderStages::VERTEX) {
+        stage_tokens.push(quote!(wgpu::ShaderStages::VERTEX));
+      }
+      if shader_stages.contains(wgpu::ShaderStages::FRAGMENT) {
+        stage_tokens.push(quote!(wgpu::ShaderStages::FRAGMENT));
+      }
+      if shader_stages.contains(wgpu::ShaderStages::COMPUTE) {
+        stage_tokens.push(quote!(wgpu::ShaderStages::COMPUTE));
+      }
+      // quote!(#(#stage_tokens)|*)
+      unimplemented!()
+    }
   };
 
   let binding_index = Index::from(binding.binding_index as usize);
@@ -1254,7 +1267,7 @@ mod tests {
                   self.bind_group0.set(pass);
               }
           }
-          
+
           pub fn set_bind_groups<'a>(
               pass: &mut wgpu::RenderPass<'a>,
               bind_group0: &'a WgpuBindGroup0,
@@ -1367,7 +1380,7 @@ mod tests {
                   self.bind_group0.set(pass);
               }
           }
-          
+
           pub fn set_bind_groups<'a>(
               pass: &mut wgpu::RenderPass<'a>,
               bind_group0: &'a WgpuBindGroup0,

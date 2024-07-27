@@ -1,23 +1,44 @@
 #![allow(dead_code)]
 use derive_more::Constructor;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
+use quote::ToTokens;
 use smol_str::SmolStr;
 
 /// `RustItemPath` represents the path to a Rust item within a module.
 #[derive(Constructor, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RustItemPath {
   /// The path to the parent module.
-  pub parent_module_path: SmolStr,
+  pub module: SmolStr,
   /// name of the item, without the module path.
-  pub item_name: SmolStr,
+  pub name: SmolStr,
+}
+
+impl ToTokens for RustItemPath {
+  fn to_tokens(&self, tokens: &mut TokenStream) {
+    let fq_name = self.get_fully_qualified_name();
+    let current = syn::parse_str::<TokenStream>(&fq_name).unwrap();
+    tokens.extend(current)
+  }
 }
 
 impl RustItemPath {
   pub fn get_fully_qualified_name(&self) -> SmolStr {
-    if self.parent_module_path.is_empty() {
-      SmolStr::new(self.item_name.as_str())
+    if self.module.is_empty() {
+      SmolStr::new(self.name.as_str())
     } else {
-      SmolStr::new(format!("{}::{}", self.parent_module_path, self.item_name).as_str())
+      SmolStr::new(format!("{}::{}", self.module, self.name).as_str())
+    }
+  }
+
+  /// Returns a shortened `TokenStream`, 
+  /// If the module of the item is the same as given `target_module`, it will return just the `name` part of the path. 
+  /// Otherwise, it will return the full path.
+  pub fn short_token_stream(&self, target_module: &str) -> TokenStream {
+    if self.module == target_module {
+      let ident = syn::Ident::new(&self.name, Span::call_site());
+      quote::quote!(#ident)
+    } else {
+      self.to_token_stream()
     }
   }
 }
@@ -26,6 +47,9 @@ impl RustItemPath {
 pub(crate) enum RustItemKind {
   ConstVarDecl,
   TraitImpls,
+  TypeImpls,
+  TypeDefs,
+  TypeDefAndImpls,
   Any,
 }
 

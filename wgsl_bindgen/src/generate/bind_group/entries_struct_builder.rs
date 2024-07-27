@@ -24,7 +24,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       binding.name.as_ref().unwrap(),
       self.invoking_entry_module,
     );
-    let binding_name = Ident::new(&demangled_name.item_name, Span::call_site());
+    let binding_name = Ident::new(&demangled_name.name, Span::call_site());
     let binding_var = quote!(#binding_var_name.#binding_name);
 
     match binding.binding_type.inner {
@@ -55,7 +55,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
           binding.name.as_ref().unwrap(),
           self.invoking_entry_module,
         );
-        let binding_name = Ident::new(&demangled_name.item_name, Span::call_site());
+        let binding_name = Ident::new(&demangled_name.name, Span::call_site());
         let create_entry = self.create_entry_from_parameter(&param_var_name, binding);
 
         quote! {
@@ -71,7 +71,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       binding.name.as_ref().unwrap(),
       self.invoking_entry_module,
     );
-    let field_name = format_ident!("{}", &rust_item_path.item_name.as_str());
+    let field_name = format_ident!("{}", &rust_item_path.name.as_str());
 
     // TODO: Support more types.
     let resource_type = match binding.binding_type.inner {
@@ -102,7 +102,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
           binding.name.as_ref().unwrap(),
           self.invoking_entry_module,
         );
-        let binding_name = Ident::new(&demangled_name.item_name, Span::call_site());
+        let binding_name = Ident::new(&demangled_name.name, Span::call_site());
         quote! (#binding_var_name.#binding_name)
       })
       .collect()

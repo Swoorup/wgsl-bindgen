@@ -1,4 +1,13 @@
-#import utils::types::{Scalars, VectorsU32, VectorsI32, VectorsF32, MatricesF32, StaticArrays, Nested}
+#import utils::types::{
+  Scalars, 
+  VectorsU32, 
+  VectorsI32, 
+  VectorsF32, 
+  MatricesF32, 
+  StaticArrays, 
+  Nested,
+  VertexIn
+}
 
 @group(2) @binding(2)
 var<storage> a: Scalars;
@@ -34,6 +43,18 @@ struct Uniforms {
 @group(1) @binding(0)
 var<uniform> uniforms: Uniforms;
 
-@compute @workgroup_size(1)
-fn main(@builtin(global_invocation_id) id: vec3<u32>) { }
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+}
 
+@vertex
+fn vertex_main(input: VertexIn) -> VertexOutput {
+    var output: VertexOutput;
+    output.position = input.position;
+    return output;
+}
+
+@fragment
+fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4(1.0, 1.0, 1.0, 1.0);
+}
