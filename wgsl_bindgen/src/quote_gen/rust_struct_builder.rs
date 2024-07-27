@@ -136,7 +136,11 @@ impl<'a> NagaToRustStructState<'a> {
         .iter()
         .any(|pad_expr| pad_expr.is_match(&member_name));
 
-      let entry = if is_current_field_padding {
+      // both padding field and built-in fields are handled in the same way
+      // skip builtins like @builtin(vertex_index)
+      let entry = if is_current_field_padding
+        || matches!(naga_member.binding, Some(naga::Binding::BuiltIn(_)))
+      {
         let size = naga_type.inner.size(gctx);
         let size = format!("0x{:X}", size);
         let pad_size_tokens = syn::parse_str::<TokenStream>(&size).unwrap();

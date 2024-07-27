@@ -2,6 +2,7 @@ struct Scalars {
   a: u32,
   b: i32,
   c: f32,
+  @builtin(vertex_index) d: u32,
 };
 
 struct VectorsU32 {

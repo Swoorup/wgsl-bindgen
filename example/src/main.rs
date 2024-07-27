@@ -177,15 +177,9 @@ impl State {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("vertex buffer"),
             contents: bytemuck::cast_slice(&[
-                shader_bindings::triangle::VertexInput {
-                    position: vec3a(-1.0, -1.0, 0.0),
-                },
-                shader_bindings::triangle::VertexInput {
-                    position: vec3a(3.0, -1.0, 0.0),
-                },
-                shader_bindings::triangle::VertexInput {
-                    position: vec3a(-1.0, 3.0, 0.0),
-                },
+                shader_bindings::triangle::VertexInput(vec3a(-1.0, -1.0, 0.0)),
+                shader_bindings::triangle::VertexInput(vec3a(3.0, -1.0, 0.0)),
+                shader_bindings::triangle::VertexInput(vec3a(-1.0, 3.0, 0.0)),
             ]),
             usage: wgpu::BufferUsages::VERTEX,
         });

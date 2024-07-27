@@ -1022,8 +1022,8 @@ mod tests {
                 @size(8)
                 a: u32,
                 b: i32,
-                @align(32)
-                c: f32,
+                @align(32) c: f32,
+                @builtin(vertex_index) d: u32,
             };
 
             var<storage, read_write> test: Input0;
@@ -1070,7 +1070,8 @@ mod tests {
             pub _pad_b: [u8; 0x18 - core::mem::size_of::<i32>()],
             /// size: 4, offset: 0x20, type: `f32`
             pub c: f32,
-            pub _pad_c: [u8; 0x20 - core::mem::size_of::<f32>()],
+            pub d: [u8; 0x4],
+            pub _pad_d: [u8; 0x1C - core::mem::size_of::<u32>()],
         }
         impl Input0 {
             pub const fn new(a: u32, b: i32, c: f32) -> Self {
@@ -1080,7 +1081,8 @@ mod tests {
                     b,
                     _pad_b: [0; 0x18 - core::mem::size_of::<i32>()],
                     c,
-                    _pad_c: [0; 0x20 - core::mem::size_of::<f32>()],
+                    d: [0; 0x4],
+                    _pad_d: [0; 0x1C - core::mem::size_of::<u32>()],
                 }
             }
         }
@@ -1100,7 +1102,8 @@ mod tests {
                     b: self.b,
                     _pad_b: [0; 0x18 - core::mem::size_of::<i32>()],
                     c: self.c,
-                    _pad_c: [0; 0x20 - core::mem::size_of::<f32>()],
+                    d: [0; 0x4],
+                    _pad_d: [0; 0x1C - core::mem::size_of::<u32>()],
                 }
             }
         }
