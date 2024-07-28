@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use derive_more::Constructor;
+use enumflags2::{bitflags, BitFlags};
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use smol_str::SmolStr;
@@ -30,8 +31,8 @@ impl RustItemPath {
     }
   }
 
-  /// Returns a shortened `TokenStream`, 
-  /// If the module of the item is the same as given `target_module`, it will return just the `name` part of the path. 
+  /// Returns a shortened `TokenStream`,
+  /// If the module of the item is the same as given `target_module`, it will return just the `name` part of the path.
   /// Otherwise, it will return the full path.
   pub fn short_token_stream(&self, target_module: &str) -> TokenStream {
     if self.module == target_module {
@@ -43,20 +44,27 @@ impl RustItemPath {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum RustItemKind {
-  ConstVarDecl,
+#[bitflags]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub(crate) enum RustItemType {
+  /// like `const VAR_NAME: Type = value;`
+  ConstVarDecls,
+
+  /// like `impl Trait for Struct {}`
   TraitImpls,
+
+  /// like `impl Struct {}`
   TypeImpls,
+
+  /// like `struct Struct {}`
   TypeDefs,
-  TypeDefAndImpls,
-  Any,
 }
 
 /// Represents a Rust source item, that is either a ConstVar, TraitImpls or others.
 #[derive(Constructor)]
 pub(crate) struct RustItem {
-  pub kind: RustItemKind,
+  pub types: BitFlags<RustItemType>,
   pub path: RustItemPath,
   pub item: TokenStream,
 }

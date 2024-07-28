@@ -4,7 +4,7 @@ use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use syn::{Ident, Index};
 
-use crate::quote_gen::{RustItem, RustItemKind};
+use crate::quote_gen::{RustItem, RustItemType};
 use crate::wgsl;
 
 fn fragment_target_count(module: &naga::Module, f: &naga::Function) -> usize {
@@ -165,55 +165,55 @@ fn vertex_input_structs_impls(
 ) -> Vec<RustItem> {
   let vertex_inputs = wgsl::get_vertex_input_structs(invoking_entry_module, module);
   vertex_inputs.iter().map(|input|  {
-        let name = Ident::new(&input.item_path.name, Span::call_site());
+    let name = Ident::new(&input.item_path.name, Span::call_site());
 
-        // Use index to avoid adding prefix to literals.
-        let count = Index::from(input.fields.len());
-        let attributes: Vec<_> = input
-            .fields
-            .iter()
-            .map(|(location, m)| {
-                let field_name: TokenStream = m.name.as_ref().unwrap().parse().unwrap();
-                let location = Index::from(*location as usize);
-                let format = wgsl::vertex_format(&module.types[m.ty]);
-                // TODO: Will the debug implementation always work with the macro?
-                let format = Ident::new(&format!("{format:?}"), Span::call_site());
+    // Use index to avoid adding prefix to literals.
+    let count = Index::from(input.fields.len());
+    let attributes: Vec<_> = input
+        .fields
+        .iter()
+        .map(|(location, m)| {
+            let field_name: TokenStream = m.name.as_ref().unwrap().parse().unwrap();
+            let location = Index::from(*location as usize);
+            let format = wgsl::vertex_format(&module.types[m.ty]);
+            // TODO: Will the debug implementation always work with the macro?
+            let format = Ident::new(&format!("{format:?}"), Span::call_site());
 
-                quote! {
-                    wgpu::VertexAttribute {
-                        format: wgpu::VertexFormat::#format,
-                        offset: std::mem::offset_of!(Self, #field_name) as u64,
-                        shader_location: #location,
-                    }
-                }
-            })
-            .collect();
-
-
-        // The vertex_attr_array! macro doesn't account for field alignment.
-        // Structs with glam::Vec4 and glam::Vec3 fields will not be tightly packed.
-        // Manually calculate the Rust field offsets to support using bytemuck for vertices.
-        // This works since we explicitly mark all generated structs as repr(C).
-        // Assume elements are in Rust arrays or slices, so use size_of for stride.
-        // TODO: Should this enforce WebGPU alignment requirements for compatibility?
-        // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpuvertexbufferlayout
-
-        // TODO: Support vertex inputs that aren't in a struct.
-        let ts = quote! {
-            impl #name {
-                pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; #count] = [#(#attributes),*];
-
-                pub const fn vertex_buffer_layout(step_mode: wgpu::VertexStepMode) -> wgpu::VertexBufferLayout<'static> {
-                    wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Self>() as u64,
-                        step_mode,
-                        attributes: &Self::VERTEX_ATTRIBUTES
-                    }
+            quote! {
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::#format,
+                    offset: std::mem::offset_of!(Self, #field_name) as u64,
+                    shader_location: #location,
                 }
             }
-        };
+        })
+        .collect();
 
-    RustItem { kind: RustItemKind::TypeImpls, path: input.item_path.clone(), item: ts }
+
+    // The vertex_attr_array! macro doesn't account for field alignment.
+    // Structs with glam::Vec4 and glam::Vec3 fields will not be tightly packed.
+    // Manually calculate the Rust field offsets to support using bytemuck for vertices.
+    // This works since we explicitly mark all generated structs as repr(C).
+    // Assume elements are in Rust arrays or slices, so use size_of for stride.
+    // TODO: Should this enforce WebGPU alignment requirements for compatibility?
+    // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpuvertexbufferlayout
+
+    // TODO: Support vertex inputs that aren't in a struct.
+    let ts = quote! {
+        impl #name {
+            pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; #count] = [#(#attributes),*];
+
+            pub const fn vertex_buffer_layout(step_mode: wgpu::VertexStepMode) -> wgpu::VertexBufferLayout<'static> {
+                wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<Self>() as u64,
+                    step_mode,
+                    attributes: &Self::VERTEX_ATTRIBUTES
+                }
+            }
+        }
+    };
+
+    RustItem { types: RustItemType::TypeImpls.into(), path: input.item_path.clone(), item: ts }
     }).collect()
 }
 

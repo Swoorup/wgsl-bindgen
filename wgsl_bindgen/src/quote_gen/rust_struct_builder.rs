@@ -9,7 +9,7 @@ use syn::{Ident, Index};
 
 use super::{rust_type, RustItem, RustItemPath, RustTypeInfo};
 use crate::bevy_util::demangle_str;
-use crate::quote_gen::{RustItemKind, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS};
+use crate::quote_gen::{RustItemType, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS};
 use crate::{
   sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy,
   WgslTypeVisibility,
@@ -617,7 +617,7 @@ impl<'a> RustStructBuilder<'a> {
 
     vec![
       RustItem::new(
-        RustItemKind::TypeDefAndImpls,
+        RustItemType::TypeDefs | RustItemType::TypeImpls,
         self.item_path.clone(),
         quote! {
           #repr_c
@@ -631,12 +631,12 @@ impl<'a> RustStructBuilder<'a> {
         },
       ),
       RustItem::new(
-        RustItemKind::TypeDefAndImpls,
+        RustItemType::ConstVarDecls.into(),
         RustItemPath::new(MOD_STRUCT_ASSERTIONS.into(), fully_qualified_name.clone()),
         assert_layout,
       ),
       RustItem::new(
-        RustItemKind::TypeDefAndImpls,
+        RustItemType::TraitImpls.into(),
         RustItemPath::new(MOD_BYTEMUCK_IMPLS.into(), fully_qualified_name.clone()),
         unsafe_bytemuck_pod_impl,
       ),

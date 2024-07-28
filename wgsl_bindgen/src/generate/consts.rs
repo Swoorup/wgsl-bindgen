@@ -2,7 +2,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
-use crate::quote_gen::{rust_type, RustItem, RustItemKind, RustItemPath};
+use crate::quote_gen::{rust_type, RustItem, RustItemPath, RustItemType};
 use crate::WgslBindgenOption;
 
 pub fn consts_items(invoking_entry_module: &str, module: &naga::Module) -> Vec<RustItem> {
@@ -34,7 +34,7 @@ pub fn consts_items(invoking_entry_module: &str, module: &naga::Module) -> Vec<R
       }?;
 
       Some(RustItem::new(
-        RustItemKind::ConstVarDecl,
+        RustItemType::ConstVarDecls.into(),
         rust_item_path,
         quote! { pub const #name: #type_and_value;},
       ))

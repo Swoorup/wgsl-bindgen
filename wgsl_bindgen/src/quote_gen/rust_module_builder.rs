@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use enumflags2::{BitFlag, BitFlags};
 use miette::Diagnostic;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -8,7 +9,7 @@ use syn::Ident;
 use thiserror::Error;
 
 use super::constants::MOD_REFERENCE_ROOT;
-use super::{RustItem, RustItemKind};
+use super::{RustItem, RustItemType};
 use crate::quote_gen::constants::mod_reference_root;
 use crate::FastIndexMap;
 
@@ -24,7 +25,7 @@ pub enum RustModuleBuilderError {
 
 struct UniqueItemInfo {
   index: usize,
-  kind: RustItemKind,
+  types: BitFlags<RustItemType>,
 }
 
 #[derive(Default)]
@@ -65,16 +66,16 @@ impl RustModule {
   fn add_unique(
     &mut self,
     id: &str,
-    kind: RustItemKind,
+    types: BitFlags<RustItemType>,
     content: TokenStream,
   ) -> Result<(), RustModuleBuilderError> {
-    if let Some((prev_kind, existing_content)) =
-      self.unique_content_info.get(id).and_then(|info| {
+    if let Some((previous_info, existing_content)) =
+      self.unique_content_info.get_mut(id).and_then(|info| {
         let content = self.content.get_mut(info.index)?;
-        Some((info.kind, content))
+        Some((info, content))
       })
     {
-      if prev_kind == kind {
+      if previous_info.types == types {
         let existing = existing_content.to_string();
         let received = content.to_string();
         if existing != received {
@@ -86,13 +87,14 @@ impl RustModule {
         }
       } else {
         existing_content.extend(content);
+        previous_info.types |= types;
       }
     } else {
       self.unique_content_info.insert(
         id.to_string(),
         UniqueItemInfo {
           index: self.content.len(),
-          kind,
+          types,
         },
       );
       self.content.push(content);
@@ -240,7 +242,7 @@ impl RustModBuilder {
       let name = item.path.name;
 
       let mut m = self.get_or_create_module(&module_path);
-      m.add_unique(&name, item.kind, item.item)?;
+      m.add_unique(&name, item.types, item.item)?;
     }
 
     Ok(())
@@ -258,7 +260,7 @@ impl RustModBuilder {
   ) -> Result<(), RustModuleBuilderError> {
     self
       .get_or_create_module(path)
-      .add_unique(id, RustItemKind::Any, content)
+      .add_unique(id, RustItemType::all(), content)
   }
 
   pub fn merge(mut self, other: Self) -> Self {
