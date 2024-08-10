@@ -10,7 +10,7 @@ pub type FxIndexMap<K, V> = IndexMap<K, V, FxBuildHasher>;
 pub type FxIndexSet<T> = IndexSet<T, FxBuildHasher>;
 
 #[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
-#[display(fmt = "{}", "_0.to_str().unwrap()")]
+#[display("{}", _0.to_str().unwrap())]
 #[derivative(Debug = "transparent")]
 pub struct SourceFilePath(PathBuf);
 
@@ -36,7 +36,7 @@ impl SourceFilePath {
 }
 
 #[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
-#[display(fmt = "{}", "_0.to_str().unwrap()")]
+#[display("{}", _0.to_str().unwrap())]
 #[derivative(Debug = "transparent")]
 pub struct SourceFileDir(PathBuf);
 
@@ -58,7 +58,7 @@ impl From<&SourceFilePath> for SourceFileDir {
 
 /// Import part path used in the import statement
 #[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
-#[display(fmt = "{}", "_0")]
+#[display("{}", _0)]
 #[derivative(Debug = "transparent")]
 pub struct ImportPathPart(SmolStr);
 
@@ -69,7 +69,7 @@ impl ImportPathPart {
 }
 
 #[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
-#[display(fmt = "{}", "_0")]
+#[display("{}", _0)]
 #[derivative(Debug = "transparent")]
 pub struct SourceModuleName(SmolStr);
 

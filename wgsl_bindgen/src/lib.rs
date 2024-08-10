@@ -97,6 +97,7 @@ pub enum CreateModuleError {
   DuplicateBinding { binding: u32 },
 }
 
+#[derive(Debug)]
 pub(crate) struct WgslEntryResult<'a> {
   mod_name: String,
   naga_module: naga::Module,
