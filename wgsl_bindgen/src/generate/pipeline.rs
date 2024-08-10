@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use derive_more::Constructor;
+use generate::quote_shader_stages;
 
 use super::bind_group::GroupData;
 use crate::*;
@@ -38,8 +39,39 @@ impl<'a> PipelineLayoutDataEntriesBuilder<'a> {
   }
 }
 
+fn push_constant_range(
+  module: &naga::Module,
+  shader_stages: wgpu::ShaderStages,
+) -> Option<TokenStream> {
+  // Assume only one variable is used with var<push_constant> in WGSL.
+  let push_constant_size = module.global_variables.iter().find_map(|g| {
+    if g.1.space == naga::AddressSpace::PushConstant {
+      Some(module.types[g.1.ty].inner.size(module.to_ctx()))
+    } else {
+      None
+    }
+  });
+
+  let stages = quote_shader_stages(shader_stages);
+
+  // Use a single push constant range for all shader stages.
+  // This allows easily setting push constants in a single call with offset 0.
+  let push_constant_range = push_constant_size.map(|size| {
+    let size = Index::from(size as usize);
+    quote! {
+        wgpu::PushConstantRange {
+            stages: #stages,
+            range: 0..#size
+        }
+    }
+  });
+  push_constant_range
+}
+
 pub fn create_pipeline_layout_fn(
   entry_name: &str,
+  naga_module: &naga::Module,
+  shader_stages: wgpu::ShaderStages,
   options: &WgslBindgenOption,
   bind_group_data: &BTreeMap<u32, GroupData>,
 ) -> TokenStream {
@@ -65,6 +97,8 @@ pub fn create_pipeline_layout_fn(
       quote!()
     };
 
+  let push_constant_range = push_constant_range(&naga_module, shader_stages);
+
   let pipeline_layout_name = format!("{}::PipelineLayout", entry_name);
 
   quote! {
@@ -76,7 +110,7 @@ pub fn create_pipeline_layout_fn(
               bind_group_layouts: &[
                   #(&#bind_group_layouts),*
               ],
-              push_constant_ranges: &[],
+              push_constant_ranges: &[#push_constant_range],
           })
       }
   }

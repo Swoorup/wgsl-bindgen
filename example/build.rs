@@ -1,8 +1,8 @@
 use miette::{IntoDiagnostic, Result};
 use wgsl_bindgen::qs::quote;
 use wgsl_bindgen::{
-  GlamWgslTypeMap, Regex, WgslBindgenOptionBuilder, WgslShaderSourceType,
-  WgslTypeSerializeStrategy,
+  GlamWgslTypeMap, Regex, WgslBindgenOptionBuilder, WgslShaderIrCapabilities,
+  WgslShaderSourceType, WgslTypeSerializeStrategy,
 };
 
 fn main() -> Result<()> {
@@ -13,6 +13,7 @@ fn main() -> Result<()> {
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
+    .ir_capabilities(WgslShaderIrCapabilities::PUSH_CONSTANT)
     .override_struct_field_type(
       [("utils::types::VectorsU32", "a", quote!(crate::MyTwoU32))].map(Into::into),
     )

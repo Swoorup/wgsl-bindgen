@@ -120,7 +120,7 @@ fn create_rust_bindings(
       naga_module,
       ..
     } = entry;
-    let entry_name = sanitize_and_pascal_case(&entry.mod_name);
+    let entry_name = sanitize_and_pascal_case(&mod_name);
     let bind_group_data = bind_group::get_bind_group_data(naga_module)?;
     let shader_stages = wgsl::shader_stages(naga_module);
 
@@ -160,8 +160,14 @@ fn create_rust_bindings(
     mod_builder.add(mod_name, entry::vertex_states(mod_name, naga_module));
     mod_builder.add(mod_name, entry::fragment_states(naga_module));
 
-    let create_pipeline_layout =
-      pipeline::create_pipeline_layout_fn(&entry_name, &options, &bind_group_data);
+    let create_pipeline_layout = pipeline::create_pipeline_layout_fn(
+      &entry_name,
+      naga_module,
+      shader_stages,
+      &options,
+      &bind_group_data,
+    );
+
     mod_builder.add(mod_name, create_pipeline_layout);
     mod_builder.add(mod_name, shader_module::shader_module(entry, options));
   }
@@ -243,9 +249,11 @@ mod test {
   #[test]
   fn create_shader_module_embed_source() {
     let source = indoc! {r#"
-            @fragment
-            fn fs_main() {}
-        "#};
+      var<push_constant> consts: vec4<f32>;
+
+      @fragment
+      fn fs_main() {}
+    "#};
 
     let actual = create_shader_module(source, WgslBindgenOption::default()).unwrap();
 
@@ -321,7 +329,12 @@ mod test {
                                 &wgpu::PipelineLayoutDescriptor {
                                     label: Some("Test::PipelineLayout"),
                                     bind_group_layouts: &[],
-                                    push_constant_ranges: &[],
+                                    push_constant_ranges: &[
+                                        wgpu::PushConstantRange {
+                                            stages: wgpu::ShaderStages::FRAGMENT,
+                                            range: 0..16,
+                                        },
+                                    ],
                                 },
                             )
                     }
@@ -336,6 +349,8 @@ mod test {
                             })
                     }
                     pub const SHADER_STRING: &'static str = r#"
+                var<push_constant> consts: vec4<f32>;
+
                 @fragment 
                 fn fs_main() {
                     return;

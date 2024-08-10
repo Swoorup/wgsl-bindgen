@@ -286,6 +286,7 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
 
 struct ComposeShaderModuleBuilder<'a, 'b> {
   entry: &'a WgslEntryResult<'b>,
+  capabilities: Option<naga::valid::Capabilities>,
   entry_source_path: &'a Path,
   output_dir: &'a Path,
   source_type: WgslShaderSourceType,
@@ -294,6 +295,7 @@ struct ComposeShaderModuleBuilder<'a, 'b> {
 impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
   fn new(
     entry: &'a WgslEntryResult<'b>,
+    capabilities: Option<naga::valid::Capabilities>,
     output_dir: &'a Path,
     source_type: WgslShaderSourceType,
   ) -> Self {
@@ -301,6 +303,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
 
     Self {
       entry,
+      capabilities,
       output_dir,
       source_type,
       entry_source_path,
@@ -467,13 +470,27 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
         })
     });
 
+    let composer = quote!(naga_oil::compose::Composer::default());
+
+    let composer_with_capabilities = match self.capabilities {
+      Some(capabilities) => {
+        let capabilities = Index::from(capabilities.bits() as usize);
+        quote! {
+          #composer.with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(#capabilities))
+        }
+      }
+      None => quote! {
+        #composer
+      },
+    };
+
     quote! {
       pub fn #create_shader_module_fn(
         device: &wgpu::Device,
         shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
       ) -> #return_type {
 
-        let mut composer = naga_oil::compose::Composer::default();
+        let mut composer = #composer_with_capabilities;
         #load_shader_module_fn (&mut composer, &shader_defs) #propagate_operator;
         let module = #load_naga_module_fn (&mut composer, shader_defs) #propagate_operator;
 
@@ -535,14 +552,21 @@ pub(crate) fn shader_module(
     token_stream.append_all(generate_shader_module_embedded(entry));
   }
 
+  let capabilities = options.ir_capabilities.clone();
+
   if source_type.contains(UseComposerEmbed) {
-    let builder = ComposeShaderModuleBuilder::new(entry, &output_dir, UseComposerEmbed);
+    let builder =
+      ComposeShaderModuleBuilder::new(entry, capabilities, &output_dir, UseComposerEmbed);
     token_stream.append_all(builder.build());
   }
 
   if source_type.contains(UseComposerWithPath) {
-    let builder =
-      ComposeShaderModuleBuilder::new(entry, &output_dir, UseComposerWithPath);
+    let builder = ComposeShaderModuleBuilder::new(
+      entry,
+      capabilities,
+      &output_dir,
+      UseComposerWithPath,
+    );
     token_stream.append_all(builder.build());
   }
 
