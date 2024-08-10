@@ -19,7 +19,6 @@ use crate::{
 #[derive(Clone, Copy, Debug)]
 pub struct WgslShaderIrCapabilities {
   pub capabilities: naga::valid::Capabilities,
-  pub subgroup_stages: naga::valid::ShaderStages,
 }
 
 /// An enum representing the source type that will be generated for the output.

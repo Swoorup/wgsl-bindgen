@@ -86,10 +86,9 @@ impl WGSLBindgen {
     };
 
     let mut composer = match ir_capabilities {
-      Some(WgslShaderIrCapabilities {
-        capabilities,
-        subgroup_stages,
-      }) => Composer::default().with_capabilities(capabilities, subgroup_stages),
+      Some(WgslShaderIrCapabilities { capabilities }) => {
+        Composer::default().with_capabilities(capabilities)
+      }
       _ => Composer::default(),
     };
     let source = entry.source_file;
