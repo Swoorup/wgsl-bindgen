@@ -37,9 +37,7 @@ fn test_main_bindgen() -> Result<()> {
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .ir_capabilities(WgslShaderIrCapabilities {
-      capabilities: naga::valid::Capabilities::PUSH_CONSTANT,
-    })
+    .ir_capabilities(naga::valid::Capabilities::PUSH_CONSTANT)
     .shader_source_type(
       WgslShaderSourceType::UseEmbed | WgslShaderSourceType::UseComposerWithPath,
     )

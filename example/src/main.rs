@@ -57,8 +57,13 @@ impl State {
       .request_device(
         &wgpu::DeviceDescriptor {
           label: None,
-          required_features: wgpu::Features::TEXTURE_COMPRESSION_BC,
-          required_limits: wgpu::Limits::default(),
+          required_features: wgpu::Features::TEXTURE_COMPRESSION_BC
+            | wgpu::Features::PUSH_CONSTANTS,
+          required_limits: wgpu::Limits {
+            max_push_constant_size: 128,
+            ..Default::default()
+          },
+          memory_hints: Default::default(),
         },
         None,
       )
@@ -99,6 +104,7 @@ impl State {
       depth_stencil: None,
       multisample: wgpu::MultisampleState::default(),
       multiview: None,
+      cache: Default::default(),
     });
 
     // Create a gradient texture.
@@ -241,6 +247,17 @@ impl State {
     });
 
     render_pass.set_pipeline(&self.pipeline);
+
+    // Push constant data also needs to follow alignment rules.
+    let push_constant = shader_bindings::triangle::PushConstants {
+      color_matrix: glam::Mat4::IDENTITY,
+    };
+
+    render_pass.set_push_constants(
+      wgpu::ShaderStages::VERTEX_FRAGMENT,
+      0,
+      &bytemuck::cast_slice(&[push_constant]),
+    );
 
     // Use this function to ensure all bind groups are set.
     self.bind_group0.set(&mut render_pass);

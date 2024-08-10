@@ -365,7 +365,12 @@ pub mod main {
                         &WgpuBindGroup0::get_bind_group_layout(device),
                         &WgpuBindGroup1::get_bind_group_layout(device),
                     ],
-                    push_constant_ranges: &[],
+                    push_constant_ranges: &[
+                        wgpu::PushConstantRange {
+                            stages: wgpu::ShaderStages::COMPUTE,
+                            range: 0..32,
+                        },
+                    ],
                 },
             )
     }
@@ -460,7 +465,8 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         device: &wgpu::Device,
         shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
     ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        let mut composer = naga_oil::compose::Composer::default();
+        let mut composer = naga_oil::compose::Composer::default()
+            .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
         load_shader_modules_from_path(&mut composer, &shader_defs)?;
         let module = load_naga_module_from_path(&mut composer, shader_defs)?;
         let info = wgpu::naga::valid::Validator::new(

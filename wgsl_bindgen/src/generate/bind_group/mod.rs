@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use derive_more::Constructor;
+use generate::quote_shader_stages;
 use quote::{format_ident, quote};
 use quote_gen::{demangle_and_fully_qualify_str, rust_type};
 
@@ -275,26 +276,7 @@ fn bind_group_layout_entry(
   // TODO: Assume storage is only used for compute?
   // TODO: Support just vertex or fragment?
   // TODO: Visible from all stages?
-  let stages = match shader_stages {
-    wgpu::ShaderStages::VERTEX_FRAGMENT => quote!(wgpu::ShaderStages::VERTEX_FRAGMENT),
-    wgpu::ShaderStages::COMPUTE => quote!(wgpu::ShaderStages::COMPUTE),
-    wgpu::ShaderStages::VERTEX => quote!(wgpu::ShaderStages::VERTEX),
-    wgpu::ShaderStages::FRAGMENT => quote!(wgpu::ShaderStages::FRAGMENT),
-    _ => {
-      let mut stage_tokens = vec![];
-      if shader_stages.contains(wgpu::ShaderStages::VERTEX) {
-        stage_tokens.push(quote!(wgpu::ShaderStages::VERTEX));
-      }
-      if shader_stages.contains(wgpu::ShaderStages::FRAGMENT) {
-        stage_tokens.push(quote!(wgpu::ShaderStages::FRAGMENT));
-      }
-      if shader_stages.contains(wgpu::ShaderStages::COMPUTE) {
-        stage_tokens.push(quote!(wgpu::ShaderStages::COMPUTE));
-      }
-      // quote!(#(#stage_tokens)|*)
-      unimplemented!()
-    }
-  };
+  let stages = quote_shader_stages(shader_stages);
 
   let binding_index = Index::from(binding.binding_index as usize);
   // TODO: Support more types.
