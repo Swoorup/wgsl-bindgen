@@ -203,6 +203,7 @@ impl<'a> ComputeModuleBuilder<'a> {
                 module: &module,
                 entry_point: #entry_point,
                 compilation_options: Default::default(),
+                cache: None,
             })
         }
     }
@@ -657,6 +658,7 @@ mod tests {
                               module: &module,
                               entry_point: "main1",
                               compilation_options: Default::default(),
+                              cache: None,
                           },
                       )
               }
@@ -672,6 +674,7 @@ mod tests {
                               module: &module,
                               entry_point: "main2",
                               compilation_options: Default::default(),
+                              cache: None,
                           },
                       )
               }
