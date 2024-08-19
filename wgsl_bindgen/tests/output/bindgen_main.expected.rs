@@ -321,6 +321,7 @@ pub mod main {
                         module: &module,
                         entry_point: "main",
                         compilation_options: Default::default(),
+                        cache: None,
                     },
                 )
         }
@@ -342,6 +343,7 @@ pub mod main {
                         module: &module,
                         entry_point: "main",
                         compilation_options: Default::default(),
+                        cache: None,
                     },
                 )
         }
