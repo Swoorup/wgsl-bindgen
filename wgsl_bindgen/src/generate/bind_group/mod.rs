@@ -115,7 +115,7 @@ impl<'a> BindGroupBuilder<'a> {
                 Self(bind_group)
             }
 
-            pub fn set<'a>(&'a self, render_pass: &mut #render_pass) {
+            pub fn set<'a>(&self, render_pass: &mut #render_pass) {
                 render_pass.set_bind_group(#group_no, &self.0, &[]);
             }
         }
@@ -624,7 +624,7 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&'a self, render_pass: &mut wgpu::ComputePass<'a>) {
+              pub fn set<'a>(&self, render_pass: &mut wgpu::ComputePass<'a>) {
                   render_pass.set_bind_group(0, &self.0, &[]);
               }
           }
@@ -690,7 +690,7 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&'a self, render_pass: &mut wgpu::ComputePass<'a>) {
+              pub fn set<'a>(&self, render_pass: &mut wgpu::ComputePass<'a>) {
                   render_pass.set_bind_group(1, &self.0, &[]);
               }
           }
@@ -1034,7 +1034,7 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
                   render_pass.set_bind_group(0, &self.0, &[]);
               }
           }
@@ -1118,7 +1118,7 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
                   render_pass.set_bind_group(1, &self.0, &[]);
               }
           }
@@ -1236,7 +1236,7 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
                   render_pass.set_bind_group(0, &self.0, &[]);
               }
           }
@@ -1349,7 +1349,7 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
                   render_pass.set_bind_group(0, &self.0, &[]);
               }
           }
