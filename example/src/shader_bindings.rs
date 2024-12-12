@@ -1065,8 +1065,8 @@ fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
     ) -> () {
         composer
             .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: include_str!("..\\shaders\\utils\\types.wgsl"),
-                file_path: "..\\shaders\\utils\\types.wgsl",
+                source: include_str!("../shaders/utils/types.wgsl"),
+                file_path: "../shaders/utils/types.wgsl",
                 language: naga_oil::compose::ShaderLanguage::Wgsl,
                 shader_defs: shader_defs.clone(),
                 as_name: Some("utils::types".into()),
@@ -1081,8 +1081,8 @@ fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
     ) -> wgpu::naga::Module {
         composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: include_str!("..\\shaders\\testbed.wgsl"),
-                file_path: "..\\shaders\\testbed.wgsl",
+                source: include_str!("../shaders/testbed.wgsl"),
+                file_path: "../shaders/testbed.wgsl",
                 shader_defs,
                 ..Default::default()
             })
@@ -1116,10 +1116,10 @@ fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
             })
     }
     pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
-        "..\\shaders\\testbed.wgsl"
+        "../shaders/testbed.wgsl"
     );
     pub const UTILS_TYPES_PATH: &str = include_absolute_path::include_absolute_path!(
-        "..\\shaders\\utils\\types.wgsl"
+        "../shaders/utils/types.wgsl"
     );
     pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, UTILS_TYPES_PATH];
     pub fn load_shader_modules_from_path(
@@ -1132,7 +1132,7 @@ fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
         composer
             .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
                 source: &std::fs::read_to_string(UTILS_TYPES_PATH).unwrap(),
-                file_path: "..\\shaders\\utils\\types.wgsl",
+                file_path: "../shaders/utils/types.wgsl",
                 language: naga_oil::compose::ShaderLanguage::Wgsl,
                 shader_defs: shader_defs.clone(),
                 as_name: Some("utils::types".into()),
@@ -1147,7 +1147,7 @@ fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
         composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
                 source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
-                file_path: "..\\shaders\\testbed.wgsl",
+                file_path: "../shaders/testbed.wgsl",
                 shader_defs,
                 ..Default::default()
             })
@@ -1551,8 +1551,8 @@ fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
     ) -> wgpu::naga::Module {
         composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: include_str!("..\\shaders\\triangle.wgsl"),
-                file_path: "..\\shaders\\triangle.wgsl",
+                source: include_str!("../shaders/triangle.wgsl"),
+                file_path: "../shaders/triangle.wgsl",
                 shader_defs,
                 ..Default::default()
             })
@@ -1586,7 +1586,7 @@ fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
             })
     }
     pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
-        "..\\shaders\\triangle.wgsl"
+        "../shaders/triangle.wgsl"
     );
     pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH];
     pub fn load_shader_modules_from_path(
@@ -1605,7 +1605,7 @@ fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
         composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
                 source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
-                file_path: "..\\shaders\\triangle.wgsl",
+                file_path: "../shaders/triangle.wgsl",
                 shader_defs,
                 ..Default::default()
             })
