@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.15.1...wgsl_bindgen-v0.15.2) - 2024-12-13
+
+### Other
+
+- Fix compute shader generation for wgpu 23
+- relaxed lifetime of &self in BindGroup::set
+- updated to wgpu 23
+
 ## [0.15.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.15.0...wgsl_bindgen-v0.15.1) - 2024-08-20
 
 ### Other
