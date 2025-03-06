@@ -85,7 +85,7 @@ pub mod clear {
     ) -> wgpu::VertexState<'a> {
         wgpu::VertexState {
             module,
-            entry_point: entry.entry_point,
+            entry_point: Some(entry.entry_point),
             buffers: &entry.buffers,
             compilation_options: wgpu::PipelineCompilationOptions {
                 constants: &entry.constants,
@@ -112,7 +112,7 @@ pub mod clear {
     ) -> wgpu::FragmentState<'a> {
         wgpu::FragmentState {
             module,
-            entry_point: entry.entry_point,
+            entry_point: Some(entry.entry_point),
             targets: &entry.targets,
             compilation_options: wgpu::PipelineCompilationOptions {
                 constants: &entry.constants,

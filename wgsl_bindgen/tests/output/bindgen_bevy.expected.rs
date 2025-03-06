@@ -20,6 +20,34 @@ impl ShaderEntry {
 }
 mod _root {
     pub use super::*;
+    pub trait SetBindGroup {
+        fn set_bind_group(
+            &mut self,
+            index: u32,
+            bind_group: &wgpu::BindGroup,
+            offsets: &[wgpu::DynamicOffset],
+        );
+    }
+    impl SetBindGroup for wgpu::RenderPass<'_> {
+        fn set_bind_group(
+            &mut self,
+            index: u32,
+            bind_group: &wgpu::BindGroup,
+            offsets: &[wgpu::DynamicOffset],
+        ) {
+            self.set_bind_group(index, bind_group, offsets);
+        }
+    }
+    impl SetBindGroup for wgpu::RenderBundleEncoder<'_> {
+        fn set_bind_group(
+            &mut self,
+            index: u32,
+            bind_group: &wgpu::BindGroup,
+            offsets: &[wgpu::DynamicOffset],
+        ) {
+            self.set_bind_group(index, bind_group, offsets);
+        }
+    }
 }
 pub mod layout_asserts {
     use super::{_root, _root::*};
@@ -923,8 +951,8 @@ pub mod pbr {
                 );
             Self(bind_group)
         }
-        pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-            render_pass.set_bind_group(0, &self.0, &[]);
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(0, &self.0, &[]);
         }
     }
     #[derive(Debug)]
@@ -993,8 +1021,8 @@ pub mod pbr {
                 );
             Self(bind_group)
         }
-        pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-            render_pass.set_bind_group(1, &self.0, &[]);
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(1, &self.0, &[]);
         }
     }
     #[derive(Debug)]
@@ -1061,8 +1089,8 @@ pub mod pbr {
                 );
             Self(bind_group)
         }
-        pub fn set<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-            render_pass.set_bind_group(2, &self.0, &[]);
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(2, &self.0, &[]);
         }
     }
     #[derive(Debug, Copy, Clone)]
@@ -1072,7 +1100,7 @@ pub mod pbr {
         pub bind_group2: &'a WgpuBindGroup2,
     }
     impl<'a> WgpuBindGroups<'a> {
-        pub fn set(&self, pass: &mut wgpu::RenderPass<'a>) {
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
             self.bind_group0.set(pass);
             self.bind_group1.set(pass);
             self.bind_group2.set(pass);
@@ -1101,7 +1129,7 @@ pub mod pbr {
     ) -> wgpu::FragmentState<'a> {
         wgpu::FragmentState {
             module,
-            entry_point: entry.entry_point,
+            entry_point: Some(entry.entry_point),
             targets: &entry.targets,
             compilation_options: wgpu::PipelineCompilationOptions {
                 constants: &entry.constants,
@@ -1288,8 +1316,8 @@ fn saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(value: f32) -> f32 {
 }
 
 fn EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_: vec3<f32>, perceptual_roughness_1: f32, NoV: f32) -> vec3<f32> {
-    let c0_ = vec4<f32>(-1f, -0.0275f, -0.572f, 0.022f);
-    let c1_ = vec4<f32>(1f, 0.0425f, 1.04f, -0.04f);
+    const c0_ = vec4<f32>(-1f, -0.0275f, -0.572f, 0.022f);
+    const c1_ = vec4<f32>(1f, 0.0425f, 1.04f, -0.04f);
     let r = ((perceptual_roughness_1 * c0_) + c1_);
     let a004_ = ((min((r.x * r.x), exp2((-9.28f * NoV))) * r.x) + r.y);
     let AB = ((vec2<f32>(-1.04f, 1.04f) * a004_) + r.zw);
@@ -1572,7 +1600,7 @@ fn fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_i
     if ((any((offset_position_ndc.xy < vec2(-1f))) || (offset_position_ndc.z < 0f)) || any((offset_position_ndc > vec3(1f)))) {
         return 1f;
     }
-    let flip_correction = vec2<f32>(0.5f, -0.5f);
+    const flip_correction = vec2<f32>(0.5f, -0.5f);
     let light_local = ((offset_position_ndc.xy * flip_correction) + vec2<f32>(0.5f, 0.5f));
     let depth_2 = offset_position_ndc.z;
     let _e57 = textureSampleCompareLevel(directional_shadow_texturesX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, directional_shadow_textures_samplerX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, light_local, i32(light_id_2), depth_2);

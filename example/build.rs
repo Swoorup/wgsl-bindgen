@@ -29,5 +29,6 @@ fn main() -> Result<()> {
     .output("src/shader_bindings.rs")
     .build()?
     .generate()
-    .into_diagnostic()
+    .into_diagnostic()?;
+  Ok(())
 }

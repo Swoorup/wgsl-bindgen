@@ -140,16 +140,15 @@ fn create_rust_bindings(
       .add_items(vertex_struct_impls(mod_name, naga_module))
       .unwrap();
 
-    mod_builder.add(
-      mod_name,
-      bind_group::bind_groups_module(
+    mod_builder
+      .add_items(bind_group::generate_bind_groups_module(
         &mod_name,
         &options,
         naga_module,
         &bind_group_data,
         shader_stages,
-      ),
-    );
+      ))
+      .unwrap();
 
     mod_builder.add(
       mod_name,
@@ -257,108 +256,108 @@ mod test {
 
     let actual = create_shader_module(source, WgslBindgenOption::default()).unwrap();
 
-    pretty_assertions::assert_eq!(
-      indoc! {r##"
-                #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
-                #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-                pub enum ShaderEntry {
-                    Test,
-                }
-                impl ShaderEntry {
-                    pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
-                        match self {
-                            Self::Test => test::create_pipeline_layout(device),
-                        }
-                    }
-                    pub fn create_shader_module_embed_source(
-                        &self,
-                        device: &wgpu::Device,
-                    ) -> wgpu::ShaderModule {
-                        match self {
-                            Self::Test => test::create_shader_module_embed_source(device),
-                        }
-                    }
-                }
-                mod _root {
-                    pub use super::*;
-                }
-                pub mod test {
-                    use super::{_root, _root::*};
-                    pub const ENTRY_FS_MAIN: &str = "fs_main";
-                    #[derive(Debug)]
-                    pub struct FragmentEntry<const N: usize> {
-                        pub entry_point: &'static str,
-                        pub targets: [Option<wgpu::ColorTargetState>; N],
-                        pub constants: std::collections::HashMap<String, f64>,
-                    }
-                    pub fn fragment_state<'a, const N: usize>(
-                        module: &'a wgpu::ShaderModule,
-                        entry: &'a FragmentEntry<N>,
-                    ) -> wgpu::FragmentState<'a> {
-                        wgpu::FragmentState {
-                            module,
-                            entry_point: entry.entry_point,
-                            targets: &entry.targets,
-                            compilation_options: wgpu::PipelineCompilationOptions {
-                                constants: &entry.constants,
-                                ..Default::default()
-                            },
-                        }
-                    }
-                    pub fn fs_main_entry(
-                        targets: [Option<wgpu::ColorTargetState>; 0],
-                    ) -> FragmentEntry<0> {
-                        FragmentEntry {
-                            entry_point: ENTRY_FS_MAIN,
-                            targets,
-                            constants: Default::default(),
-                        }
-                    }
-                    #[derive(Debug)]
-                    pub struct WgpuPipelineLayout;
-                    impl WgpuPipelineLayout {
-                        pub fn bind_group_layout_entries(
-                            entries: [wgpu::BindGroupLayout; 0],
-                        ) -> [wgpu::BindGroupLayout; 0] {
-                            entries
-                        }
-                    }
-                    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-                        device
-                            .create_pipeline_layout(
-                                &wgpu::PipelineLayoutDescriptor {
-                                    label: Some("Test::PipelineLayout"),
-                                    bind_group_layouts: &[],
-                                    push_constant_ranges: &[
-                                        wgpu::PushConstantRange {
-                                            stages: wgpu::ShaderStages::FRAGMENT,
-                                            range: 0..16,
-                                        },
-                                    ],
-                                },
-                            )
-                    }
-                    pub fn create_shader_module_embed_source(
-                        device: &wgpu::Device,
-                    ) -> wgpu::ShaderModule {
-                        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-                        device
-                            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                                label: None,
-                                source: wgpu::ShaderSource::Wgsl(source),
-                            })
-                    }
-                    pub const SHADER_STRING: &'static str = r#"
-                var<push_constant> consts: vec4<f32>;
+    assert_tokens_eq!(
+      quote! {
+          #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+          #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+          pub enum ShaderEntry {
+              Test,
+          }
+          impl ShaderEntry {
+              pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+                  match self {
+                      Self::Test => test::create_pipeline_layout(device),
+                  }
+              }
+              pub fn create_shader_module_embed_source(
+                  &self,
+                  device: &wgpu::Device,
+              ) -> wgpu::ShaderModule {
+                  match self {
+                      Self::Test => test::create_shader_module_embed_source(device),
+                  }
+              }
+          }
+          mod _root {
+              pub use super::*;
+          }
+          pub mod test {
+              use super::{_root, _root::*};
+              pub const ENTRY_FS_MAIN: &str = "fs_main";
+              #[derive(Debug)]
+              pub struct FragmentEntry<const N: usize> {
+                  pub entry_point: &'static str,
+                  pub targets: [Option<wgpu::ColorTargetState>; N],
+                  pub constants: std::collections::HashMap<String, f64>,
+              }
+              pub fn fragment_state<'a, const N: usize>(
+                  module: &'a wgpu::ShaderModule,
+                  entry: &'a FragmentEntry<N>,
+              ) -> wgpu::FragmentState<'a> {
+                  wgpu::FragmentState {
+                      module,
+                      entry_point: Some(entry.entry_point),
+                      targets: &entry.targets,
+                      compilation_options: wgpu::PipelineCompilationOptions {
+                          constants: &entry.constants,
+                          ..Default::default()
+                      },
+                  }
+              }
+              pub fn fs_main_entry(
+                  targets: [Option<wgpu::ColorTargetState>; 0],
+              ) -> FragmentEntry<0> {
+                  FragmentEntry {
+                      entry_point: ENTRY_FS_MAIN,
+                      targets,
+                      constants: Default::default(),
+                  }
+              }
+              #[derive(Debug)]
+              pub struct WgpuPipelineLayout;
+              impl WgpuPipelineLayout {
+                  pub fn bind_group_layout_entries(
+                      entries: [wgpu::BindGroupLayout; 0],
+                  ) -> [wgpu::BindGroupLayout; 0] {
+                      entries
+                  }
+              }
+              pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+                  device
+                      .create_pipeline_layout(
+                          &wgpu::PipelineLayoutDescriptor {
+                              label: Some("Test::PipelineLayout"),
+                              bind_group_layouts: &[],
+                              push_constant_ranges: &[
+                                  wgpu::PushConstantRange {
+                                      stages: wgpu::ShaderStages::FRAGMENT,
+                                      range: 0..16,
+                                  },
+                              ],
+                          },
+                      )
+              }
+              pub fn create_shader_module_embed_source(
+                  device: &wgpu::Device,
+              ) -> wgpu::ShaderModule {
+                  let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+                  device
+                      .create_shader_module(wgpu::ShaderModuleDescriptor {
+                          label: None,
+                          source: wgpu::ShaderSource::Wgsl(source),
+                      })
+              }
+              pub const SHADER_STRING: &'static str = r#"
+var<push_constant> consts: vec4<f32>;
 
-                @fragment 
-                fn fs_main() {
-                    return;
-                }
-                "#;
-                }
-            "##},
-      actual
+@fragment 
+fn fs_main() {
+    return;
+}
+"#;
+          }
+      },
+      actual.parse().unwrap()
     );
   }
 

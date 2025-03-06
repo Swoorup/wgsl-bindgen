@@ -5,6 +5,7 @@ use generate::quote_shader_stages;
 use quote::{format_ident, quote};
 use quote_gen::{demangle_and_fully_qualify_str, rust_type};
 
+use crate::quote_gen::{RustItem, RustItemPath, RustItemType, MOD_REFERENCE_ROOT};
 use crate::wgsl::buffer_binding_type;
 use crate::*;
 
@@ -115,8 +116,8 @@ impl<'a> BindGroupBuilder<'a> {
                 Self(bind_group)
             }
 
-            pub fn set<'a>(&self, render_pass: &mut #render_pass) {
-                render_pass.set_bind_group(#group_no, &self.0, &[]);
+            pub fn set(&self, pass: &mut impl SetBindGroup) {
+                pass.set_bind_group(#group_no, &self.0, &[]);
             }
         }
     }
@@ -140,13 +141,13 @@ impl<'a> BindGroupBuilder<'a> {
 }
 
 // TODO: Take an iterator instead?
-pub fn bind_groups_module(
+pub fn generate_bind_groups_module(
   invoking_entry_module: &str,
   options: &WgslBindgenOption,
   naga_module: &naga::Module,
   bind_group_data: &BTreeMap<u32, GroupData>,
   shader_stages: wgpu::ShaderStages,
-) -> TokenStream {
+) -> Vec<RustItem> {
   let sanitized_entry_name = sanitize_and_pascal_case(invoking_entry_module);
   let bind_groups: Vec<_> = bind_group_data
     .iter()
@@ -207,7 +208,7 @@ pub fn bind_groups_module(
 
   // TODO: Support compute shader with vertex/fragment in the same module?
   let is_compute = shader_stages == wgpu::ShaderStages::COMPUTE;
-  let render_pass = if is_compute {
+  let pass = if is_compute {
     quote!(wgpu::ComputePass<'a>)
   } else {
     quote!(wgpu::RenderPass<'a>)
@@ -236,7 +237,7 @@ pub fn bind_groups_module(
 
   let set_bind_groups = quote! {
       pub fn set_bind_groups<'a>(
-          pass: &mut #render_pass,
+          pass: &mut #pass,
           #(#group_parameters),*
       ) {
           #(#set_groups)*
@@ -245,24 +246,111 @@ pub fn bind_groups_module(
 
   if bind_groups.is_empty() {
     // Don't include empty modules.
-    quote!()
+    vec![]
   } else {
-    quote! {
-      #(#bind_groups)*
+    let bind_group_trait = RustItem::new(
+      RustItemType::TypeDefs.into(),
+      RustItemPath::new(MOD_REFERENCE_ROOT.into(), "SetBindGroup".into()),
+      quote! {
+        pub trait SetBindGroup {
+          fn set_bind_group(
+              &mut self,
+              index: u32,
+              bind_group: &wgpu::BindGroup,
+              offsets: &[wgpu::DynamicOffset],
+          );
+        }
+      },
+    );
 
-      #[derive(Debug, Copy, Clone)]
-      pub struct WgpuBindGroups<'a> {
-          #(#bind_group_fields),*
-      }
-
-      impl<'a> WgpuBindGroups<'a> {
-          pub fn set(&self, pass: &mut #render_pass) {
-              #(self.#set_groups)*
+    let set_bind_group_impls = if is_compute {
+      vec![RustItem::new(
+        RustItemType::TraitImpls.into(),
+        RustItemPath::new(
+          MOD_REFERENCE_ROOT.into(),
+          "impl SetBindGroup for wgpu::ComputePass<'_>".into(),
+        ),
+        quote! {
+          impl SetBindGroup for wgpu::ComputePass<'_> {
+            fn set_bind_group(
+              &mut self,
+              index: u32,
+              bind_group: &wgpu::BindGroup,
+              offsets: &[wgpu::DynamicOffset],
+            ) {
+                self.set_bind_group(index, bind_group, offsets);
+            }
           }
-      }
+        },
+      )]
+    } else {
+      vec![
+        RustItem::new(
+          RustItemType::TraitImpls.into(),
+          RustItemPath::new(
+            MOD_REFERENCE_ROOT.into(),
+            "impl SetBindGroup for wgpu::RenderPass<'_>".into(),
+          ),
+          quote! {
+            impl SetBindGroup for wgpu::RenderPass<'_> {
+              fn set_bind_group(
+                &mut self,
+                index: u32,
+                bind_group: &wgpu::BindGroup,
+                offsets: &[wgpu::DynamicOffset],
+              ) {
+                  self.set_bind_group(index, bind_group, offsets);
+              }
+            }
+          },
+        ),
+        RustItem::new(
+          RustItemType::TraitImpls.into(),
+          RustItemPath::new(
+            MOD_REFERENCE_ROOT.into(),
+            "impl SetBindGroup for wgpu::RenderBundleEncoder<'_>".into(),
+          ),
+          quote! {
+            impl SetBindGroup for wgpu::RenderBundleEncoder<'_> {
+              fn set_bind_group(
+                &mut self,
+                index: u32,
+                bind_group: &wgpu::BindGroup,
+                offsets: &[wgpu::DynamicOffset],
+              ) {
+                  self.set_bind_group(index, bind_group, offsets);
+              }
+            }
+          },
+        ),
+      ]
+    };
 
-      #set_bind_groups
-    }
+    let current_bind_groups = RustItem::new(
+      RustItemType::TypeDefs | RustItemType::TypeImpls,
+      RustItemPath::new(invoking_entry_module.into(), "WgpuBindGroups".into()),
+      quote! {
+        #(#bind_groups)*
+
+        #[derive(Debug, Copy, Clone)]
+        pub struct WgpuBindGroups<'a> {
+            #(#bind_group_fields),*
+        }
+
+        impl<'a> WgpuBindGroups<'a> {
+            pub fn set(&self, pass: &mut impl SetBindGroup) {
+                #(self.#set_groups)*
+            }
+        }
+
+        #set_bind_groups
+      },
+    );
+
+    [bind_group_trait, current_bind_groups]
+      .into_iter()
+      .chain(set_bind_group_impls)
+      .collect()
   }
 }
 
@@ -488,6 +576,26 @@ mod tests {
     ));
   }
 
+  fn generate_test_bind_groups_module(
+    naga_module: &naga::Module,
+    bind_group_data: &BTreeMap<u32, GroupData>,
+    shader_stages: wgpu::ShaderStages,
+  ) -> TokenStream {
+    let items = generate_bind_groups_module(
+      "test",
+      &WgslBindgenOption::default(),
+      naga_module,
+      bind_group_data,
+      shader_stages,
+    );
+    items
+      .into_iter()
+      .filter(|item| item.path.name == "WgpuBindGroups")
+      .last()
+      .map(|item| item.item)
+      .unwrap_or(quote! {})
+  }
+
   #[test]
   fn bind_groups_module_compute() {
     let source = indoc! {r#"
@@ -511,9 +619,7 @@ mod tests {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let bind_group_data = get_bind_group_data(&module).unwrap();
 
-    let actual = bind_groups_module(
-      "test",
-      &WgslBindgenOption::default(),
+    let actual = generate_test_bind_groups_module(
       &module,
       &bind_group_data,
       wgpu::ShaderStages::COMPUTE,
@@ -624,8 +730,8 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&self, render_pass: &mut wgpu::ComputePass<'a>) {
-                  render_pass.set_bind_group(0, &self.0, &[]);
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
+                  pass.set_bind_group(0, &self.0, &[]);
               }
           }
           #[derive(Debug)]
@@ -690,8 +796,8 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&self, render_pass: &mut wgpu::ComputePass<'a>) {
-                  render_pass.set_bind_group(1, &self.0, &[]);
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
+                  pass.set_bind_group(1, &self.0, &[]);
               }
           }
           #[derive(Debug, Copy, Clone)]
@@ -700,7 +806,7 @@ mod tests {
               pub bind_group1: &'a WgpuBindGroup1,
           }
           impl<'a> WgpuBindGroups<'a> {
-              pub fn set(&self, pass: &mut wgpu::ComputePass<'a>) {
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
                   self.bind_group0.set(pass);
                   self.bind_group1.set(pass);
               }
@@ -763,9 +869,7 @@ mod tests {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let bind_group_data = get_bind_group_data(&module).unwrap();
 
-    let actual = bind_groups_module(
-      "test",
-      &WgslBindgenOption::default(),
+    let actual = generate_test_bind_groups_module(
       &module,
       &bind_group_data,
       wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -1034,8 +1138,8 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
-                  render_pass.set_bind_group(0, &self.0, &[]);
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
+                  pass.set_bind_group(0, &self.0, &[]);
               }
           }
           #[derive(Debug)]
@@ -1118,8 +1222,8 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
-                  render_pass.set_bind_group(1, &self.0, &[]);
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
+                  pass.set_bind_group(1, &self.0, &[]);
               }
           }
           #[derive(Debug, Copy, Clone)]
@@ -1128,7 +1232,7 @@ mod tests {
               pub bind_group1: &'a WgpuBindGroup1,
           }
           impl<'a> WgpuBindGroups<'a> {
-              pub fn set(&self, pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
                   self.bind_group0.set(pass);
                   self.bind_group1.set(pass);
               }
@@ -1163,9 +1267,7 @@ mod tests {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let bind_group_data = get_bind_group_data(&module).unwrap();
 
-    let actual = bind_groups_module(
-      "test",
-      &WgslBindgenOption::default(),
+    let actual = generate_test_bind_groups_module(
       &module,
       &bind_group_data,
       wgpu::ShaderStages::VERTEX,
@@ -1236,8 +1338,8 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
-                  render_pass.set_bind_group(0, &self.0, &[]);
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
+                  pass.set_bind_group(0, &self.0, &[]);
               }
           }
           #[derive(Debug, Copy, Clone)]
@@ -1245,7 +1347,7 @@ mod tests {
               pub bind_group0: &'a WgpuBindGroup0,
           }
           impl<'a> WgpuBindGroups<'a> {
-              pub fn set(&self, pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
                   self.bind_group0.set(pass);
               }
           }
@@ -1277,9 +1379,7 @@ mod tests {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let bind_group_data = get_bind_group_data(&module).unwrap();
 
-    let actual = bind_groups_module(
-      "test",
-      &WgslBindgenOption::default(),
+    let actual = generate_test_bind_groups_module(
       &module,
       &bind_group_data,
       wgpu::ShaderStages::FRAGMENT,
@@ -1349,8 +1449,8 @@ mod tests {
                       );
                   Self(bind_group)
               }
-              pub fn set<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>) {
-                  render_pass.set_bind_group(0, &self.0, &[]);
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
+                  pass.set_bind_group(0, &self.0, &[]);
               }
           }
           #[derive(Debug, Copy, Clone)]
@@ -1358,7 +1458,7 @@ mod tests {
               pub bind_group0: &'a WgpuBindGroup0,
           }
           impl<'a> WgpuBindGroups<'a> {
-              pub fn set(&self, pass: &mut wgpu::RenderPass<'a>) {
+              pub fn set(&self, pass: &mut impl SetBindGroup) {
                   self.bind_group0.set(pass);
               }
           }

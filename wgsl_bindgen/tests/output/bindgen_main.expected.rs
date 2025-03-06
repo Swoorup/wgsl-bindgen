@@ -39,6 +39,24 @@ impl ShaderEntry {
 }
 mod _root {
     pub use super::*;
+    pub trait SetBindGroup {
+        fn set_bind_group(
+            &mut self,
+            index: u32,
+            bind_group: &wgpu::BindGroup,
+            offsets: &[wgpu::DynamicOffset],
+        );
+    }
+    impl SetBindGroup for wgpu::ComputePass<'_> {
+        fn set_bind_group(
+            &mut self,
+            index: u32,
+            bind_group: &wgpu::BindGroup,
+            offsets: &[wgpu::DynamicOffset],
+        ) {
+            self.set_bind_group(index, bind_group, offsets);
+        }
+    }
 }
 pub mod layout_asserts {
     use super::{_root, _root::*};
@@ -215,8 +233,8 @@ pub mod main {
                 );
             Self(bind_group)
         }
-        pub fn set<'a>(&'a self, render_pass: &mut wgpu::ComputePass<'a>) {
-            render_pass.set_bind_group(0, &self.0, &[]);
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(0, &self.0, &[]);
         }
     }
     #[derive(Debug)]
@@ -283,8 +301,8 @@ pub mod main {
                 );
             Self(bind_group)
         }
-        pub fn set<'a>(&'a self, render_pass: &mut wgpu::ComputePass<'a>) {
-            render_pass.set_bind_group(1, &self.0, &[]);
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(1, &self.0, &[]);
         }
     }
     #[derive(Debug, Copy, Clone)]
@@ -293,7 +311,7 @@ pub mod main {
         pub bind_group1: &'a WgpuBindGroup1,
     }
     impl<'a> WgpuBindGroups<'a> {
-        pub fn set(&self, pass: &mut wgpu::ComputePass<'a>) {
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
             self.bind_group0.set(pass);
             self.bind_group1.set(pass);
         }

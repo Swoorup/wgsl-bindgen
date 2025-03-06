@@ -5,6 +5,7 @@ use naga::{Handle, Type};
 use crate::quote_gen::{RustItem, RustItemPath, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
+/// Returns a list of Rust structs that represent the WGSL structs in the module.
 pub fn structs_items(
   invoking_entry_module: &str,
   module: &naga::Module,
@@ -67,6 +68,7 @@ pub fn structs_items(
     .collect()
 }
 
+/// Returns a list of Rust structs that represent the WGSL structs in the module.
 fn rust_struct(
   rust_item_path: &RustItemPath,
   naga_members: &[naga::StructMember],
