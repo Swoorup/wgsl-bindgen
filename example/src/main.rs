@@ -39,7 +39,7 @@ struct State {
 impl State {
   async fn new(window: Window) -> Self {
     let window = Arc::new(window);
-    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
       backends: wgpu::Backends::all(),
       ..Default::default()
     });
@@ -96,7 +96,7 @@ impl State {
       ),
       fragment: Some(wgpu::FragmentState {
         module: &shader,
-        entry_point: shader_bindings::triangle::ENTRY_FS_MAIN,
+        entry_point: Some(shader_bindings::triangle::ENTRY_FS_MAIN),
         targets: &[Some(surface_format.into())],
         compilation_options: Default::default(),
       }),
@@ -121,7 +121,7 @@ impl State {
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::all(),
+        usage: wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
       },
       wgpu::util::TextureDataOrder::LayerMajor,

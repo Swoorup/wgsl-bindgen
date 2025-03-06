@@ -329,6 +329,12 @@ pub(crate) fn rust_type(
         alignment,
       }
     }
+    naga::TypeInner::Array {
+      size: naga::ArraySize::Pending(_),
+      ..
+    } => {
+      unimplemented!("Pending arrays are not supported yet");
+    }
     naga::TypeInner::Struct { members, span: _ } => {
       let name_str = ty.name.as_ref().unwrap();
       let name = demangle_and_fully_qualify(name_str, invoking_entry_module);

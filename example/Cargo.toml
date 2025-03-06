@@ -17,4 +17,4 @@ include_absolute_path.workspace = true
 
 [build-dependencies]
 wgsl_bindgen = { path = "../wgsl_bindgen" }
-miette = { workspace = true, features = ["fancy", "syntect"] }
+miette = { workspace = true, features = ["fancy"] }

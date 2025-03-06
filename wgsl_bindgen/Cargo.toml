@@ -42,4 +42,4 @@ heck.workspace = true
 [dev-dependencies]
 indoc.workspace = true
 pretty_assertions.workspace = true
-miette = { workspace = true, features = ["fancy", "syntect"] }
+miette = { workspace = true, features = ["fancy"] }
