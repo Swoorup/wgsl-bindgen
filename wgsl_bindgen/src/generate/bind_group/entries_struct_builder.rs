@@ -1,6 +1,6 @@
 use derive_more::Constructor;
 
-use self::quote_gen::RustItemPath;
+use self::quote_gen::RustSourceItemPath;
 use super::*;
 
 #[derive(Constructor)]
@@ -20,7 +20,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
   ) -> TokenStream {
     let entry_cons = self.generator.entry_constructor;
     let binding_index = binding.binding_index as usize;
-    let demangled_name = RustItemPath::from_mangled(
+    let demangled_name = RustSourceItemPath::from_mangled(
       binding.name.as_ref().unwrap(),
       self.invoking_entry_module,
     );
@@ -51,7 +51,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       .bindings
       .iter()
       .map(|binding| {
-        let demangled_name = RustItemPath::from_mangled(
+        let demangled_name = RustSourceItemPath::from_mangled(
           binding.name.as_ref().unwrap(),
           self.invoking_entry_module,
         );
@@ -67,7 +67,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
 
   /// Generates a tuple of parameter field and entry field for a binding.
   fn binding_field_tuple(&self, binding: &GroupBinding) -> (TokenStream, TokenStream) {
-    let rust_item_path = RustItemPath::from_mangled(
+    let rust_item_path = RustSourceItemPath::from_mangled(
       binding.name.as_ref().unwrap(),
       self.invoking_entry_module,
     );
@@ -98,7 +98,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       .bindings
       .iter()
       .map(|binding| {
-        let demangled_name = RustItemPath::from_mangled(
+        let demangled_name = RustSourceItemPath::from_mangled(
           binding.name.as_ref().unwrap(),
           self.invoking_entry_module,
         );

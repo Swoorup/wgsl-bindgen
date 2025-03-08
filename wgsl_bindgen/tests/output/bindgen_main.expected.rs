@@ -26,6 +26,15 @@ impl ShaderEntry {
             Self::Main => main::create_shader_module_from_path(device, shader_defs),
         }
     }
+    pub fn load_shader_module_from_path(
+        &self,
+        composer: &mut naga_oil::compose::Composer,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
+        match self {
+            Self::Main => main::load_shader_module_from_path(composer, shader_defs),
+        }
+    }
     pub fn shader_entry_filename(&self) -> &'static str {
         match self {
             Self::Main => "main.wgsl",
@@ -350,8 +359,7 @@ pub mod main {
                 naga_oil::compose::ShaderDefValue,
             >,
         ) -> wgpu::ComputePipeline {
-            let module = super::create_shader_module_from_path(device, shader_defs)
-                .unwrap();
+            let module = super::create_shader_module_from_path(device, shader_defs);
             let layout = super::create_pipeline_layout(device);
             device
                 .create_compute_pipeline(
@@ -442,13 +450,10 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         "../shaders/additional/types.wgsl"
     );
     pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, BINDINGS_PATH, TYPES_PATH];
-    pub fn load_shader_modules_from_path(
+    pub fn load_shader_module_from_path(
         composer: &mut naga_oil::compose::Composer,
-        shader_defs: &std::collections::HashMap<
-            String,
-            naga_oil::compose::ShaderDefValue,
-        >,
-    ) -> Result<(), naga_oil::compose::ComposerError> {
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
         composer
             .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
                 source: &std::fs::read_to_string(BINDINGS_PATH).unwrap(),
@@ -467,12 +472,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
                 as_name: Some("types".into()),
                 ..Default::default()
             })?;
-        Ok(())
-    }
-    pub fn load_naga_module_from_path(
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
         composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
                 source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
@@ -487,8 +486,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
         let mut composer = naga_oil::compose::Composer::default()
             .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
-        load_shader_modules_from_path(&mut composer, &shader_defs)?;
-        let module = load_naga_module_from_path(&mut composer, shader_defs)?;
+        let module = load_shader_module_from_path(&mut composer, shader_defs)?;
         let info = wgpu::naga::valid::Validator::new(
                 wgpu::naga::valid::ValidationFlags::empty(),
                 wgpu::naga::valid::Capabilities::all(),
@@ -502,13 +500,12 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
             )
             .expect("failed to convert naga module to source");
         let source = std::borrow::Cow::Owned(shader_string);
-        Ok(
-            device
-                .create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some("main.wgsl"),
-                    source: wgpu::ShaderSource::Wgsl(source),
-                }),
-        )
+        let shader_module = device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("main.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            });
+        Ok(shader_module)
     }
 }
 pub mod bytemuck_impls {

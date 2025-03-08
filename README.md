@@ -18,9 +18,9 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 ### Shader Handling:
 
 -   Supports import syntax and many more features from naga oil flavour.
--   Add shader defines dynamically when using either `WgslShaderSourceType::UseComposerEmbed` or `WgslShaderSourceType::UseComposerWithPath` source output type.
+-   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer` or `WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer` source output type.
 
-    The `WgslShaderSourceType::UseComposerWithPath` could be used for hot reloading.
+    The `WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer` could be used for hot reloading.
 
 -   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
 -   Ability to add additional scan directories for shader imports when defining the workflow.

@@ -39,7 +39,8 @@ fn test_main_bindgen() -> Result<()> {
     .skip_header_comments(true)
     .ir_capabilities(naga::valid::Capabilities::PUSH_CONSTANT)
     .shader_source_type(
-      WgslShaderSourceType::UseEmbed | WgslShaderSourceType::UseComposerWithPath,
+      WgslShaderSourceType::EmbedSource
+        | WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer,
     )
     .output("tests/output/bindgen_main.actual.rs".to_string())
     .build()?

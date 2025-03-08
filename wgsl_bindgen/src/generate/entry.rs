@@ -4,7 +4,7 @@ use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use syn::{Ident, Index};
 
-use crate::quote_gen::{RustItem, RustItemType};
+use crate::quote_gen::{RustSourceItem, RustSourceItemCategory};
 use crate::wgsl;
 
 fn fragment_target_count(module: &naga::Module, f: &naga::Function) -> usize {
@@ -154,7 +154,7 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
 pub fn vertex_struct_impls(
   invoking_entry_module: &str,
   module: &naga::Module,
-) -> Vec<RustItem> {
+) -> Vec<RustSourceItem> {
   let structs = vertex_input_structs_impls(invoking_entry_module, module);
   structs
 }
@@ -162,7 +162,7 @@ pub fn vertex_struct_impls(
 fn vertex_input_structs_impls(
   invoking_entry_module: &str,
   module: &naga::Module,
-) -> Vec<RustItem> {
+) -> Vec<RustSourceItem> {
   let vertex_inputs = wgsl::get_vertex_input_structs(invoking_entry_module, module);
   vertex_inputs.iter().map(|input|  {
     let name = Ident::new(&input.item_path.name, Span::call_site());
@@ -213,7 +213,7 @@ fn vertex_input_structs_impls(
         }
     };
 
-    RustItem { types: RustItemType::TypeImpls.into(), path: input.item_path.clone(), item: ts }
+    RustSourceItem { catagories: RustSourceItemCategory::TypeImpls.into(), path: input.item_path.clone(), tokenstream: ts }
     }).collect()
 }
 
@@ -313,7 +313,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_struct_impls("test", &module)
       .into_iter()
-      .map(|it| it.item)
+      .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
     assert_tokens_eq!(quote!(), actual);
@@ -336,7 +336,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_struct_impls("test", &module)
       .into_iter()
-      .map(|it| it.item)
+      .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
     assert_tokens_eq!(
@@ -396,7 +396,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_struct_impls("test", &module)
       .into_iter()
-      .map(|it| it.item)
+      .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
     assert_tokens_eq!(
@@ -457,7 +457,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_struct_impls("test", &module)
       .into_iter()
-      .map(|it| it.item)
+      .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
     assert_tokens_eq!(
@@ -517,7 +517,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_struct_impls("test", &module)
       .into_iter()
-      .map(|it| it.item)
+      .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
     assert_tokens_eq!(

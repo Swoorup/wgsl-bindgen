@@ -9,7 +9,7 @@ use syn::Ident;
 use thiserror::Error;
 
 use super::constants::MOD_REFERENCE_ROOT;
-use super::{RustItem, RustItemType};
+use super::{RustSourceItem, RustSourceItemCategory};
 use crate::quote_gen::constants::mod_reference_root;
 use crate::FastIndexMap;
 
@@ -25,7 +25,7 @@ pub enum RustModuleBuilderError {
 
 struct UniqueItemInfo {
   index: usize,
-  types: BitFlags<RustItemType>,
+  types: BitFlags<RustSourceItemCategory>,
 }
 
 #[derive(Default)]
@@ -66,7 +66,7 @@ impl RustModule {
   fn add_unique(
     &mut self,
     id: &str,
-    types: BitFlags<RustItemType>,
+    types: BitFlags<RustSourceItemCategory>,
     content: TokenStream,
   ) -> Result<(), RustModuleBuilderError> {
     if let Some((previous_info, existing_content)) =
@@ -235,14 +235,14 @@ impl RustModBuilder {
 
   pub fn add_items(
     &mut self,
-    items: Vec<RustItem>,
+    items: Vec<RustSourceItem>,
   ) -> Result<(), RustModuleBuilderError> {
     for item in items {
       let module_path = item.path.module;
       let name = item.path.name;
 
       let mut m = self.get_or_create_module(&module_path);
-      m.add_unique(&name, item.types, item.item)?;
+      m.add_unique(&name, item.catagories, item.tokenstream)?;
     }
 
     Ok(())
@@ -260,7 +260,7 @@ impl RustModBuilder {
   ) -> Result<(), RustModuleBuilderError> {
     self
       .get_or_create_module(path)
-      .add_unique(id, RustItemType::all(), content)
+      .add_unique(id, RustSourceItemCategory::all(), content)
   }
 
   pub fn merge(mut self, other: Self) -> Self {

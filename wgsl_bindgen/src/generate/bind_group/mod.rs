@@ -5,7 +5,9 @@ use generate::quote_shader_stages;
 use quote::{format_ident, quote};
 use quote_gen::{demangle_and_fully_qualify_str, rust_type};
 
-use crate::quote_gen::{RustItem, RustItemPath, RustItemType, MOD_REFERENCE_ROOT};
+use crate::quote_gen::{
+  RustSourceItem, RustSourceItemCategory, RustSourceItemPath, MOD_REFERENCE_ROOT,
+};
 use crate::wgsl::buffer_binding_type;
 use crate::*;
 
@@ -76,14 +78,6 @@ impl<'a> BindGroupBuilder<'a> {
 
   fn bind_group_struct_impl(&self) -> TokenStream {
     // TODO: Support compute shader with vertex/fragment in the same module?
-    let is_compute = self.shader_stages == wgpu::ShaderStages::COMPUTE;
-
-    let render_pass = if is_compute {
-      quote!(wgpu::ComputePass<'a>)
-    } else {
-      quote!(wgpu::RenderPass<'a>)
-    };
-
     let bind_group_name = self.struct_name();
     let bind_group_entries_struct_name = self
       .options
@@ -147,7 +141,7 @@ pub fn generate_bind_groups_module(
   naga_module: &naga::Module,
   bind_group_data: &BTreeMap<u32, GroupData>,
   shader_stages: wgpu::ShaderStages,
-) -> Vec<RustItem> {
+) -> Vec<RustSourceItem> {
   let sanitized_entry_name = sanitize_and_pascal_case(invoking_entry_module);
   let bind_groups: Vec<_> = bind_group_data
     .iter()
@@ -248,9 +242,9 @@ pub fn generate_bind_groups_module(
     // Don't include empty modules.
     vec![]
   } else {
-    let bind_group_trait = RustItem::new(
-      RustItemType::TypeDefs.into(),
-      RustItemPath::new(MOD_REFERENCE_ROOT.into(), "SetBindGroup".into()),
+    let bind_group_trait = RustSourceItem::new(
+      RustSourceItemCategory::TypeDefs.into(),
+      RustSourceItemPath::new(MOD_REFERENCE_ROOT.into(), "SetBindGroup".into()),
       quote! {
         pub trait SetBindGroup {
           fn set_bind_group(
@@ -264,9 +258,9 @@ pub fn generate_bind_groups_module(
     );
 
     let set_bind_group_impls = if is_compute {
-      vec![RustItem::new(
-        RustItemType::TraitImpls.into(),
-        RustItemPath::new(
+      vec![RustSourceItem::new(
+        RustSourceItemCategory::TraitImpls.into(),
+        RustSourceItemPath::new(
           MOD_REFERENCE_ROOT.into(),
           "impl SetBindGroup for wgpu::ComputePass<'_>".into(),
         ),
@@ -285,9 +279,9 @@ pub fn generate_bind_groups_module(
       )]
     } else {
       vec![
-        RustItem::new(
-          RustItemType::TraitImpls.into(),
-          RustItemPath::new(
+        RustSourceItem::new(
+          RustSourceItemCategory::TraitImpls.into(),
+          RustSourceItemPath::new(
             MOD_REFERENCE_ROOT.into(),
             "impl SetBindGroup for wgpu::RenderPass<'_>".into(),
           ),
@@ -304,9 +298,9 @@ pub fn generate_bind_groups_module(
             }
           },
         ),
-        RustItem::new(
-          RustItemType::TraitImpls.into(),
-          RustItemPath::new(
+        RustSourceItem::new(
+          RustSourceItemCategory::TraitImpls.into(),
+          RustSourceItemPath::new(
             MOD_REFERENCE_ROOT.into(),
             "impl SetBindGroup for wgpu::RenderBundleEncoder<'_>".into(),
           ),
@@ -326,9 +320,9 @@ pub fn generate_bind_groups_module(
       ]
     };
 
-    let current_bind_groups = RustItem::new(
-      RustItemType::TypeDefs | RustItemType::TypeImpls,
-      RustItemPath::new(invoking_entry_module.into(), "WgpuBindGroups".into()),
+    let current_bind_groups = RustSourceItem::new(
+      RustSourceItemCategory::TypeDefs | RustSourceItemCategory::TypeImpls,
+      RustSourceItemPath::new(invoking_entry_module.into(), "WgpuBindGroups".into()),
       quote! {
         #(#bind_groups)*
 
@@ -592,7 +586,7 @@ mod tests {
       .into_iter()
       .filter(|item| item.path.name == "WgpuBindGroups")
       .last()
-      .map(|item| item.item)
+      .map(|item| item.tokenstream)
       .unwrap_or(quote! {})
   }
 

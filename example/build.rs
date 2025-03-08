@@ -21,9 +21,9 @@ fn main() -> Result<()> {
     .add_custom_padding_field_regexp(Regex::new("_pad.*").unwrap())
     .short_constructor(2)
     .shader_source_type(
-      WgslShaderSourceType::UseComposerWithPath
-        | WgslShaderSourceType::UseComposerEmbed
-        | WgslShaderSourceType::UseEmbed,
+      WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer
+        | WgslShaderSourceType::EmbedWithNagaOilComposer
+        | WgslShaderSourceType::EmbedSource,
     )
     .derive_serde(false)
     .output("src/shader_bindings.rs")

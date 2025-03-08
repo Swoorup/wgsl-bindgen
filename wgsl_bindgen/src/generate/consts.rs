@@ -2,19 +2,25 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
-use crate::quote_gen::{rust_type, RustItem, RustItemPath, RustItemType};
+use crate::quote_gen::{
+  rust_type, RustSourceItem, RustSourceItemCategory, RustSourceItemPath,
+};
 use crate::WgslBindgenOption;
 
-pub fn consts_items(invoking_entry_module: &str, module: &naga::Module) -> Vec<RustItem> {
+pub fn consts_items(
+  invoking_entry_module: &str,
+  module: &naga::Module,
+) -> Vec<RustSourceItem> {
   // Create matching Rust constants for WGSl constants.
   module
     .constants
     .iter()
-    .filter_map(|(_, t)| -> Option<RustItem> {
+    .filter_map(|(_, t)| -> Option<RustSourceItem> {
       let name_str = t.name.as_ref()?;
 
       // we don't need full qualification here
-      let rust_item_path = RustItemPath::from_mangled(name_str, invoking_entry_module);
+      let rust_item_path =
+        RustSourceItemPath::from_mangled(name_str, invoking_entry_module);
       let name = Ident::new(&rust_item_path.name, Span::call_site());
 
       // TODO: Add support for f64 and f16 once naga supports them.
@@ -33,8 +39,8 @@ pub fn consts_items(invoking_entry_module: &str, module: &naga::Module) -> Vec<R
         _ => None,
       }?;
 
-      Some(RustItem::new(
-        RustItemType::ConstVarDecls.into(),
+      Some(RustSourceItem::new(
+        RustSourceItemCategory::ConstVarDecls.into(),
         rust_item_path,
         quote! { pub const #name: #type_and_value;},
       ))
@@ -160,7 +166,7 @@ mod tests {
   fn consts(module: &naga::Module) -> Vec<TokenStream> {
     consts_items("", module)
       .into_iter()
-      .map(|i| i.item)
+      .map(|i| i.tokenstream)
       .collect()
   }
   #[test]

@@ -13,7 +13,7 @@ fn test_issue_35() -> Result<()> {
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .short_constructor(2)
-    .shader_source_type(WgslShaderSourceType::UseComposerEmbed)
+    .shader_source_type(WgslShaderSourceType::EmbedWithNagaOilComposer)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use naga::{Handle, Type};
 
-use crate::quote_gen::{RustItem, RustItemPath, RustStructBuilder};
+use crate::quote_gen::{RustSourceItem, RustSourceItemPath, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
 /// Returns a list of Rust structs that represent the WGSL structs in the module.
@@ -10,7 +10,7 @@ pub fn structs_items(
   invoking_entry_module: &str,
   module: &naga::Module,
   options: &WgslBindgenOption,
-) -> Vec<RustItem> {
+) -> Vec<RustSourceItem> {
   // Initialize the layout calculator provided by naga.
   let mut layouter = naga::proc::Layouter::default();
   layouter.update(module.to_ctx()).unwrap();
@@ -42,8 +42,10 @@ pub fn structs_items(
     })
     .flat_map(|(t_handle, ty)| {
       if let naga::TypeInner::Struct { members, .. } = &ty.inner {
-        let rust_item_path =
-          RustItemPath::from_mangled(ty.name.as_ref().unwrap(), invoking_entry_module);
+        let rust_item_path = RustSourceItemPath::from_mangled(
+          ty.name.as_ref().unwrap(),
+          invoking_entry_module,
+        );
 
         // skip if using custom struct mapping
         if options.type_map.contains_key(&crate::WgslType::Struct {
@@ -70,14 +72,14 @@ pub fn structs_items(
 
 /// Returns a list of Rust structs that represent the WGSL structs in the module.
 fn rust_struct(
-  rust_item_path: &RustItemPath,
+  rust_item_path: &RustSourceItemPath,
   naga_members: &[naga::StructMember],
   layouter: &naga::proc::Layouter,
   t_handle: naga::Handle<naga::Type>,
   naga_module: &naga::Module,
   options: &WgslBindgenOption,
   global_variable_types: &HashSet<Handle<Type>>,
-) -> Vec<RustItem> {
+) -> Vec<RustSourceItem> {
   let layout = layouter[t_handle];
 
   // Assume types used in global variables are host shareable and require validation.
@@ -154,7 +156,7 @@ mod tests {
   pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
     structs_items("", module, options)
       .into_iter()
-      .map(|s| s.item)
+      .map(|s| s.tokenstream)
       .collect()
   }
 

@@ -2,6 +2,7 @@
 //!
 //! This will create a `ShaderEntry` enum with a variant for each entry in `entries`,
 //! and functions for creating the pipeline layout and shader module for each variant.
+
 use derive_more::Constructor;
 use enumflags2::BitFlags;
 use proc_macro2::TokenStream;
@@ -75,10 +76,49 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
     }
   }
 
+  fn build_load_shader_to_composer_module(
+    &self,
+    source_type: WgslShaderSourceType,
+  ) -> TokenStream {
+    match source_type {
+      WgslShaderSourceType::EmbedSource => {
+        return quote!();
+      }
+      _ => {
+        let fn_name = format_ident!("{}", source_type.load_shader_module_fn_name());
+
+        let match_arms = self.entries.iter().map(|entry| {
+          let mod_path = format_ident!("{}", entry.mod_name);
+          let enum_variant =
+            format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
+
+          quote! {
+            Self::#enum_variant => {
+              #mod_path::#fn_name(composer, shader_defs)
+            }
+          }
+        });
+
+        let return_type = source_type.get_return_type(quote!(wgpu::naga::Module));
+
+        quote! {
+          pub fn #fn_name(&self,
+            composer: &mut naga_oil::compose::Composer,
+            shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
+          ) -> #return_type {
+            match self {
+              #( #match_arms, )*
+            }
+          }
+        }
+      }
+    }
+  }
+
   fn build_shader_entry_filename_fn(&self) -> TokenStream {
     if !self
       .source_type
-      .contains(WgslShaderSourceType::UseComposerWithPath)
+      .contains(WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer)
     {
       return quote!();
     }
@@ -111,7 +151,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   fn build_shader_paths_fn(&self) -> TokenStream {
     if !self
       .source_type
-      .contains(WgslShaderSourceType::UseComposerWithPath)
+      .contains(WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer)
     {
       return quote!();
     }
@@ -142,6 +182,11 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       .collect::<Vec<_>>();
 
     let create_pipeline_layout_fn = self.build_create_pipeline_layout_fn();
+    let load_shader_to_composer_module_fns = self
+      .source_type
+      .iter()
+      .map(|source_ty| self.build_load_shader_to_composer_module(source_ty))
+      .collect::<Vec<_>>();
 
     let shader_paths_fn = self.build_shader_paths_fn();
     let shader_entry_filename_fn = self.build_shader_entry_filename_fn();
@@ -150,6 +195,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       impl ShaderEntry {
         #create_pipeline_layout_fn
         #(#create_shader_module_fns)*
+        #(#load_shader_to_composer_module_fns)*
         #shader_entry_filename_fn
         #shader_paths_fn
       }

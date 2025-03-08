@@ -17,21 +17,21 @@ use crate::{
 };
 
 /// An enum representing the source type that will be generated for the output.
-#[bitflags(default = UseEmbed)]
+#[bitflags(default = EmbedSource)]
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IsVariant)]
 pub enum WgslShaderSourceType {
   /// Preparse the shader modules and embed the final shader string in the output.
   /// This option skips the naga_oil dependency in the output, and but doesn't allow shader defines.
-  UseEmbed = 0b0001,
+  EmbedSource,
 
   /// Use Composer with embedded strings for each shader module,
   /// This option allows shader defines and but doesn't allow hot-reloading.
-  UseComposerEmbed = 0b0010,
+  EmbedWithNagaOilComposer,
 
-  /// Use Composer with absolute path to shaders, useful for hot-reloading
+  /// Use Composer with absolute path to shaders, meant only for hot-reloading
   /// This option allows shader defines and is useful for hot-reloading.
-  UseComposerWithPath = 0b0100,
+  HardCodedFilePathWithNagaOilComposer,
 }
 
 /// A struct representing a directory to scan for additional source files.
@@ -137,8 +137,8 @@ pub struct OverrideStructAlignment {
 impl From<(Regex, u16)> for OverrideStructAlignment {
   fn from((struct_regex, alignment): (Regex, u16)) -> Self {
     Self {
-      struct_regex: struct_regex,
-      alignment: alignment,
+      struct_regex,
+      alignment,
     }
   }
 }
@@ -146,7 +146,7 @@ impl From<(&str, u16)> for OverrideStructAlignment {
   fn from((struct_regex, alignment): (&str, u16)) -> Self {
     Self {
       struct_regex: Regex::new(struct_regex).expect("Failed to create struct regex"),
-      alignment: alignment,
+      alignment,
     }
   }
 }

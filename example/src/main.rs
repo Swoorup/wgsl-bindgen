@@ -222,40 +222,41 @@ impl State {
 
   fn get_render_bundle(&mut self) -> &wgpu::RenderBundle {
     let bundle = self.render_bundle.get_or_insert_with(|| {
-        let texture_format = self.config.format;
-        let mut bundle_enc = self.device.create_render_bundle_encoder(
-          &wgpu::RenderBundleEncoderDescriptor {
+      let texture_format = self.config.format;
+      let mut bundle_enc =
+        self
+          .device
+          .create_render_bundle_encoder(&wgpu::RenderBundleEncoderDescriptor {
             label: Some("Render Encoder"),
             color_formats: &[Some(texture_format)],
             sample_count: 1,
             depth_stencil: None,
             multiview: None,
-          },
-        );
+          });
 
-        bundle_enc.set_pipeline(&self.pipeline);
-        // Push constant data also needs to follow alignment rules.
-        let push_constant = shader_bindings::triangle::PushConstants {
-          color_matrix: glam::Mat4::IDENTITY,
-        };
+      bundle_enc.set_pipeline(&self.pipeline);
+      // Push constant data also needs to follow alignment rules.
+      let push_constant = shader_bindings::triangle::PushConstants {
+        color_matrix: glam::Mat4::IDENTITY,
+      };
 
-        bundle_enc.set_push_constants(
-          wgpu::ShaderStages::VERTEX_FRAGMENT,
-          0,
-          &bytemuck::cast_slice(&[push_constant]),
-        );
+      bundle_enc.set_push_constants(
+        wgpu::ShaderStages::VERTEX_FRAGMENT,
+        0,
+        &bytemuck::cast_slice(&[push_constant]),
+      );
 
-        // Use this function to ensure all bind groups are set.
+      // Use this function to ensure all bind groups are set.
 
-        self.bind_group0.set(&mut bundle_enc);
-        self.bind_group1.set(&mut bundle_enc);
+      self.bind_group0.set(&mut bundle_enc);
+      self.bind_group1.set(&mut bundle_enc);
 
-        bundle_enc.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        bundle_enc.draw(0..3, 0..1);
-        let bundle = bundle_enc.finish(&wgpu::RenderBundleDescriptor {
-          label: "Render Bundle".into(),
-        });
-        bundle
+      bundle_enc.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+      bundle_enc.draw(0..3, 0..1);
+      let bundle = bundle_enc.finish(&wgpu::RenderBundleDescriptor {
+        label: "Render Bundle".into(),
+      });
+      bundle
     });
     bundle
   }

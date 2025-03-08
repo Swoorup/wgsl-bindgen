@@ -7,14 +7,14 @@ use smol_str::SmolStr;
 
 /// `RustItemPath` represents the path to a Rust item within a module.
 #[derive(Constructor, Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct RustItemPath {
+pub(crate) struct RustSourceItemPath {
   /// The path to the parent module.
   pub module: SmolStr,
   /// name of the item, without the module path.
   pub name: SmolStr,
 }
 
-impl ToTokens for RustItemPath {
+impl ToTokens for RustSourceItemPath {
   fn to_tokens(&self, tokens: &mut TokenStream) {
     let fq_name = self.get_fully_qualified_name();
     let current = syn::parse_str::<TokenStream>(&fq_name).unwrap();
@@ -22,7 +22,7 @@ impl ToTokens for RustItemPath {
   }
 }
 
-impl RustItemPath {
+impl RustSourceItemPath {
   pub fn get_fully_qualified_name(&self) -> SmolStr {
     if self.module.is_empty() {
       SmolStr::new(self.name.as_str())
@@ -47,7 +47,7 @@ impl RustItemPath {
 #[bitflags]
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub(crate) enum RustItemType {
+pub(crate) enum RustSourceItemCategory {
   /// like `const VAR_NAME: Type = value;`
   ConstVarDecls,
 
@@ -63,8 +63,8 @@ pub(crate) enum RustItemType {
 
 /// Represents a Rust source item, that is either a ConstVar, TraitImpls or others.
 #[derive(Constructor)]
-pub(crate) struct RustItem {
-  pub types: BitFlags<RustItemType>,
-  pub path: RustItemPath,
-  pub item: TokenStream,
+pub(crate) struct RustSourceItem {
+  pub catagories: BitFlags<RustSourceItemCategory>,
+  pub path: RustSourceItemPath,
+  pub tokenstream: TokenStream,
 }

@@ -152,7 +152,7 @@ fn create_rust_bindings(
 
     mod_builder.add(
       mod_name,
-      shader_module::compute_module(naga_module, options.shader_source_type),
+      shader_module::compute_module(naga_module, options.shader_source_type.clone()),
     );
     mod_builder.add(mod_name, entry_point_constants(naga_module));
 
@@ -254,7 +254,14 @@ mod test {
       fn fs_main() {}
     "#};
 
-    let actual = create_shader_module(source, WgslBindgenOption::default()).unwrap();
+    let actual = create_shader_module(
+      source,
+      WgslBindgenOption {
+        shader_source_type: [WgslShaderSourceType::EmbedSource].into_iter().collect(),
+        ..Default::default()
+      },
+    )
+    .unwrap();
 
     assert_tokens_eq!(
       quote! {

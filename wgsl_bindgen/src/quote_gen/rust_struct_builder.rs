@@ -7,9 +7,11 @@ use quote::{format_ident, quote};
 use smol_str::SmolStr;
 use syn::{Ident, Index};
 
-use super::{rust_type, RustItem, RustItemPath, RustTypeInfo};
+use super::{rust_type, RustSourceItem, RustSourceItemPath, RustTypeInfo};
 use crate::bevy_util::demangle_str;
-use crate::quote_gen::{RustItemType, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS};
+use crate::quote_gen::{
+  RustSourceItemCategory, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS,
+};
 use crate::{
   sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy,
   WgslTypeVisibility,
@@ -211,7 +213,7 @@ pub enum RustStructMemberEntry<'a> {
 impl<'a> RustStructMemberEntry<'a> {
   fn from_naga(
     options: &'a WgslBindgenOption,
-    item_path: &'a RustItemPath,
+    item_path: &'a RustSourceItemPath,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
     layout_size: usize,
@@ -237,7 +239,7 @@ impl<'a> RustStructMemberEntry<'a> {
 }
 
 pub struct RustStructBuilder<'a> {
-  item_path: &'a RustItemPath,
+  item_path: &'a RustSourceItemPath,
   members: Vec<RustStructMemberEntry<'a>>,
   is_host_sharable: bool,
   has_rts_array: bool,
@@ -563,7 +565,7 @@ impl<'a> RustStructBuilder<'a> {
     }
   }
 
-  pub fn build(&self) -> Vec<RustItem> {
+  pub fn build(&self) -> Vec<RustSourceItem> {
     let struct_name_def = self.struct_name_in_definition_fragment();
 
     // Assume types used in global variables are host shareable and require validation.
@@ -616,8 +618,8 @@ impl<'a> RustStructBuilder<'a> {
     let visibility = self.options.type_visibility.generate_quote();
 
     vec![
-      RustItem::new(
-        RustItemType::TypeDefs | RustItemType::TypeImpls,
+      RustSourceItem::new(
+        RustSourceItemCategory::TypeDefs | RustSourceItemCategory::TypeImpls,
         self.item_path.clone(),
         quote! {
           #repr_c
@@ -630,21 +632,24 @@ impl<'a> RustStructBuilder<'a> {
           #init_struct
         },
       ),
-      RustItem::new(
-        RustItemType::ConstVarDecls.into(),
-        RustItemPath::new(MOD_STRUCT_ASSERTIONS.into(), fully_qualified_name.clone()),
+      RustSourceItem::new(
+        RustSourceItemCategory::ConstVarDecls.into(),
+        RustSourceItemPath::new(
+          MOD_STRUCT_ASSERTIONS.into(),
+          fully_qualified_name.clone(),
+        ),
         assert_layout,
       ),
-      RustItem::new(
-        RustItemType::TraitImpls.into(),
-        RustItemPath::new(MOD_BYTEMUCK_IMPLS.into(), fully_qualified_name.clone()),
+      RustSourceItem::new(
+        RustSourceItemCategory::TraitImpls.into(),
+        RustSourceItemPath::new(MOD_BYTEMUCK_IMPLS.into(), fully_qualified_name.clone()),
         unsafe_bytemuck_pod_impl,
       ),
     ]
   }
 
   pub fn from_naga(
-    item_path: &'a RustItemPath,
+    item_path: &'a RustSourceItemPath,
     naga_members: &'a [naga::StructMember],
     naga_module: &'a naga::Module,
     options: &'a WgslBindgenOption,

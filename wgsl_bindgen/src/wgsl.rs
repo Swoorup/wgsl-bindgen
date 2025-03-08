@@ -2,7 +2,7 @@ use naga::StructMember;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::quote_gen::RustItemPath;
+use crate::quote_gen::RustSourceItemPath;
 
 pub fn shader_stages(module: &naga::Module) -> wgpu::ShaderStages {
   module
@@ -80,7 +80,7 @@ pub fn vertex_format(ty: &naga::Type) -> wgpu::VertexFormat {
 }
 
 pub struct VertexInput {
-  pub item_path: RustItemPath,
+  pub item_path: RustSourceItemPath,
   pub fields: Vec<(u32, StructMember)>,
 }
 
@@ -105,7 +105,7 @@ pub fn get_vertex_input_structs(
           let arg_type = &module.types[argument.ty];
           match &arg_type.inner {
             naga::TypeInner::Struct { members, span: _ } => {
-              let item_path = RustItemPath::from_mangled(
+              let item_path = RustSourceItemPath::from_mangled(
                 arg_type.name.as_ref().unwrap(),
                 invoking_entry_module,
               );

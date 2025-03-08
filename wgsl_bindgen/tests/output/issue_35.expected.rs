@@ -13,9 +13,18 @@ impl ShaderEntry {
         &self,
         device: &wgpu::Device,
         shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> wgpu::ShaderModule {
+    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
         match self {
             Self::Clear => clear::create_shader_module_embedded(device, shader_defs),
+        }
+    }
+    pub fn load_shader_module_embedded(
+        &self,
+        composer: &mut naga_oil::compose::Composer,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
+        match self {
+            Self::Clear => clear::load_shader_module_embedded(composer, shader_defs),
         }
     }
 }
@@ -148,13 +157,10 @@ pub mod clear {
                 },
             )
     }
-    pub fn load_shader_modules_embedded(
+    pub fn load_shader_module_embedded(
         composer: &mut naga_oil::compose::Composer,
-        shader_defs: &std::collections::HashMap<
-            String,
-            naga_oil::compose::ShaderDefValue,
-        >,
-    ) -> () {
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
         composer
             .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
                 source: include_str!("../shaders/issue_35/vertices.wgsl"),
@@ -163,14 +169,7 @@ pub mod clear {
                 shader_defs: shader_defs.clone(),
                 as_name: Some("vertices".into()),
                 ..Default::default()
-            })
-            .expect("failed to add composer module");
-        ()
-    }
-    pub fn load_naga_module_embedded(
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> wgpu::naga::Module {
+            })?;
         composer
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
                 source: include_str!("../shaders/issue_35/clear.wgsl"),
@@ -178,15 +177,13 @@ pub mod clear {
                 shader_defs,
                 ..Default::default()
             })
-            .expect("failed to build naga module")
     }
     pub fn create_shader_module_embedded(
         device: &wgpu::Device,
         shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> wgpu::ShaderModule {
+    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
         let mut composer = naga_oil::compose::Composer::default();
-        load_shader_modules_embedded(&mut composer, &shader_defs);
-        let module = load_naga_module_embedded(&mut composer, shader_defs);
+        let module = load_shader_module_embedded(&mut composer, shader_defs)?;
         let info = wgpu::naga::valid::Validator::new(
                 wgpu::naga::valid::ValidationFlags::empty(),
                 wgpu::naga::valid::Capabilities::all(),
@@ -200,10 +197,11 @@ pub mod clear {
             )
             .expect("failed to convert naga module to source");
         let source = std::borrow::Cow::Owned(shader_string);
-        device
+        let shader_module = device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("clear.wgsl"),
                 source: wgpu::ShaderSource::Wgsl(source),
-            })
+            });
+        Ok(shader_module)
     }
 }

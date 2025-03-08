@@ -4,12 +4,12 @@ use std::sync::OnceLock;
 use regex::Regex;
 use smallvec::SmallVec;
 
-use crate::quote_gen::RustItemPath;
+use crate::quote_gen::RustSourceItemPath;
 
 const DECORATION_PRE: &str = "X_naga_oil_mod_X";
 const DECORATION_POST: &str = "X";
 
-impl RustItemPath {
+impl RustSourceItemPath {
   /// Demangles a string representing a module path and item name, splitting them into separate parts.
   pub fn from_mangled(string: &str, default_module_path: &str) -> Self {
     let demangled = demangle_str(string);
@@ -88,7 +88,7 @@ mod tests {
   use pretty_assertions::assert_eq;
 
   use crate::bevy_util::make_valid_rust_import;
-  use crate::quote_gen::RustItemPath;
+  use crate::quote_gen::RustSourceItemPath;
 
   #[test]
   fn test_make_valid_rust_import() {
@@ -99,16 +99,16 @@ mod tests {
   #[test]
   fn test_demangle_mod_names() {
     assert_eq!(
-      RustItemPath::from_mangled("SnehaDataX_naga_oil_mod_XOM5DU5DZOBSXGX", ""),
-      RustItemPath {
+      RustSourceItemPath::from_mangled("SnehaDataX_naga_oil_mod_XOM5DU5DZOBSXGX", ""),
+      RustSourceItemPath {
         module: "s::types".into(),
         name: "SnehaData".into()
       }
     );
 
     assert_eq!(
-      RustItemPath::from_mangled("UniformsX_naga_oil_mod_XOR4XAZLTX", ""),
-      RustItemPath {
+      RustSourceItemPath::from_mangled("UniformsX_naga_oil_mod_XOR4XAZLTX", ""),
+      RustSourceItemPath {
         module: "types".into(),
         name: "Uniforms".into()
       }
