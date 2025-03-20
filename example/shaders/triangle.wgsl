@@ -1,7 +1,8 @@
-@group(0) @binding(0)
-var color_texture: texture_2d<f32>;
-@group(0) @binding(1)
-var color_sampler: sampler;
+#import global_bindings::{
+  color_texture, 
+  color_sampler, 
+  time
+}
 
 struct Uniforms {
   color_rgb: vec4<f32>,

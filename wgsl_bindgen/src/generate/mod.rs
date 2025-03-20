@@ -25,8 +25,7 @@ pub(crate) fn quote_shader_stages(shader_stages: wgpu::ShaderStages) -> TokenStr
       if shader_stages.contains(wgpu::ShaderStages::COMPUTE) {
         stage_tokens.push(quote!(wgpu::ShaderStages::COMPUTE));
       }
-      // quote!(#(#stage_tokens)|*)
-      unimplemented!()
+      quote!(#(#stage_tokens)|*)
     }
   }
 }

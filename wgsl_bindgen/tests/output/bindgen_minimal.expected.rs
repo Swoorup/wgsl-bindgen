@@ -97,6 +97,72 @@ pub mod minimal {
             data.build()
         }
     }
+    pub mod compute {
+        pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+        pub fn create_main_pipeline_embed_source(
+            device: &wgpu::Device,
+        ) -> wgpu::ComputePipeline {
+            let module = super::create_shader_module_embed_source(device);
+            let layout = super::create_pipeline_layout(device);
+            device
+                .create_compute_pipeline(
+                    &wgpu::ComputePipelineDescriptor {
+                        label: Some("Compute Pipeline main"),
+                        layout: Some(&layout),
+                        module: &module,
+                        entry_point: Some("main"),
+                        compilation_options: Default::default(),
+                        cache: None,
+                    },
+                )
+        }
+    }
+    pub const ENTRY_MAIN: &str = "main";
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+        pub fn bind_group_layout_entries(
+            entries: [wgpu::BindGroupLayout; 1],
+        ) -> [wgpu::BindGroupLayout; 1] {
+            entries
+        }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device
+            .create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("Minimal::PipelineLayout"),
+                    bind_group_layouts: &[
+                        &minimal::WgpuBindGroup0::get_bind_group_layout(device),
+                    ],
+                    push_constant_ranges: &[],
+                },
+            )
+    }
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("minimal.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    pub const SHADER_STRING: &'static str = r#"
+struct Uniforms {
+    color: vec4<f32>,
+    width: f32,
+}
+
+@group(0) @binding(0) 
+var<uniform> uniform_buf: Uniforms;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    return;
+}
+"#;
     #[derive(Debug)]
     pub struct WgpuBindGroup0EntriesParams<'a> {
         pub uniform_buf: wgpu::BufferBinding<'a>,
@@ -165,6 +231,12 @@ pub mod minimal {
             pass.set_bind_group(0, &self.0, &[]);
         }
     }
+    /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
+    /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
+    ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
+    ///   - Bind group 1: More frequent updates
+    ///   - Bind group 2: More frequent updates
+    ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
     #[derive(Debug, Copy, Clone)]
     pub struct WgpuBindGroups<'a> {
         pub bind_group0: &'a WgpuBindGroup0,
@@ -174,78 +246,6 @@ pub mod minimal {
             self.bind_group0.set(pass);
         }
     }
-    pub fn set_bind_groups<'a>(
-        pass: &mut wgpu::ComputePass<'a>,
-        bind_group0: &'a WgpuBindGroup0,
-    ) {
-        bind_group0.set(pass);
-    }
-    pub mod compute {
-        pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
-        pub fn create_main_pipeline_embed_source(
-            device: &wgpu::Device,
-        ) -> wgpu::ComputePipeline {
-            let module = super::create_shader_module_embed_source(device);
-            let layout = super::create_pipeline_layout(device);
-            device
-                .create_compute_pipeline(
-                    &wgpu::ComputePipelineDescriptor {
-                        label: Some("Compute Pipeline main"),
-                        layout: Some(&layout),
-                        module: &module,
-                        entry_point: Some("main"),
-                        compilation_options: Default::default(),
-                        cache: None,
-                    },
-                )
-        }
-    }
-    pub const ENTRY_MAIN: &str = "main";
-    #[derive(Debug)]
-    pub struct WgpuPipelineLayout;
-    impl WgpuPipelineLayout {
-        pub fn bind_group_layout_entries(
-            entries: [wgpu::BindGroupLayout; 1],
-        ) -> [wgpu::BindGroupLayout; 1] {
-            entries
-        }
-    }
-    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-        device
-            .create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("Minimal::PipelineLayout"),
-                    bind_group_layouts: &[
-                        &WgpuBindGroup0::get_bind_group_layout(device),
-                    ],
-                    push_constant_ranges: &[],
-                },
-            )
-    }
-    pub fn create_shader_module_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("minimal.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            })
-    }
-    pub const SHADER_STRING: &'static str = r#"
-struct Uniforms {
-    color: vec4<f32>,
-    width: f32,
-}
-
-@group(0) @binding(0) 
-var<uniform> uniform_buf: Uniforms;
-
-@compute @workgroup_size(1, 1, 1) 
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    return;
-}
-"#;
 }
 pub mod bytemuck_impls {
     use super::{_root, _root::*};

@@ -31,7 +31,7 @@ struct State {
   size: winit::dpi::PhysicalSize<u32>,
   config: wgpu::SurfaceConfiguration,
   pipeline: wgpu::RenderPipeline,
-  bind_group0: shader_bindings::triangle::WgpuBindGroup0,
+  bind_group0: shader_bindings::global_bindings::WgpuBindGroup0,
   bind_group1: shader_bindings::triangle::WgpuBindGroup1,
   vertex_buffer: wgpu::Buffer,
   render_bundle: Option<wgpu::RenderBundle>,
@@ -157,10 +157,10 @@ impl State {
     });
 
     // Use the generated types to ensure the correct bind group is assigned to each slot.
-    let bind_group0 = shader_bindings::triangle::WgpuBindGroup0::from_bindings(
+    let bind_group0 = shader_bindings::global_bindings::WgpuBindGroup0::from_bindings(
       &device,
-      shader_bindings::triangle::WgpuBindGroup0Entries::new(
-        shader_bindings::triangle::WgpuBindGroup0EntriesParams {
+      shader_bindings::global_bindings::WgpuBindGroup0Entries::new(
+        shader_bindings::global_bindings::WgpuBindGroup0EntriesParams {
           color_texture: &view,
           color_sampler: &sampler,
         },
