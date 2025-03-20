@@ -11,11 +11,11 @@ use thiserror::Error;
 use super::constants::MOD_REFERENCE_ROOT;
 use super::{RustSourceItem, RustSourceItemCategory};
 use crate::quote_gen::constants::mod_reference_root;
-use crate::FastIndexMap;
+use crate::{pretty_print, FastIndexMap};
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum RustModuleBuilderError {
-  #[error("Different Content for unique id {id}")]
+  #[error("Different Content for unique id {id}, \nExisting: \n{existing}\n\nReceived: \n{received}")]
   DuplicateContentError {
     id: String,
     existing: String,
@@ -81,8 +81,8 @@ impl RustModule {
         if existing != received {
           return Err(RustModuleBuilderError::DuplicateContentError {
             id: id.to_string(),
-            existing,
-            received,
+            existing: pretty_print(&existing_content),
+            received: pretty_print(&content),
           });
         }
       } else {

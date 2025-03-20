@@ -8,7 +8,6 @@ use wgsl_bindgen::{
 fn main() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .workspace_root("shaders")
-    .add_entry_point("shaders/testbed.wgsl")
     .add_entry_point("shaders/triangle.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)

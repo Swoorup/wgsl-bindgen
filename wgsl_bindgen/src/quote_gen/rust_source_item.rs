@@ -62,7 +62,7 @@ pub(crate) enum RustSourceItemCategory {
 }
 
 /// Represents a Rust source item, that is either a ConstVar, TraitImpls or others.
-#[derive(Constructor)]
+#[derive(Constructor, Debug)]
 pub(crate) struct RustSourceItem {
   pub catagories: BitFlags<RustSourceItemCategory>,
   pub path: RustSourceItemPath,

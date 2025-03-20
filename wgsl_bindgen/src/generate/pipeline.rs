@@ -2,14 +2,16 @@ use std::collections::BTreeMap;
 
 use derive_more::Constructor;
 use generate::quote_shader_stages;
+use smol_str::ToSmolStr;
 
-use super::bind_group::GroupData;
+use super::bind_group::SingleBindGroupData;
+use crate::quote_gen::RustSourceItemPath;
 use crate::*;
 
 #[derive(Constructor)]
 pub struct PipelineLayoutDataEntriesBuilder<'a> {
   generator: &'a PipelineLayoutGenerator,
-  bind_group_data: &'a BTreeMap<u32, GroupData<'a>>,
+  bind_group_data: &'a BTreeMap<u32, SingleBindGroupData<'a>>,
 }
 
 impl<'a> PipelineLayoutDataEntriesBuilder<'a> {
@@ -73,16 +75,32 @@ pub fn create_pipeline_layout_fn(
   naga_module: &naga::Module,
   shader_stages: wgpu::ShaderStages,
   options: &WgslBindgenOption,
-  bind_group_data: &BTreeMap<u32, GroupData>,
+  bind_group_data: &BTreeMap<u32, SingleBindGroupData>,
 ) -> TokenStream {
   let bind_group_layouts: Vec<_> = bind_group_data
     .keys()
-    .map(|group_no| {
-      let group = options
+    .map(|&group_no| {
+      let group_name = options
         .wgpu_binding_generator
         .bind_group_layout
-        .bind_group_name_ident(*group_no);
-      quote!(#group::get_bind_group_layout(device))
+        .bind_group_name_ident(group_no);
+
+      // if all entries have a common module, reference that module instead
+
+      // TODO: This is a hack to make it work with the current implementation.
+      // It will be removed once we reuse some parts of `AllShadersBindGroups` to generate the layout
+      let group = bind_group_data.get(&group_no).unwrap();
+      let containing_module = group.bindings.first().unwrap().item_path.module.clone();
+      if group
+        .bindings
+        .iter()
+        .all(|b| b.item_path.module == containing_module)
+      {
+        let path = RustSourceItemPath::new(containing_module, group_name.to_smolstr());
+        quote!(#path::get_bind_group_layout(device))
+      } else {
+        quote!(#group_name::get_bind_group_layout(device))
+      }
     })
     .collect();
 

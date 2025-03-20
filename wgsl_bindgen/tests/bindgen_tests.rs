@@ -99,6 +99,27 @@ fn test_struct_alignment_padding() -> Result<()> {
 }
 
 #[test]
+fn test_struct_layouts() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/shaders/layouts.wgsl")
+    .workspace_root("tests/shaders")
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/bindgen_layouts.actual.rs".to_string())
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/bindgen_layouts.actual.rs").unwrap();
+  let expected = read_to_string("tests/output/bindgen_layouts.expected.rs").unwrap();
+
+  assert_eq!(actual, expected);
+  Ok(())
+}
+
+#[test]
 #[ignore = "It doesn't like path symbols inside a nested type like array."]
 fn test_path_import() -> Result<()> {
   let _ = WgslBindgenOptionBuilder::default()
