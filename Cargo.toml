@@ -4,7 +4,7 @@ resolver = "2"
 members = ["wgsl_bindgen", "example"]
 
 [workspace.package]
-version = "0.17.0"
+version = "0.17.1"
 authors = ["swoorup", "ScanMountGoat(Original Fork)"]
 edition = "2021"
 repository = "https://github.com/Swoorup/wgsl_bindgen"
