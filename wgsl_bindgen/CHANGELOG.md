@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.17.0...wgsl_bindgen-v0.17.1) - 2025-03-20
+## [0.18.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.17.0...wgsl_bindgen-v0.18.0) - 2025-03-20
 
 ### Other
 
-- Added support for reusable bind groups. Fixes #33
+- Added support for reusable bind groups. Bindgroups defined in shared wgsl, are generated once on the shared module and not on entrypoint
 
 ## [0.15.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.15.1...wgsl_bindgen-v0.15.2) - 2024-12-13
 
