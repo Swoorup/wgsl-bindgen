@@ -107,6 +107,9 @@ fn test_struct_layouts() -> Result<()> {
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
+    .override_bind_group_entry_module_path(
+      [("color_texture", "bindings"), ("color_sampler", "bindings")].map(Into::into),
+    )
     .output("tests/output/bindgen_layouts.actual.rs".to_string())
     .build()?
     .generate()
