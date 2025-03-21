@@ -577,12 +577,12 @@ mod tests {
 
   #[test]
   fn test_create_canonical_variable_name() {
-    assert_eq!(create_canonical_variable_name("Foo", false), "foo");
-    assert_eq!(create_canonical_variable_name("Foo", true), "FOO");
-    assert_eq!(create_canonical_variable_name("Foo::Bar", false), "foo_bar");
-    assert_eq!(create_canonical_variable_name("Foo::Bar", true), "FOO_BAR");
-    assert_eq!(create_canonical_variable_name("Foo Bar", false), "foo_bar");
-    assert_eq!(create_canonical_variable_name("Foo Bar", true), "FOO_BAR");
+    assert_eq!("foo", create_canonical_variable_name("Foo", false));
+    assert_eq!("FOO", create_canonical_variable_name("Foo", true));
+    assert_eq!("foo_bar", create_canonical_variable_name("Foo::Bar", false));
+    assert_eq!("FOO_BAR", create_canonical_variable_name("Foo::Bar", true));
+    assert_eq!("foo_bar", create_canonical_variable_name("Foo Bar", false));
+    assert_eq!("FOO_BAR", create_canonical_variable_name("Foo Bar", true));
   }
 
   #[test]

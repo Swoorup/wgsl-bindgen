@@ -142,7 +142,7 @@ mod tests {
       SourceFilePath::new("mydir/Fragment.wgsl")
     )];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 
   #[test]
@@ -159,7 +159,7 @@ mod tests {
       SourceFilePath::new("mydir/Fragment.wgsl")
     )];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 
   // Should generate import paths with correct extensions
@@ -186,7 +186,7 @@ mod tests {
         SourceFilePath::new("mydir/Module.wgsl")
       ),
     ];
-    assert_eq!(actual, expected);
+    assert_eq!(expected, actual);
   }
 
   #[test]
@@ -201,7 +201,7 @@ mod tests {
 
     let expected = indexset![];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 
   // Should return an empty SmallVec when import_module has only the module prefix
@@ -217,7 +217,7 @@ mod tests {
 
     let expected = indexset![];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 
   #[test]
@@ -234,7 +234,7 @@ mod tests {
       SourceFilePath::new("mydir/Fragment.wgsl")
     )];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 
   #[test]
@@ -252,7 +252,7 @@ mod tests {
       SourceFilePath::new("tests/bevy_pbr_wgsl/pbr/types.wgsl")
     )];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 
   #[test]
@@ -276,6 +276,6 @@ mod tests {
       )
     ];
 
-    assert_eq!(result, expected);
+    assert_eq!(expected, result);
   }
 }

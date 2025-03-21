@@ -174,7 +174,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
 
 #[derive(Constructor)]
 struct BindGroupStructBuilder<'a> {
-  sanitized_entry_name: &'a str,
+  sanitized_entry_name: String,
   group_no: u32,
   data: &'a SingleBindGroupData<'a>,
   options: &'a WgslBindgenOption,
@@ -273,7 +273,6 @@ impl<'a> BindGroupStructBuilder<'a> {
 #[derive(Constructor)]
 pub struct SingleBindGroupBuilder<'a> {
   pub containing_module: &'a str,
-  pub sanitized_entry_name: &'a str,
   pub group_no: u32,
   pub group_data: &'a SingleBindGroupData<'a>,
   pub options: &'a WgslBindgenOption,
@@ -305,7 +304,7 @@ impl<'a> SingleBindGroupBuilder<'a> {
       };
 
     let bindgroup_struct_builder = BindGroupStructBuilder::new(
-      &self.sanitized_entry_name,
+      sanitize_and_pascal_case(self.containing_module),
       self.group_no,
       self.group_data,
       self.options,
@@ -456,6 +455,20 @@ fn storage_access(access: naga::StorageAccess) -> TokenStream {
 #[derive(Clone)]
 pub struct SingleBindGroupData<'a> {
   pub bindings: Vec<SingleBindGroupEntry<'a>>,
+}
+
+impl SingleBindGroupData<'_> {
+  pub fn first_module(&self) -> SmolStr {
+    self.bindings.first().unwrap().item_path.module.clone()
+  }
+
+  pub fn are_all_same_module(&self) -> bool {
+    let first_module = self.first_module();
+    self
+      .bindings
+      .iter()
+      .all(|b| b.item_path.module == first_module)
+  }
 }
 
 #[derive(Clone)]

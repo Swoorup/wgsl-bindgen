@@ -551,138 +551,6 @@ pub mod layouts {
         }
     }
     #[derive(Debug)]
-    pub struct WgpuPipelineLayout;
-    impl WgpuPipelineLayout {
-        pub fn bind_group_layout_entries(
-            entries: [wgpu::BindGroupLayout; 3],
-        ) -> [wgpu::BindGroupLayout; 3] {
-            entries
-        }
-    }
-    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-        device
-            .create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("Layouts::PipelineLayout"),
-                    bind_group_layouts: &[
-                        &layouts::WgpuBindGroup0::get_bind_group_layout(device),
-                        &layouts::WgpuBindGroup1::get_bind_group_layout(device),
-                        &layouts::WgpuBindGroup2::get_bind_group_layout(device),
-                    ],
-                    push_constant_ranges: &[],
-                },
-            )
-    }
-    pub fn create_shader_module_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("layouts.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            })
-    }
-    pub const SHADER_STRING: &'static str = r#"
-struct Scalars {
-    a: u32,
-    b: i32,
-    c: f32,
-    @builtin(vertex_index) d: u32,
-}
-
-struct VectorsU32_ {
-    a: vec2<u32>,
-    b: vec3<u32>,
-    c: vec4<u32>,
-    _padding: f32,
-}
-
-struct VectorsI32_ {
-    a: vec2<i32>,
-    b: vec3<i32>,
-    c: vec4<i32>,
-}
-
-struct VectorsF32_ {
-    a: vec2<f32>,
-    b: vec3<f32>,
-    c: vec4<f32>,
-}
-
-struct MatricesF32_ {
-    a: mat4x4<f32>,
-    b: mat4x3<f32>,
-    c: mat4x2<f32>,
-    d: mat3x4<f32>,
-    e: mat3x3<f32>,
-    f: mat3x2<f32>,
-    g: mat2x4<f32>,
-    h: mat2x3<f32>,
-    i: mat2x2<f32>,
-}
-
-struct StaticArrays {
-    a: array<u32, 5>,
-    b: array<f32, 3>,
-    c: array<mat4x4<f32>, 512>,
-    d: array<vec3<f32>, 4>,
-}
-
-struct Nested {
-    a: MatricesF32_,
-    b: VectorsF32_,
-}
-
-struct Uniforms {
-    color_rgb: vec4<f32>,
-    scalars: Scalars,
-}
-
-struct VertexIn {
-    @location(0) position: vec4<f32>,
-}
-
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-}
-
-@group(0) @binding(0) 
-var color_texture: texture_2d<f32>;
-@group(0) @binding(1) 
-var color_sampler: sampler;
-@group(1) @binding(0) 
-var<uniform> uniforms: Uniforms;
-@group(2) @binding(2) 
-var<storage> a: Scalars;
-@group(2) @binding(3) 
-var<storage> b: VectorsU32_;
-@group(2) @binding(4) 
-var<storage> c: VectorsI32_;
-@group(2) @binding(5) 
-var<storage> d: VectorsF32_;
-@group(2) @binding(6) 
-var<storage> f: MatricesF32_;
-@group(2) @binding(8) 
-var<storage> h: StaticArrays;
-@group(2) @binding(9) 
-var<storage> i: Nested;
-
-@vertex 
-fn vertex_main(input: VertexIn) -> VertexOutput {
-    var output: VertexOutput;
-
-    output.position = input.position;
-    let _e4 = output;
-    return _e4;
-}
-
-@fragment 
-fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(1f, 1f, 1f, 1f);
-}
-"#;
-    #[derive(Debug)]
     pub struct WgpuBindGroup0EntriesParams<'a> {
         pub color_texture: &'a wgpu::TextureView,
         pub color_sampler: &'a wgpu::Sampler,
@@ -1046,6 +914,138 @@ fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
             self.bind_group2.set(pass);
         }
     }
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+        pub fn bind_group_layout_entries(
+            entries: [wgpu::BindGroupLayout; 3],
+        ) -> [wgpu::BindGroupLayout; 3] {
+            entries
+        }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device
+            .create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("Layouts::PipelineLayout"),
+                    bind_group_layouts: &[
+                        &WgpuBindGroup0::get_bind_group_layout(device),
+                        &WgpuBindGroup1::get_bind_group_layout(device),
+                        &WgpuBindGroup2::get_bind_group_layout(device),
+                    ],
+                    push_constant_ranges: &[],
+                },
+            )
+    }
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("layouts.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    pub const SHADER_STRING: &'static str = r#"
+struct Scalars {
+    a: u32,
+    b: i32,
+    c: f32,
+    @builtin(vertex_index) d: u32,
+}
+
+struct VectorsU32_ {
+    a: vec2<u32>,
+    b: vec3<u32>,
+    c: vec4<u32>,
+    _padding: f32,
+}
+
+struct VectorsI32_ {
+    a: vec2<i32>,
+    b: vec3<i32>,
+    c: vec4<i32>,
+}
+
+struct VectorsF32_ {
+    a: vec2<f32>,
+    b: vec3<f32>,
+    c: vec4<f32>,
+}
+
+struct MatricesF32_ {
+    a: mat4x4<f32>,
+    b: mat4x3<f32>,
+    c: mat4x2<f32>,
+    d: mat3x4<f32>,
+    e: mat3x3<f32>,
+    f: mat3x2<f32>,
+    g: mat2x4<f32>,
+    h: mat2x3<f32>,
+    i: mat2x2<f32>,
+}
+
+struct StaticArrays {
+    a: array<u32, 5>,
+    b: array<f32, 3>,
+    c: array<mat4x4<f32>, 512>,
+    d: array<vec3<f32>, 4>,
+}
+
+struct Nested {
+    a: MatricesF32_,
+    b: VectorsF32_,
+}
+
+struct Uniforms {
+    color_rgb: vec4<f32>,
+    scalars: Scalars,
+}
+
+struct VertexIn {
+    @location(0) position: vec4<f32>,
+}
+
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+}
+
+@group(0) @binding(0) 
+var color_texture: texture_2d<f32>;
+@group(0) @binding(1) 
+var color_sampler: sampler;
+@group(1) @binding(0) 
+var<uniform> uniforms: Uniforms;
+@group(2) @binding(2) 
+var<storage> a: Scalars;
+@group(2) @binding(3) 
+var<storage> b: VectorsU32_;
+@group(2) @binding(4) 
+var<storage> c: VectorsI32_;
+@group(2) @binding(5) 
+var<storage> d: VectorsF32_;
+@group(2) @binding(6) 
+var<storage> f: MatricesF32_;
+@group(2) @binding(8) 
+var<storage> h: StaticArrays;
+@group(2) @binding(9) 
+var<storage> i: Nested;
+
+@vertex 
+fn vertex_main(input: VertexIn) -> VertexOutput {
+    var output: VertexOutput;
+
+    output.position = input.position;
+    let _e4 = output;
+    return _e4;
+}
+
+@fragment 
+fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4<f32>(1f, 1f, 1f, 1f);
+}
+"#;
 }
 pub mod bytemuck_impls {
     use super::{_root, _root::*};

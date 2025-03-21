@@ -42,7 +42,7 @@ extern crate wgpu_types as wgpu;
 use bevy_util::SourceWithFullDependenciesResult;
 use case::CaseExt;
 use derive_more::IsVariant;
-use generate::bind_group::AllShadersBindGroups;
+use generate::bind_group::RawShadersBindGroups;
 use generate::entry::{self, entry_point_constants, vertex_struct_impls};
 use generate::{bind_group, consts, pipeline, shader_module, shader_registry};
 use heck::ToPascalCase;
@@ -118,15 +118,13 @@ fn create_rust_bindings(
     mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
   }
 
-  let mut all_shader_bind_groups = AllShadersBindGroups::new();
+  let mut all_shader_bind_groups = RawShadersBindGroups::new(options);
   for entry in entries.iter() {
     let WgslEntryResult {
       mod_name,
       naga_module,
       ..
     } = entry;
-    let entry_name = sanitize_and_pascal_case(&mod_name);
-
     // Write all the structs, including uniforms and entry function inputs.
     mod_builder.add_items(structs::structs_items(&mod_name, naga_module, options))?;
     mod_builder.add_items(consts::consts_items(&mod_name, naga_module))?;
@@ -152,25 +150,37 @@ fn create_rust_bindings(
       &options,
       &mod_name,
     )?;
-    let create_pipeline_layout = pipeline::create_pipeline_layout_fn(
-      &entry_name,
-      naga_module,
-      shader_stages,
-      &options,
-      &shader_bind_groups.bind_group_data,
-    );
-
     all_shader_bind_groups.add(shader_bind_groups);
-
-    mod_builder.add(mod_name, create_pipeline_layout);
-    mod_builder.add(mod_name, shader_module::shader_module(entry, options));
   }
 
   // merge the bind groups together, so we can extract common bind groups, and shader specific bind groups
-  all_shader_bind_groups.combine_reusable();
-  let bind_groups = all_shader_bind_groups.generate_bind_groups(options);
-
+  let reusable_bind_groups = all_shader_bind_groups.create_reusable_shader_bind_groups();
+  let bind_groups = reusable_bind_groups.generate_bind_groups(options);
   mod_builder.add_items(bind_groups)?;
+
+  // run a second pass to generate the pipeline layouts and final shader modules
+  for entry in entries.iter() {
+    let WgslEntryResult {
+      mod_name,
+      naga_module,
+      ..
+    } = entry;
+    let entry_name = sanitize_and_pascal_case(&mod_name);
+    if let Some(shader_bind_groups) = reusable_bind_groups
+      .entrypoint_bindgroups
+      .get(mod_name.as_str())
+    {
+      let create_pipeline_layout = pipeline::create_pipeline_layout_fn(
+        &entry_name,
+        naga_module,
+        shader_bind_groups,
+        &options,
+      );
+      mod_builder.add(mod_name, create_pipeline_layout);
+    }
+
+    mod_builder.add(mod_name, shader_module::shader_module(entry, options));
+  }
 
   let mod_token_stream = mod_builder.generate();
   let shader_registry =

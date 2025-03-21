@@ -1,14 +1,15 @@
+mod raw_shader_bind_group;
 mod single_bind_group;
 
-use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 
 use generate::quote_shader_stages;
 use quote::{format_ident, quote};
 use quote_gen::{demangle_and_fully_qualify_str, rust_type};
+pub use raw_shader_bind_group::{get_bind_group_data_for_entry, RawShadersBindGroups};
+use single_bind_group::SingleBindGroupBuilder;
 pub use single_bind_group::SingleBindGroupData;
-use single_bind_group::{SingleBindGroupBuilder, SingleBindGroupEntry};
-use smol_str::SmolStr;
+use smol_str::{SmolStr, ToSmolStr};
 
 use crate::quote_gen::{
   RustSourceItem, RustSourceItemCategory, RustSourceItemPath, MOD_REFERENCE_ROOT,
@@ -16,136 +17,82 @@ use crate::quote_gen::{
 use crate::wgsl::buffer_binding_type;
 use crate::*;
 
-pub struct ShaderBindGroups<'a> {
+/// A collection of bind groups that are common to all entrypoints.
+struct CommonShaderBindGroups<'a> {
+  containing_module: SmolStr,
+  bind_group_data: BTreeMap<u32, SingleBindGroupData<'a>>,
+}
+
+#[derive(Clone, Eq, Copy, PartialEq, Ord, PartialOrd, Hash)]
+pub enum ShaderBindGroupRefKind {
+  Common,
+  Entrypoint,
+}
+
+pub struct ShaderBindGroupRef<'a> {
+  pub kind: ShaderBindGroupRefKind,
+  pub data: SingleBindGroupData<'a>,
+}
+
+pub struct ShaderEntryBindGroups<'a> {
   pub containing_module: SmolStr,
   pub shader_stages: wgpu::ShaderStages,
-  pub bind_group_data: BTreeMap<u32, SingleBindGroupData<'a>>,
+  pub bind_group_ref: BTreeMap<u32, ShaderBindGroupRef<'a>>,
+  pub original_bind_group: BTreeMap<u32, SingleBindGroupData<'a>>,
 }
 
-pub struct AllShadersBindGroups<'a> {
-  pub shaders: FastIndexMap<SmolStr, ShaderBindGroups<'a>>,
+pub struct ReusableShaderBindGroups<'a> {
+  common_bind_groups: FastIndexMap<SmolStr, CommonShaderBindGroups<'a>>,
+  pub entrypoint_bindgroups: FastIndexMap<SmolStr, ShaderEntryBindGroups<'a>>,
 }
 
-impl<'a> AllShadersBindGroups<'a> {
+impl<'a> ReusableShaderBindGroups<'a> {
   pub fn new() -> Self {
     Self {
-      shaders: FastIndexMap::default(),
-    }
-  }
-
-  pub fn add(&mut self, shader: ShaderBindGroups<'a>) {
-    self
-      .shaders
-      .insert(shader.containing_module.clone(), shader);
-  }
-
-  pub fn combine_reusable(&mut self) {
-    fn merge_bind_groups<'a>(
-      existing_group: &SingleBindGroupData<'a>,
-      new_group: &SingleBindGroupData<'a>,
-    ) -> SingleBindGroupData<'a> {
-      let mut merged_bindings = existing_group.bindings.clone();
-      for binding in new_group.bindings.iter() {
-        merged_bindings.push(binding.clone());
-      }
-      merged_bindings.sort_by(|a, b| a.binding_index.cmp(&b.binding_index));
-      merged_bindings.dedup_by(|a, b| {
-        a.binding_index == b.binding_index
-          && a.item_path == b.item_path
-          && a.name == b.name
-      });
-      SingleBindGroupData {
-        bindings: merged_bindings,
-      }
-    }
-
-    // Create a common binding group for all shaders.
-    let mut common_bind_groups = BTreeMap::new();
-    for shader in self.shaders.values() {
-      for (&group_no, group) in &shader.bind_group_data {
-        // Check if all entry have the same module.
-        let first_module = group.bindings.first().map(|b| &b.item_path.module).unwrap();
-        let all_same_module = group
-          .bindings
-          .iter()
-          .all(|b| &b.item_path.module == first_module);
-
-        // if all the bindings are in the same module, and of this shader, skip it.
-        if all_same_module && first_module == &shader.containing_module {
-          continue;
-        }
-
-        match common_bind_groups.entry(group_no) {
-          Entry::Vacant(vacant_entry) => {
-            vacant_entry.insert((shader.shader_stages, group.clone()));
-          }
-          Entry::Occupied(mut occupied_entry) => {
-            let merged_group = merge_bind_groups(&occupied_entry.get().1, group);
-            let merged_stages = occupied_entry.get().0 | shader.shader_stages;
-            occupied_entry.insert((merged_stages, merged_group));
-          }
-        };
-      }
-    }
-
-    // Remove all the bind groups that are not reusable.
-    common_bind_groups.retain(|_, (_, group)| {
-      let first_module = group.bindings.first().map(|b| &b.item_path.module);
-      group
-        .bindings
-        .iter()
-        .all(|b| Some(&b.item_path.module) == first_module)
-    });
-
-    // Remove the reusable bind groups from the shaders.
-    for (_, shader) in &mut self.shaders {
-      for (group_no, (_, common_group)) in &common_bind_groups {
-        if let Some(group) = shader.bind_group_data.get(&group_no) {
-          let shader_first_module =
-            group.bindings.first().unwrap().item_path.module.clone();
-
-          if shader_first_module
-            == common_group.bindings.first().unwrap().item_path.module
-          {
-            shader.bind_group_data.remove(&group_no);
-          }
-        }
-      }
-    }
-    // remove if empty
-    self
-      .shaders
-      .retain(|_, shader| !shader.bind_group_data.is_empty());
-
-    // Add/Replace the reusable bind groups to the shaders.
-    for (group_no, (shader_stages, group)) in common_bind_groups {
-      let containing_module = group.bindings.first().unwrap().item_path.module.clone();
-      match self.shaders.entry(containing_module.clone()) {
-        indexmap::map::Entry::Occupied(mut occupied_entry) => {
-          occupied_entry
-            .get_mut()
-            .bind_group_data
-            .insert(group_no, group);
-          occupied_entry.get_mut().shader_stages |= shader_stages;
-        }
-        indexmap::map::Entry::Vacant(vacant_entry) => {
-          vacant_entry.insert(ShaderBindGroups {
-            containing_module,
-            shader_stages,
-            bind_group_data: BTreeMap::from([(group_no, group)]),
-          });
-        }
-      }
+      common_bind_groups: FastIndexMap::default(),
+      entrypoint_bindgroups: FastIndexMap::default(),
     }
   }
 
   pub fn generate_bind_groups(&self, options: &WgslBindgenOption) -> Vec<RustSourceItem> {
     let mut items = Vec::new();
-    for (_, shader) in &self.shaders {
-      items.extend(generate_bind_groups_module(
+    // generate the common single bind groups.
+    for common_bind_groups in self.common_bind_groups.values() {
+      for (&group_no, group_data) in &common_bind_groups.bind_group_data {
+        let builder = SingleBindGroupBuilder {
+          containing_module: &common_bind_groups.containing_module,
+          group_no,
+          group_data,
+          options,
+        };
+        items.push(builder.build());
+      }
+    }
+
+    // generate the entrypoint single bind groups.
+    for (_, shader) in &self.entrypoint_bindgroups {
+      for (&group_no, group_ref) in &shader.bind_group_ref {
+        // skip common bind groups.
+        if group_ref.kind == ShaderBindGroupRefKind::Common {
+          continue;
+        }
+
+        let builder = SingleBindGroupBuilder {
+          containing_module: &shader.containing_module,
+          group_no,
+          group_data: &group_ref.data,
+          options,
+        };
+        items.push(builder.build());
+      }
+    }
+
+    // generate the bind groups module extras.
+    for (_, shader) in &self.entrypoint_bindgroups {
+      items.extend(generate_bind_groups_module_extras(
         &shader.containing_module,
         options,
-        &shader.bind_group_data,
+        &shader.bind_group_ref,
         shader.shader_stages,
       ));
     }
@@ -154,40 +101,34 @@ impl<'a> AllShadersBindGroups<'a> {
   }
 }
 
-pub fn generate_bind_groups_module(
+fn generate_bind_groups_module_extras(
   invoking_entry_module: &str,
   options: &WgslBindgenOption,
-  bind_group_data: &BTreeMap<u32, SingleBindGroupData>,
+  bind_group_data: &BTreeMap<u32, ShaderBindGroupRef<'_>>,
   shader_stages: wgpu::ShaderStages,
 ) -> Vec<RustSourceItem> {
-  let sanitized_entry_name = sanitize_and_pascal_case(invoking_entry_module);
-  let bind_groups: Vec<_> = bind_group_data
-    .iter()
-    .map(|(&group_no, group_data)| {
-      SingleBindGroupBuilder {
-        containing_module: invoking_entry_module,
-        sanitized_entry_name: &sanitized_entry_name,
-        group_no,
-        group_data,
-        options,
-      }
-      .build()
-    })
-    .collect();
-
   let bind_group_fields: Vec<_> = bind_group_data
-    .keys()
-    .map(|group_no| {
+    .iter()
+    .map(|(group_no, group_ref)| {
       let group_name = options
         .wgpu_binding_generator
         .bind_group_layout
         .bind_group_name_ident(*group_no);
+
+      let group_name = match group_ref.kind {
+        ShaderBindGroupRefKind::Common => {
+          let containing_module = group_ref.data.first_module();
+          let path = RustSourceItemPath::new(containing_module, group_name.to_smolstr());
+          quote!(#path)
+        }
+        ShaderBindGroupRefKind::Entrypoint => quote!(#group_name),
+      };
+
       let field = indexed_name_ident("bind_group", *group_no);
       quote!(pub #field: &'a #group_name)
     })
     .collect();
 
-  // TODO: Support compute shader with vertex/fragment in the same module?
   let has_compute = shader_stages.contains(wgpu::ShaderStages::COMPUTE);
   let has_render = shader_stages.contains(wgpu::ShaderStages::VERTEX_FRAGMENT)
     || shader_stages.contains(wgpu::ShaderStages::FRAGMENT)
@@ -202,7 +143,7 @@ pub fn generate_bind_groups_module(
     })
     .collect();
 
-  if bind_groups.is_empty() {
+  if bind_group_data.is_empty() {
     // Don't include empty modules.
     vec![]
   } else {
@@ -310,67 +251,10 @@ pub fn generate_bind_groups_module(
       },
     );
 
-    bind_groups
+    [bind_group_trait, entry_bind_groups]
       .into_iter()
-      .chain([bind_group_trait, entry_bind_groups])
       .chain(set_bind_group_impls)
       .collect()
-  }
-}
-
-pub fn get_bind_group_data_for_entry<'a>(
-  module: &'a naga::Module,
-  shader_stages: wgpu::ShaderStages,
-  options: &WgslBindgenOption,
-  module_name: &'a str,
-) -> Result<ShaderBindGroups<'a>, CreateModuleError> {
-  // Use a BTree to sort type and field names by group index.
-  // This isn't strictly necessary but makes the generated code cleaner.
-  let mut groups = BTreeMap::new();
-
-  for global_handle in module.global_variables.iter() {
-    let global = &module.global_variables[global_handle.0];
-    if let Some(binding) = &global.binding {
-      let group = groups.entry(binding.group).or_insert(SingleBindGroupData {
-        bindings: Vec::new(),
-      });
-      let binding_type = &module.types[module.global_variables[global_handle.0].ty];
-
-      let group_binding = SingleBindGroupEntry::new(
-        global.name.clone(),
-        module_name,
-        options,
-        module,
-        shader_stages,
-        binding.binding,
-        binding_type,
-        global.space,
-      );
-
-      // Repeated bindings will probably cause a compile error.
-      // We'll still check for it here just in case.
-      if group
-        .bindings
-        .iter()
-        .any(|g| g.binding_index == binding.binding)
-      {
-        return Err(CreateModuleError::DuplicateBinding {
-          binding: binding.binding,
-        });
-      }
-      group.bindings.push(group_binding);
-    }
-  }
-
-  // wgpu expects bind groups to be consecutive starting from 0.
-  if groups.keys().map(|i| *i as usize).eq(0..groups.len()) {
-    Ok(ShaderBindGroups {
-      containing_module: module_name.into(),
-      shader_stages,
-      bind_group_data: groups,
-    })
-  } else {
-    Err(CreateModuleError::NonConsecutiveBindGroups)
   }
 }
 
@@ -380,6 +264,7 @@ mod tests {
 
   use super::*;
   use crate::assert_tokens_eq;
+  use crate::bind_group::raw_shader_bind_group::RawShaderEntryBindGroups;
 
   #[test]
   #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
@@ -457,13 +342,19 @@ mod tests {
   fn generate_test_bind_groups_module(
     bind_group_data: &BTreeMap<u32, SingleBindGroupData>,
     shader_stages: wgpu::ShaderStages,
+    options: &WgslBindgenOption,
   ) -> TokenStream {
-    let items = generate_bind_groups_module(
-      "test",
-      &WgslBindgenOption::default(),
-      bind_group_data,
+    let raw_shader_entry_bind_groups = RawShaderEntryBindGroups {
+      containing_module: "test".into(),
       shader_stages,
-    );
+      bind_group_data: bind_group_data.clone(),
+    };
+
+    let mut raw_shaders_bind_groups = RawShadersBindGroups::new(options);
+    raw_shaders_bind_groups.add(raw_shader_entry_bind_groups);
+    let items = raw_shaders_bind_groups
+      .create_reusable_shader_bind_groups()
+      .generate_bind_groups(&WgslBindgenOption::default());
     let all_matching = items
       .into_iter()
       .filter(|item| item.path.name.contains("WgpuBindGroup"))
@@ -495,17 +386,17 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
-    let bind_group_data = get_bind_group_data_for_entry(
-      &module,
-      wgpu::ShaderStages::NONE,
-      &WgslBindgenOption::default(),
-      "test",
-    )
-    .unwrap()
-    .bind_group_data;
+    let options = WgslBindgenOption::default();
+    let bind_group_data =
+      get_bind_group_data_for_entry(&module, wgpu::ShaderStages::NONE, &options, "test")
+        .unwrap()
+        .bind_group_data;
 
-    let actual =
-      generate_test_bind_groups_module(&bind_group_data, wgpu::ShaderStages::COMPUTE);
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::COMPUTE,
+      &options,
+    );
 
     assert_tokens_eq!(
       quote! {
@@ -747,10 +638,11 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
     let bind_group_data = get_bind_group_data_for_entry(
       &module,
       wgpu::ShaderStages::VERTEX_FRAGMENT,
-      &WgslBindgenOption::default(),
+      &options,
       "test",
     )
     .unwrap()
@@ -759,6 +651,7 @@ mod tests {
     let actual = generate_test_bind_groups_module(
       &bind_group_data,
       wgpu::ShaderStages::VERTEX_FRAGMENT,
+      &options,
     );
 
     // TODO: Are storage buffers valid for vertex/fragment?
@@ -1148,17 +1041,21 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
     let bind_group_data = get_bind_group_data_for_entry(
       &module,
       wgpu::ShaderStages::VERTEX,
-      &WgslBindgenOption::default(),
+      &options,
       "test",
     )
     .unwrap()
     .bind_group_data;
 
-    let actual =
-      generate_test_bind_groups_module(&bind_group_data, wgpu::ShaderStages::VERTEX);
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::VERTEX,
+      &options,
+    );
 
     assert_tokens_eq!(
       quote! {
@@ -1263,17 +1160,21 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
     let bind_group_data = get_bind_group_data_for_entry(
       &module,
       wgpu::ShaderStages::FRAGMENT,
-      &WgslBindgenOption::default(),
+      &options,
       "test",
     )
     .unwrap()
     .bind_group_data;
 
-    let actual =
-      generate_test_bind_groups_module(&bind_group_data, wgpu::ShaderStages::FRAGMENT);
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::FRAGMENT,
+      &options,
+    );
 
     assert_tokens_eq!(
       quote! {
