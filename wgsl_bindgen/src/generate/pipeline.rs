@@ -4,7 +4,8 @@ use derive_more::Constructor;
 use generate::quote_shader_stages;
 use smol_str::ToSmolStr;
 
-use super::bind_group::SingleBindGroupData;
+use super::bind_group::{ShaderEntryBindGroups, SingleBindGroupData};
+use crate::bind_group::ShaderBindGroupRefKind;
 use crate::quote_gen::RustSourceItemPath;
 use crate::*;
 
@@ -73,49 +74,52 @@ fn push_constant_range(
 pub fn create_pipeline_layout_fn(
   entry_name: &str,
   naga_module: &naga::Module,
-  shader_stages: wgpu::ShaderStages,
+  shader_entry_bind_groups: &ShaderEntryBindGroups,
   options: &WgslBindgenOption,
-  bind_group_data: &BTreeMap<u32, SingleBindGroupData>,
 ) -> TokenStream {
-  let bind_group_layouts: Vec<_> = bind_group_data
-    .keys()
-    .map(|&group_no| {
+  let bind_group_layouts: Vec<_> = shader_entry_bind_groups
+    .bind_group_ref
+    .iter()
+    .map(|(&group_no, group_ref)| {
       let group_name = options
         .wgpu_binding_generator
         .bind_group_layout
         .bind_group_name_ident(group_no);
 
       // if all entries have a common module, reference that module instead
+      let group_name = match group_ref.kind {
+        ShaderBindGroupRefKind::Common => {
+          let containing_module = group_ref.data.first_module();
+          let path = RustSourceItemPath::new(containing_module, group_name.to_smolstr());
+          quote!(#path)
+        }
+        ShaderBindGroupRefKind::Entrypoint => quote!(#group_name),
+      };
 
-      // TODO: This is a hack to make it work with the current implementation.
-      // It will be removed once we reuse some parts of `AllShadersBindGroups` to generate the layout
-      let group = bind_group_data.get(&group_no).unwrap();
-      let containing_module = group.bindings.first().unwrap().item_path.module.clone();
-      if group
-        .bindings
-        .iter()
-        .all(|b| b.item_path.module == containing_module)
-      {
-        let path = RustSourceItemPath::new(containing_module, group_name.to_smolstr());
-        quote!(#path::get_bind_group_layout(device))
-      } else {
-        quote!(#group_name::get_bind_group_layout(device))
-      }
+      quote!(#group_name::get_bind_group_layout(device))
     })
     .collect();
 
   let wgpu_pipeline_gen = &options.wgpu_binding_generator.pipeline_layout;
-  let wgpu_pipeline_entries_struct =
-    PipelineLayoutDataEntriesBuilder::new(wgpu_pipeline_gen, bind_group_data).build();
+  let wgpu_pipeline_entries_struct = PipelineLayoutDataEntriesBuilder::new(
+    wgpu_pipeline_gen,
+    &shader_entry_bind_groups.original_bind_group,
+  )
+  .build();
 
   let additional_pipeline_entries_struct =
     if let Some(a) = options.extra_binding_generator.as_ref() {
-      PipelineLayoutDataEntriesBuilder::new(&a.pipeline_layout, bind_group_data).build()
+      PipelineLayoutDataEntriesBuilder::new(
+        &a.pipeline_layout,
+        &shader_entry_bind_groups.original_bind_group,
+      )
+      .build()
     } else {
       quote!()
     };
 
-  let push_constant_range = push_constant_range(&naga_module, shader_stages);
+  let push_constant_range =
+    push_constant_range(&naga_module, shader_entry_bind_groups.shader_stages);
 
   let pipeline_layout_name = format!("{}::PipelineLayout", entry_name);
 

@@ -224,9 +224,9 @@ mod tests {
       }
     ];
 
-    assert_eq!(actual, expected);
+    assert_eq!(expected, actual);
 
-    assert_str_eq!(&test_imports[actual[1].range()], "#import a::b c, d");
+    assert_str_eq!("#import a::b c, d", &test_imports[actual[1].range()]);
   }
 
   #[test]
@@ -237,6 +237,6 @@ mod tests {
       .flat_map(|x| x.get_import_path_parts())
       .collect::<Vec<_>>();
 
-    assert_eq!(actual, vec![ImportPathPart::new("bevy_pbr::mesh_view_types")]);
+    assert_eq!(vec![ImportPathPart::new("bevy_pbr::mesh_view_types")], actual);
   }
 }

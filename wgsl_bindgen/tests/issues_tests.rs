@@ -25,6 +25,6 @@ fn test_issue_35() -> Result<()> {
   let actual = read_to_string("tests/output/issue_35.actual.rs").unwrap();
   let expected = read_to_string("tests/output/issue_35.expected.rs").unwrap();
 
-  assert_eq!(actual, expected);
+  assert_eq!(expected, actual);
   Ok(())
 }

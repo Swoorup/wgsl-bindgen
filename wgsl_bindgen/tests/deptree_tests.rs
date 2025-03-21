@@ -68,7 +68,6 @@ fn test_bevy_all_files_enumeration() {
   let deptree = build_bevy_deptree();
 
   assert_eq!(
-    deptree.all_files_including_dependencies(),
     indexset![
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl"),
@@ -88,7 +87,8 @@ fn test_bevy_all_files_enumeration() {
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/pbr/bindings.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/wireframe.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/skinning.wgsl"),
-    ]
+    ],
+    deptree.all_files_including_dependencies(),
   )
 }
 
@@ -115,7 +115,7 @@ fn test_bevy_full_dependencies() {
     })
     .collect::<IndexMap<_, _>>();
 
-  assert_eq!(&actual, expected);
+  assert_eq!(expected, &actual);
 }
 
 #[test]
@@ -129,7 +129,6 @@ fn test_bevy_mesh_wgsl_dependency_order() {
     .collect::<Vec<_>>();
 
   assert_eq!(
-    deps,
     vec![
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_types.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl"),
@@ -137,6 +136,7 @@ fn test_bevy_mesh_wgsl_dependency_order() {
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_bindings.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_functions.wgsl"),
       SourceFilePath::new("tests/shaders/bevy_pbr_wgsl/mesh_vertex_output.wgsl")
-    ]
+    ],
+    deps
   );
 }

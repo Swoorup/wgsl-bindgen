@@ -411,21 +411,6 @@ pub mod bevy_pbr {
                     pass.set_bind_group(1, &self.0, &[]);
                 }
             }
-            /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
-            /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
-            ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
-            ///   - Bind group 1: More frequent updates
-            ///   - Bind group 2: More frequent updates
-            ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
-            #[derive(Debug, Copy, Clone)]
-            pub struct WgpuBindGroups<'a> {
-                pub bind_group1: &'a WgpuBindGroup1,
-            }
-            impl<'a> WgpuBindGroups<'a> {
-                pub fn set(&self, pass: &mut impl SetBindGroup) {
-                    self.bind_group1.set(pass);
-                }
-            }
         }
     }
     pub mod mesh_view_types {
@@ -1022,21 +1007,6 @@ pub mod bevy_pbr {
                 pass.set_bind_group(0, &self.0, &[]);
             }
         }
-        /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
-        /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
-        ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
-        ///   - Bind group 1: More frequent updates
-        ///   - Bind group 2: More frequent updates
-        ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
-        #[derive(Debug, Copy, Clone)]
-        pub struct WgpuBindGroups<'a> {
-            pub bind_group0: &'a WgpuBindGroup0,
-        }
-        impl<'a> WgpuBindGroups<'a> {
-            pub fn set(&self, pass: &mut impl SetBindGroup) {
-                self.bind_group0.set(pass);
-            }
-        }
     }
     pub mod mesh_bindings {
         use super::{_root, _root::*};
@@ -1111,21 +1081,6 @@ pub mod bevy_pbr {
                 pass.set_bind_group(2, &self.0, &[]);
             }
         }
-        /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
-        /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
-        ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
-        ///   - Bind group 1: More frequent updates
-        ///   - Bind group 2: More frequent updates
-        ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
-        #[derive(Debug, Copy, Clone)]
-        pub struct WgpuBindGroups<'a> {
-            pub bind_group2: &'a WgpuBindGroup2,
-        }
-        impl<'a> WgpuBindGroups<'a> {
-            pub fn set(&self, pass: &mut impl SetBindGroup) {
-                self.bind_group2.set(pass);
-            }
-        }
     }
 }
 pub mod bytemuck_impls {
@@ -1187,6 +1142,25 @@ pub mod pbr {
             entry_point: ENTRY_FRAGMENT,
             targets,
             constants: Default::default(),
+        }
+    }
+    /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
+    /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
+    ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
+    ///   - Bind group 1: More frequent updates
+    ///   - Bind group 2: More frequent updates
+    ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+        pub bind_group0: &'a bevy_pbr::mesh_view_bindings::WgpuBindGroup0,
+        pub bind_group1: &'a bevy_pbr::pbr::bindings::WgpuBindGroup1,
+        pub bind_group2: &'a bevy_pbr::mesh_bindings::WgpuBindGroup2,
+    }
+    impl<'a> WgpuBindGroups<'a> {
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            self.bind_group0.set(pass);
+            self.bind_group1.set(pass);
+            self.bind_group2.set(pass);
         }
     }
     #[derive(Debug)]

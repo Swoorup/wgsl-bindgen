@@ -168,138 +168,6 @@ pub mod main {
     }
     pub const ENTRY_MAIN: &str = "main";
     #[derive(Debug)]
-    pub struct WgpuPipelineLayout;
-    impl WgpuPipelineLayout {
-        pub fn bind_group_layout_entries(
-            entries: [wgpu::BindGroupLayout; 2],
-        ) -> [wgpu::BindGroupLayout; 2] {
-            entries
-        }
-    }
-    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-        device
-            .create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("Main::PipelineLayout"),
-                    bind_group_layouts: &[
-                        &main::WgpuBindGroup0::get_bind_group_layout(device),
-                        &bindings::WgpuBindGroup1::get_bind_group_layout(device),
-                    ],
-                    push_constant_ranges: &[
-                        wgpu::PushConstantRange {
-                            stages: wgpu::ShaderStages::COMPUTE,
-                            range: 0..32,
-                        },
-                    ],
-                },
-            )
-    }
-    pub fn create_shader_module_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("main.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            })
-    }
-    pub const SHADER_STRING: &'static str = r#"
-struct Style {
-    color: vec4<f32>,
-    width: f32,
-}
-
-@group(1) @binding(0) 
-var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
-@group(0) @binding(0) 
-var<storage, read_write> buffer: array<f32>;
-@group(0) @binding(1) 
-var texture_float: texture_2d<f32>;
-@group(0) @binding(2) 
-var texture_sint: texture_2d<i32>;
-@group(0) @binding(3) 
-var texture_uint: texture_2d<u32>;
-var<push_constant> const_style: Style;
-
-@compute @workgroup_size(1, 1, 1) 
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
-    let _e11 = const_style.color.w;
-    let _e15 = const_style.width;
-    let _e17 = buffer[id.x];
-    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
-    return;
-}
-"#;
-    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/basic/main.wgsl"
-    );
-    pub const BINDINGS_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/basic/bindings.wgsl"
-    );
-    pub const TYPES_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/additional/types.wgsl"
-    );
-    pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, BINDINGS_PATH, TYPES_PATH];
-    pub fn load_shader_module_from_path(
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        composer
-            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &std::fs::read_to_string(BINDINGS_PATH).unwrap(),
-                file_path: "../shaders/basic/bindings.wgsl",
-                language: naga_oil::compose::ShaderLanguage::Wgsl,
-                shader_defs: shader_defs.clone(),
-                as_name: Some("bindings".into()),
-                ..Default::default()
-            })?;
-        composer
-            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &std::fs::read_to_string(TYPES_PATH).unwrap(),
-                file_path: "../shaders/additional/types.wgsl",
-                language: naga_oil::compose::ShaderLanguage::Wgsl,
-                shader_defs: shader_defs.clone(),
-                as_name: Some("types".into()),
-                ..Default::default()
-            })?;
-        composer
-            .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
-                file_path: "../shaders/basic/main.wgsl",
-                shader_defs,
-                ..Default::default()
-            })
-    }
-    pub fn create_shader_module_from_path(
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        let mut composer = naga_oil::compose::Composer::default()
-            .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
-        let module = load_shader_module_from_path(&mut composer, shader_defs)?;
-        let info = wgpu::naga::valid::Validator::new(
-                wgpu::naga::valid::ValidationFlags::empty(),
-                wgpu::naga::valid::Capabilities::all(),
-            )
-            .validate(&module)
-            .unwrap();
-        let shader_string = wgpu::naga::back::wgsl::write_string(
-                &module,
-                &info,
-                wgpu::naga::back::wgsl::WriterFlags::empty(),
-            )
-            .expect("failed to convert naga module to source");
-        let source = std::borrow::Cow::Owned(shader_string);
-        let shader_module = device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("main.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            });
-        Ok(shader_module)
-    }
-    #[derive(Debug)]
     pub struct WgpuBindGroup0EntriesParams<'a> {
         pub buffer: wgpu::BufferBinding<'a>,
         pub texture_float: &'a wgpu::TextureView,
@@ -429,11 +297,145 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     #[derive(Debug, Copy, Clone)]
     pub struct WgpuBindGroups<'a> {
         pub bind_group0: &'a WgpuBindGroup0,
+        pub bind_group1: &'a bindings::WgpuBindGroup1,
     }
     impl<'a> WgpuBindGroups<'a> {
         pub fn set(&self, pass: &mut impl SetBindGroup) {
             self.bind_group0.set(pass);
+            self.bind_group1.set(pass);
         }
+    }
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+        pub fn bind_group_layout_entries(
+            entries: [wgpu::BindGroupLayout; 2],
+        ) -> [wgpu::BindGroupLayout; 2] {
+            entries
+        }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device
+            .create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("Main::PipelineLayout"),
+                    bind_group_layouts: &[
+                        &WgpuBindGroup0::get_bind_group_layout(device),
+                        &bindings::WgpuBindGroup1::get_bind_group_layout(device),
+                    ],
+                    push_constant_ranges: &[
+                        wgpu::PushConstantRange {
+                            stages: wgpu::ShaderStages::COMPUTE,
+                            range: 0..32,
+                        },
+                    ],
+                },
+            )
+    }
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("main.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    pub const SHADER_STRING: &'static str = r#"
+struct Style {
+    color: vec4<f32>,
+    width: f32,
+}
+
+@group(1) @binding(0) 
+var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
+@group(0) @binding(0) 
+var<storage, read_write> buffer: array<f32>;
+@group(0) @binding(1) 
+var texture_float: texture_2d<f32>;
+@group(0) @binding(2) 
+var texture_sint: texture_2d<i32>;
+@group(0) @binding(3) 
+var texture_uint: texture_2d<u32>;
+var<push_constant> const_style: Style;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
+    let _e11 = const_style.color.w;
+    let _e15 = const_style.width;
+    let _e17 = buffer[id.x];
+    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
+    return;
+}
+"#;
+    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
+        "../shaders/basic/main.wgsl"
+    );
+    pub const BINDINGS_PATH: &str = include_absolute_path::include_absolute_path!(
+        "../shaders/basic/bindings.wgsl"
+    );
+    pub const TYPES_PATH: &str = include_absolute_path::include_absolute_path!(
+        "../shaders/additional/types.wgsl"
+    );
+    pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, BINDINGS_PATH, TYPES_PATH];
+    pub fn load_shader_module_from_path(
+        composer: &mut naga_oil::compose::Composer,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
+        composer
+            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+                source: &std::fs::read_to_string(BINDINGS_PATH).unwrap(),
+                file_path: "../shaders/basic/bindings.wgsl",
+                language: naga_oil::compose::ShaderLanguage::Wgsl,
+                shader_defs: shader_defs.clone(),
+                as_name: Some("bindings".into()),
+                ..Default::default()
+            })?;
+        composer
+            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+                source: &std::fs::read_to_string(TYPES_PATH).unwrap(),
+                file_path: "../shaders/additional/types.wgsl",
+                language: naga_oil::compose::ShaderLanguage::Wgsl,
+                shader_defs: shader_defs.clone(),
+                as_name: Some("types".into()),
+                ..Default::default()
+            })?;
+        composer
+            .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+                source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
+                file_path: "../shaders/basic/main.wgsl",
+                shader_defs,
+                ..Default::default()
+            })
+    }
+    pub fn create_shader_module_from_path(
+        device: &wgpu::Device,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+        let mut composer = naga_oil::compose::Composer::default()
+            .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+        let module = load_shader_module_from_path(&mut composer, shader_defs)?;
+        let info = wgpu::naga::valid::Validator::new(
+                wgpu::naga::valid::ValidationFlags::empty(),
+                wgpu::naga::valid::Capabilities::all(),
+            )
+            .validate(&module)
+            .unwrap();
+        let shader_string = wgpu::naga::back::wgsl::write_string(
+                &module,
+                &info,
+                wgpu::naga::back::wgsl::WriterFlags::empty(),
+            )
+            .expect("failed to convert naga module to source");
+        let source = std::borrow::Cow::Owned(shader_string);
+        let shader_module = device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("main.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            });
+        Ok(shader_module)
     }
 }
 pub mod bytemuck_impls {
@@ -509,21 +511,6 @@ pub mod bindings {
         }
         pub fn set(&self, pass: &mut impl SetBindGroup) {
             pass.set_bind_group(1, &self.0, &[]);
-        }
-    }
-    /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
-    /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
-    ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
-    ///   - Bind group 1: More frequent updates
-    ///   - Bind group 2: More frequent updates
-    ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
-    #[derive(Debug, Copy, Clone)]
-    pub struct WgpuBindGroups<'a> {
-        pub bind_group1: &'a WgpuBindGroup1,
-    }
-    impl<'a> WgpuBindGroups<'a> {
-        pub fn set(&self, pass: &mut impl SetBindGroup) {
-            self.bind_group1.set(pass);
         }
     }
 }

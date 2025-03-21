@@ -22,7 +22,7 @@ fn test_bevy_bindgen() -> Result<()> {
   let actual = read_to_string("tests/output/bindgen_bevy.actual.rs").unwrap();
   let expected = read_to_string("tests/output/bindgen_bevy.expected.rs").unwrap();
 
-  assert_eq!(actual, expected);
+  assert_eq!(expected, actual);
   Ok(())
 }
 
@@ -50,7 +50,7 @@ fn test_main_bindgen() -> Result<()> {
   let actual = read_to_string("tests/output/bindgen_main.actual.rs").unwrap();
   let expected = read_to_string("tests/output/bindgen_main.expected.rs").unwrap();
 
-  assert_eq!(actual, expected);
+  assert_eq!(expected, actual);
   Ok(())
 }
 
@@ -72,7 +72,7 @@ fn test_struct_alignment_minimal() -> Result<()> {
   let actual = read_to_string("tests/output/bindgen_minimal.actual.rs").unwrap();
   let expected = read_to_string("tests/output/bindgen_minimal.expected.rs").unwrap();
 
-  assert_eq!(actual, expected);
+  assert_eq!(expected, actual);
   Ok(())
 }
 
@@ -94,7 +94,7 @@ fn test_struct_alignment_padding() -> Result<()> {
   let actual = read_to_string("tests/output/bindgen_padding.actual.rs").unwrap();
   let expected = read_to_string("tests/output/bindgen_padding.expected.rs").unwrap();
 
-  assert_eq!(actual, expected);
+  assert_eq!(expected, actual);
   Ok(())
 }
 
@@ -115,7 +115,7 @@ fn test_struct_layouts() -> Result<()> {
   let actual = read_to_string("tests/output/bindgen_layouts.actual.rs").unwrap();
   let expected = read_to_string("tests/output/bindgen_layouts.expected.rs").unwrap();
 
-  assert_eq!(actual, expected);
+  assert_eq!(expected, actual);
   Ok(())
 }
 

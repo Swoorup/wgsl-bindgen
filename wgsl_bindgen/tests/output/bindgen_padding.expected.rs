@@ -122,52 +122,6 @@ pub mod padding {
     }
     pub const ENTRY_MAIN: &str = "main";
     #[derive(Debug)]
-    pub struct WgpuPipelineLayout;
-    impl WgpuPipelineLayout {
-        pub fn bind_group_layout_entries(
-            entries: [wgpu::BindGroupLayout; 1],
-        ) -> [wgpu::BindGroupLayout; 1] {
-            entries
-        }
-    }
-    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-        device
-            .create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("Padding::PipelineLayout"),
-                    bind_group_layouts: &[
-                        &padding::WgpuBindGroup0::get_bind_group_layout(device),
-                    ],
-                    push_constant_ranges: &[],
-                },
-            )
-    }
-    pub fn create_shader_module_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("padding.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            })
-    }
-    pub const SHADER_STRING: &'static str = r#"
-struct Style {
-    color: vec4<f32>,
-    width: f32,
-    _padding: vec2<f32>,
-}
-
-@group(0) @binding(0) 
-var<storage> frame: Style;
-
-@compute @workgroup_size(1, 1, 1) 
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    return;
-}
-"#;
-    #[derive(Debug)]
     pub struct WgpuBindGroup0EntriesParams<'a> {
         pub frame: wgpu::BufferBinding<'a>,
     }
@@ -252,6 +206,52 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
             self.bind_group0.set(pass);
         }
     }
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+        pub fn bind_group_layout_entries(
+            entries: [wgpu::BindGroupLayout; 1],
+        ) -> [wgpu::BindGroupLayout; 1] {
+            entries
+        }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device
+            .create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("Padding::PipelineLayout"),
+                    bind_group_layouts: &[
+                        &WgpuBindGroup0::get_bind_group_layout(device),
+                    ],
+                    push_constant_ranges: &[],
+                },
+            )
+    }
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("padding.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    pub const SHADER_STRING: &'static str = r#"
+struct Style {
+    color: vec4<f32>,
+    width: f32,
+    _padding: vec2<f32>,
+}
+
+@group(0) @binding(0) 
+var<storage> frame: Style;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    return;
+}
+"#;
 }
 pub mod bytemuck_impls {
     use super::{_root, _root::*};
