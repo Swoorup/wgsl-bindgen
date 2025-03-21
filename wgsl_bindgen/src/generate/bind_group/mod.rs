@@ -342,6 +342,7 @@ mod tests {
   fn generate_test_bind_groups_module(
     bind_group_data: &BTreeMap<u32, SingleBindGroupData>,
     shader_stages: wgpu::ShaderStages,
+    options: &WgslBindgenOption,
   ) -> TokenStream {
     let raw_shader_entry_bind_groups = RawShaderEntryBindGroups {
       containing_module: "test".into(),
@@ -349,7 +350,7 @@ mod tests {
       bind_group_data: bind_group_data.clone(),
     };
 
-    let mut raw_shaders_bind_groups = RawShadersBindGroups::new();
+    let mut raw_shaders_bind_groups = RawShadersBindGroups::new(options);
     raw_shaders_bind_groups.add(raw_shader_entry_bind_groups);
     let items = raw_shaders_bind_groups
       .create_reusable_shader_bind_groups()
@@ -385,17 +386,17 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
-    let bind_group_data = get_bind_group_data_for_entry(
-      &module,
-      wgpu::ShaderStages::NONE,
-      &WgslBindgenOption::default(),
-      "test",
-    )
-    .unwrap()
-    .bind_group_data;
+    let options = WgslBindgenOption::default();
+    let bind_group_data =
+      get_bind_group_data_for_entry(&module, wgpu::ShaderStages::NONE, &options, "test")
+        .unwrap()
+        .bind_group_data;
 
-    let actual =
-      generate_test_bind_groups_module(&bind_group_data, wgpu::ShaderStages::COMPUTE);
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::COMPUTE,
+      &options,
+    );
 
     assert_tokens_eq!(
       quote! {
@@ -637,10 +638,11 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
     let bind_group_data = get_bind_group_data_for_entry(
       &module,
       wgpu::ShaderStages::VERTEX_FRAGMENT,
-      &WgslBindgenOption::default(),
+      &options,
       "test",
     )
     .unwrap()
@@ -649,6 +651,7 @@ mod tests {
     let actual = generate_test_bind_groups_module(
       &bind_group_data,
       wgpu::ShaderStages::VERTEX_FRAGMENT,
+      &options,
     );
 
     // TODO: Are storage buffers valid for vertex/fragment?
@@ -1038,17 +1041,21 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
     let bind_group_data = get_bind_group_data_for_entry(
       &module,
       wgpu::ShaderStages::VERTEX,
-      &WgslBindgenOption::default(),
+      &options,
       "test",
     )
     .unwrap()
     .bind_group_data;
 
-    let actual =
-      generate_test_bind_groups_module(&bind_group_data, wgpu::ShaderStages::VERTEX);
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::VERTEX,
+      &options,
+    );
 
     assert_tokens_eq!(
       quote! {
@@ -1153,17 +1160,21 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
     let bind_group_data = get_bind_group_data_for_entry(
       &module,
       wgpu::ShaderStages::FRAGMENT,
-      &WgslBindgenOption::default(),
+      &options,
       "test",
     )
     .unwrap()
     .bind_group_data;
 
-    let actual =
-      generate_test_bind_groups_module(&bind_group_data, wgpu::ShaderStages::FRAGMENT);
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::FRAGMENT,
+      &options,
+    );
 
     assert_tokens_eq!(
       quote! {

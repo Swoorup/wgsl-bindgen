@@ -151,6 +151,29 @@ impl From<(&str, u16)> for OverrideStructAlignment {
   }
 }
 
+/// Struct for overriding binding module path of bindgroup entry
+#[derive(Clone, Debug)]
+pub struct OverrideBindGroupEntryModulePath {
+  pub bind_group_entry_regex: Regex,
+  pub target_path: String,
+}
+impl From<(Regex, &str)> for OverrideBindGroupEntryModulePath {
+  fn from((bind_group_entry_regex, target_path): (Regex, &str)) -> Self {
+    Self {
+      bind_group_entry_regex,
+      target_path: target_path.to_string(),
+    }
+  }
+}
+impl From<(&str, &str)> for OverrideBindGroupEntryModulePath {
+  fn from((bind_group_entry_regex, target_path): (&str, &str)) -> Self {
+    Self {
+      bind_group_entry_regex: Regex::new(bind_group_entry_regex).expect("Failed to create bind group entry regex"),
+      target_path: target_path.to_string(),
+    }
+  }
+}
+
 /// An enum representing the visibility of the type generated in the output
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum WgslTypeVisibility {
@@ -209,7 +232,7 @@ pub struct WgslBindgenOption {
   #[builder(default = "false")]
   pub derive_serde: bool,
 
-  /// The shader source type generated bitflags. Defaults to `WgslShaderSourceType::UseSingleString`.
+  /// The shader source type generated bitflags. Defaults to `WgslShaderSourceType::EmbedSource`.
   #[builder(default)]
   pub shader_source_type: BitFlags<WgslShaderSourceType>,
 
@@ -252,6 +275,11 @@ pub struct WgslBindgenOption {
   /// Refer to the [WebGPU specs](https://www.w3.org/TR/webgpu/#dom-supported-limits-minuniformbufferoffsetalignment) for more information.
   #[builder(default, setter(into))]
   pub override_struct_alignment: Vec<OverrideStructAlignment>,
+
+  /// A vector of regular expressions and target module path that that override the module path for bind group entries.
+  /// This can be used to customize where bind group entries are generated in the output code.
+  #[builder(default, setter(into))]
+  pub override_bind_group_entry_module_path: Vec<OverrideBindGroupEntryModulePath>,
 
   /// The regular expression of the padding fields used in the shader struct types.
   /// These fields will be omitted in the *Init structs generated, and will automatically be assigned the default values.

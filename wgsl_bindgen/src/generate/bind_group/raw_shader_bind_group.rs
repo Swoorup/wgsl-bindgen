@@ -1,4 +1,3 @@
-use core::panic;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 
@@ -20,16 +19,40 @@ pub struct RawShaderEntryBindGroups<'a> {
 
 pub struct RawShadersBindGroups<'a> {
   entrypoint_bindgroups: FastIndexMap<SmolStr, RawShaderEntryBindGroups<'a>>,
+  options: &'a WgslBindgenOption,
 }
 
 impl<'a> RawShadersBindGroups<'a> {
-  pub fn new() -> Self {
+  pub fn new(options: &'a WgslBindgenOption) -> Self {
     Self {
       entrypoint_bindgroups: FastIndexMap::default(),
+      options,
     }
   }
 
-  pub fn add(&mut self, shader: RawShaderEntryBindGroups<'a>) {
+  pub fn add(&mut self, mut shader: RawShaderEntryBindGroups<'a>) {
+    // patch up the module name for bind group entrys
+    for entry in shader
+      .bind_group_data
+      .values_mut()
+      .flat_map(|v| v.bindings.iter_mut())
+    {
+      let target_patch_module = self
+        .options
+        .override_bind_group_entry_module_path
+        .iter()
+        .find_map(|o| {
+          let matched = o
+            .bind_group_entry_regex
+            .is_match(&entry.item_path.get_fully_qualified_name());
+          matched.then_some(SmolStr::new(o.target_path.clone()))
+        });
+
+      if let Some(target_patch_module) = target_patch_module {
+        entry.item_path.module = target_patch_module;
+      }
+    }
+
     self
       .entrypoint_bindgroups
       .insert(shader.containing_module.clone(), shader);

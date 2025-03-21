@@ -118,7 +118,7 @@ fn create_rust_bindings(
     mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
   }
 
-  let mut all_shader_bind_groups = RawShadersBindGroups::new();
+  let mut all_shader_bind_groups = RawShadersBindGroups::new(options);
   for entry in entries.iter() {
     let WgslEntryResult {
       mod_name,
