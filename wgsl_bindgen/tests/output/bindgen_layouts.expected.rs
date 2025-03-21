@@ -551,87 +551,6 @@ pub mod layouts {
         }
     }
     #[derive(Debug)]
-    pub struct WgpuBindGroup0EntriesParams<'a> {
-        pub color_texture: &'a wgpu::TextureView,
-        pub color_sampler: &'a wgpu::Sampler,
-    }
-    #[derive(Clone, Debug)]
-    pub struct WgpuBindGroup0Entries<'a> {
-        pub color_texture: wgpu::BindGroupEntry<'a>,
-        pub color_sampler: wgpu::BindGroupEntry<'a>,
-    }
-    impl<'a> WgpuBindGroup0Entries<'a> {
-        pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-            Self {
-                color_texture: wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(params.color_texture),
-                },
-                color_sampler: wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(params.color_sampler),
-                },
-            }
-        }
-        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
-            [self.color_texture, self.color_sampler]
-        }
-        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-            self.as_array().into_iter().collect()
-        }
-    }
-    #[derive(Debug)]
-    pub struct WgpuBindGroup0(wgpu::BindGroup);
-    impl WgpuBindGroup0 {
-        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-            label: Some("Layouts::BindGroup0::LayoutDescriptor"),
-            entries: &[
-                /// @binding(0): "color_texture"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float {
-                            filterable: true,
-                        },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                /// @binding(1): "color_sampler"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        };
-        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-        }
-        pub fn from_bindings(
-            device: &wgpu::Device,
-            bindings: WgpuBindGroup0Entries,
-        ) -> Self {
-            let bind_group_layout = Self::get_bind_group_layout(&device);
-            let entries = bindings.as_array();
-            let bind_group = device
-                .create_bind_group(
-                    &wgpu::BindGroupDescriptor {
-                        label: Some("Layouts::BindGroup0"),
-                        layout: &bind_group_layout,
-                        entries: &entries,
-                    },
-                );
-            Self(bind_group)
-        }
-        pub fn set(&self, pass: &mut impl SetBindGroup) {
-            pass.set_bind_group(0, &self.0, &[]);
-        }
-    }
-    #[derive(Debug)]
     pub struct WgpuBindGroup1EntriesParams<'a> {
         pub uniforms: wgpu::BufferBinding<'a>,
     }
@@ -903,7 +822,7 @@ pub mod layouts {
     ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
     #[derive(Debug, Copy, Clone)]
     pub struct WgpuBindGroups<'a> {
-        pub bind_group0: &'a WgpuBindGroup0,
+        pub bind_group0: &'a bindings::WgpuBindGroup0,
         pub bind_group1: &'a WgpuBindGroup1,
         pub bind_group2: &'a WgpuBindGroup2,
     }
@@ -929,7 +848,7 @@ pub mod layouts {
                 &wgpu::PipelineLayoutDescriptor {
                     label: Some("Layouts::PipelineLayout"),
                     bind_group_layouts: &[
-                        &WgpuBindGroup0::get_bind_group_layout(device),
+                        &bindings::WgpuBindGroup0::get_bind_group_layout(device),
                         &WgpuBindGroup1::get_bind_group_layout(device),
                         &WgpuBindGroup2::get_bind_group_layout(device),
                     ],
@@ -1067,4 +986,88 @@ pub mod bytemuck_impls {
     unsafe impl bytemuck::Pod for layouts::Uniforms {}
     unsafe impl bytemuck::Zeroable for layouts::VertexIn {}
     unsafe impl bytemuck::Pod for layouts::VertexIn {}
+}
+pub mod bindings {
+    use super::{_root, _root::*};
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+        pub color_texture: &'a wgpu::TextureView,
+        pub color_sampler: &'a wgpu::Sampler,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+        pub color_texture: wgpu::BindGroupEntry<'a>,
+        pub color_sampler: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+        pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+            Self {
+                color_texture: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(params.color_texture),
+                },
+                color_sampler: wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(params.color_sampler),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+            [self.color_texture, self.color_sampler]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("Bindings::BindGroup0::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "color_texture"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: true,
+                        },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                /// @binding(1): "color_sampler"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup0Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("Bindings::BindGroup0"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(0, &self.0, &[]);
+        }
+    }
 }
