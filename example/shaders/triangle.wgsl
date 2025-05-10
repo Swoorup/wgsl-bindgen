@@ -45,11 +45,30 @@ var<push_constant> constants: PushConstants;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  let color = textureSample(color_texture, color_sampler, in.tex_coords).rgb;
-  // if force_black {
-  //   return vec4(0.0);
-  // } else {
-  //   return vec4(color * uniforms.color_rgb.rgb * scale, 1.0);
-  // }
-  return constants.color_matrix * vec4(color * uniforms.color_rgb.rgb, 1.0);
+  let uv = in.tex_coords;
+  let color = textureSample(color_texture, color_sampler, uv).rgb;
+  
+  // Simple time variable
+  let t = time * 0.5;
+  
+  // Create a simple ripple effect from the center
+  let center = vec2<f32>(0.5, 0.5);
+  let dist = distance(uv, center);
+  let ripple = sin(dist * 15.0 - t * 2.0) * 0.5 + 0.5;
+  
+  // Simple color cycling
+  let color_shift = vec3<f32>(
+    0.5 + 0.5 * sin(t),
+    0.5 + 0.5 * sin(t + 2.0),
+    0.5 + 0.5 * sin(t + 4.0)
+  );
+  
+  // Simple vignette effect
+  let vignette = smoothstep(0.0, 0.7, 1.0 - dist * 1.5);
+  
+  // Combine effects
+  let final_color = color * uniforms.color_rgb.rgb * color_shift * (0.7 + 0.3 * ripple) * vignette;
+  
+  // Apply the color matrix from push constants
+  return constants.color_matrix * vec4(final_color, 1.0);
 }

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use std::iter;
 use std::sync::Arc;
+use std::time::Instant;
 
 use futures::executor::block_on;
 use glam::{vec3a, vec4};
@@ -34,7 +35,9 @@ struct State {
   bind_group0: shader_bindings::global_bindings::WgpuBindGroup0,
   bind_group1: shader_bindings::triangle::WgpuBindGroup1,
   vertex_buffer: wgpu::Buffer,
+  time_buffer: wgpu::Buffer,
   render_bundle: Option<wgpu::RenderBundle>,
+  start_time: Instant,
 }
 
 impl State {
@@ -155,6 +158,11 @@ impl State {
       min_filter: wgpu::FilterMode::Linear,
       ..Default::default()
     });
+    let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: Some("time buffer"),
+      contents: bytemuck::cast_slice(&[0.0]),
+      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
 
     // Use the generated types to ensure the correct bind group is assigned to each slot.
     let bind_group0 = shader_bindings::global_bindings::WgpuBindGroup0::from_bindings(
@@ -163,6 +171,7 @@ impl State {
         shader_bindings::global_bindings::WgpuBindGroup0EntriesParams {
           color_texture: &view,
           color_sampler: &sampler,
+          time: time_buffer.as_entire_buffer_binding(),
         },
       ),
     );
@@ -207,7 +216,9 @@ impl State {
       bind_group0,
       bind_group1,
       vertex_buffer,
+      time_buffer,
       render_bundle: None,
+      start_time: Instant::now(),
     }
   }
 
@@ -266,6 +277,14 @@ impl State {
     let output_view = output
       .texture
       .create_view(&wgpu::TextureViewDescriptor::default());
+
+    // Calculate elapsed time in seconds
+    let elapsed = self.start_time.elapsed().as_secs_f32();
+
+    // Update the time buffer
+    self
+      .queue
+      .write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[elapsed]));
 
     let mut encoder =
       self
