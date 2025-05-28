@@ -161,24 +161,24 @@ pub mod layouts {
     pub struct VectorsU32 {
         /// size: 8, offset: 0x0, type: `vec2<u32>`
         pub a: [u32; 2],
-        pub _pad_a: [u8; 0x10 - core::mem::size_of::<[u32; 2]>()],
+        pub _pad_a: [u8; 0x10 - ::core::mem::size_of::<[u32; 2]>()],
         /// size: 12, offset: 0x10, type: `vec3<u32>`
         pub b: [u32; 4],
         /// size: 16, offset: 0x20, type: `vec4<u32>`
         pub c: [u32; 4],
         /// size: 4, offset: 0x30, type: `f32`
         pub _padding: f32,
-        pub _pad__padding: [u8; 0x10 - core::mem::size_of::<f32>()],
+        pub _pad__padding: [u8; 0x10 - ::core::mem::size_of::<f32>()],
     }
     impl VectorsU32 {
         pub const fn new(a: [u32; 2], b: [u32; 4], c: [u32; 4], _padding: f32) -> Self {
             Self {
                 a,
-                _pad_a: [0; 0x10 - core::mem::size_of::<[u32; 2]>()],
+                _pad_a: [0; 0x10 - ::core::mem::size_of::<[u32; 2]>()],
                 b,
                 c,
                 _padding,
-                _pad__padding: [0; 0x10 - core::mem::size_of::<f32>()],
+                _pad__padding: [0; 0x10 - ::core::mem::size_of::<f32>()],
             }
         }
     }
@@ -194,11 +194,11 @@ pub mod layouts {
         pub const fn build(&self) -> VectorsU32 {
             VectorsU32 {
                 a: self.a,
-                _pad_a: [0; 0x10 - core::mem::size_of::<[u32; 2]>()],
+                _pad_a: [0; 0x10 - ::core::mem::size_of::<[u32; 2]>()],
                 b: self.b,
                 c: self.c,
                 _padding: self._padding,
-                _pad__padding: [0; 0x10 - core::mem::size_of::<f32>()],
+                _pad__padding: [0; 0x10 - ::core::mem::size_of::<f32>()],
             }
         }
     }
@@ -212,7 +212,7 @@ pub mod layouts {
     pub struct VectorsI32 {
         /// size: 8, offset: 0x0, type: `vec2<i32>`
         pub a: [i32; 2],
-        pub _pad_a: [u8; 0x10 - core::mem::size_of::<[i32; 2]>()],
+        pub _pad_a: [u8; 0x10 - ::core::mem::size_of::<[i32; 2]>()],
         /// size: 12, offset: 0x10, type: `vec3<i32>`
         pub b: [i32; 4],
         /// size: 16, offset: 0x20, type: `vec4<i32>`
@@ -222,7 +222,7 @@ pub mod layouts {
         pub const fn new(a: [i32; 2], b: [i32; 4], c: [i32; 4]) -> Self {
             Self {
                 a,
-                _pad_a: [0; 0x10 - core::mem::size_of::<[i32; 2]>()],
+                _pad_a: [0; 0x10 - ::core::mem::size_of::<[i32; 2]>()],
                 b,
                 c,
             }
@@ -239,7 +239,7 @@ pub mod layouts {
         pub const fn build(&self) -> VectorsI32 {
             VectorsI32 {
                 a: self.a,
-                _pad_a: [0; 0x10 - core::mem::size_of::<[i32; 2]>()],
+                _pad_a: [0; 0x10 - ::core::mem::size_of::<[i32; 2]>()],
                 b: self.b,
                 c: self.c,
             }
@@ -255,7 +255,7 @@ pub mod layouts {
     pub struct VectorsF32 {
         /// size: 8, offset: 0x0, type: `vec2<f32>`
         pub a: [f32; 2],
-        pub _pad_a: [u8; 0x10 - core::mem::size_of::<[f32; 2]>()],
+        pub _pad_a: [u8; 0x10 - ::core::mem::size_of::<[f32; 2]>()],
         /// size: 12, offset: 0x10, type: `vec3<f32>`
         pub b: glam::Vec3A,
         /// size: 16, offset: 0x20, type: `vec4<f32>`
@@ -265,7 +265,7 @@ pub mod layouts {
         pub const fn new(a: [f32; 2], b: glam::Vec3A, c: glam::Vec4) -> Self {
             Self {
                 a,
-                _pad_a: [0; 0x10 - core::mem::size_of::<[f32; 2]>()],
+                _pad_a: [0; 0x10 - ::core::mem::size_of::<[f32; 2]>()],
                 b,
                 c,
             }
@@ -282,7 +282,7 @@ pub mod layouts {
         pub const fn build(&self) -> VectorsF32 {
             VectorsF32 {
                 a: self.a,
-                _pad_a: [0; 0x10 - core::mem::size_of::<[f32; 2]>()],
+                _pad_a: [0; 0x10 - ::core::mem::size_of::<[f32; 2]>()],
                 b: self.b,
                 c: self.c,
             }
@@ -308,7 +308,7 @@ pub mod layouts {
         pub e: glam::Mat3A,
         /// size: 24, offset: 0x100, type: `mat3x2<f32>`
         pub f: [[f32; 2]; 3],
-        pub _pad_f: [u8; 0x20 - core::mem::size_of::<[[f32; 2]; 3]>()],
+        pub _pad_f: [u8; 0x20 - ::core::mem::size_of::<[[f32; 2]; 3]>()],
         /// size: 32, offset: 0x120, type: `mat2x4<f32>`
         pub g: [[f32; 4]; 2],
         /// size: 32, offset: 0x140, type: `mat2x3<f32>`
@@ -335,7 +335,7 @@ pub mod layouts {
                 d,
                 e,
                 f,
-                _pad_f: [0; 0x20 - core::mem::size_of::<[[f32; 2]; 3]>()],
+                _pad_f: [0; 0x20 - ::core::mem::size_of::<[[f32; 2]; 3]>()],
                 g,
                 h,
                 i,
@@ -364,7 +364,7 @@ pub mod layouts {
                 d: self.d,
                 e: self.e,
                 f: self.f,
-                _pad_f: [0; 0x20 - core::mem::size_of::<[[f32; 2]; 3]>()],
+                _pad_f: [0; 0x20 - ::core::mem::size_of::<[[f32; 2]; 3]>()],
                 g: self.g,
                 h: self.h,
                 i: self.i,
@@ -381,16 +381,16 @@ pub mod layouts {
     pub struct StaticArrays {
         /// size: 20, offset: 0x0, type: `array<u32, 5>`
         pub a: [u32; 5],
-        pub _pad_a: [u8; 0x14 - core::mem::size_of::<[u32; 5]>()],
+        pub _pad_a: [u8; 0x14 - ::core::mem::size_of::<[u32; 5]>()],
         /// size: 12, offset: 0x14, type: `array<f32, 3>`
         pub b: [f32; 3],
-        pub _pad_b: [u8; 0xC - core::mem::size_of::<[f32; 3]>()],
+        pub _pad_b: [u8; 0xC - ::core::mem::size_of::<[f32; 3]>()],
         /// size: 32768, offset: 0x20, type: `array<mat4x4<f32>, 512>`
         pub c: [glam::Mat4; 512],
-        pub _pad_c: [u8; 0x8000 - core::mem::size_of::<[glam::Mat4; 512]>()],
+        pub _pad_c: [u8; 0x8000 - ::core::mem::size_of::<[glam::Mat4; 512]>()],
         /// size: 64, offset: 0x8020, type: `array<vec3<f32>, 4>`
         pub d: [glam::Vec3A; 4],
-        pub _pad_d: [u8; 0x40 - core::mem::size_of::<[glam::Vec3A; 4]>()],
+        pub _pad_d: [u8; 0x40 - ::core::mem::size_of::<[glam::Vec3A; 4]>()],
     }
     impl StaticArrays {
         pub const fn new(
@@ -401,13 +401,13 @@ pub mod layouts {
         ) -> Self {
             Self {
                 a,
-                _pad_a: [0; 0x14 - core::mem::size_of::<[u32; 5]>()],
+                _pad_a: [0; 0x14 - ::core::mem::size_of::<[u32; 5]>()],
                 b,
-                _pad_b: [0; 0xC - core::mem::size_of::<[f32; 3]>()],
+                _pad_b: [0; 0xC - ::core::mem::size_of::<[f32; 3]>()],
                 c,
-                _pad_c: [0; 0x8000 - core::mem::size_of::<[glam::Mat4; 512]>()],
+                _pad_c: [0; 0x8000 - ::core::mem::size_of::<[glam::Mat4; 512]>()],
                 d,
-                _pad_d: [0; 0x40 - core::mem::size_of::<[glam::Vec3A; 4]>()],
+                _pad_d: [0; 0x40 - ::core::mem::size_of::<[glam::Vec3A; 4]>()],
             }
         }
     }
@@ -423,13 +423,13 @@ pub mod layouts {
         pub const fn build(&self) -> StaticArrays {
             StaticArrays {
                 a: self.a,
-                _pad_a: [0; 0x14 - core::mem::size_of::<[u32; 5]>()],
+                _pad_a: [0; 0x14 - ::core::mem::size_of::<[u32; 5]>()],
                 b: self.b,
-                _pad_b: [0; 0xC - core::mem::size_of::<[f32; 3]>()],
+                _pad_b: [0; 0xC - ::core::mem::size_of::<[f32; 3]>()],
                 c: self.c,
-                _pad_c: [0; 0x8000 - core::mem::size_of::<[glam::Mat4; 512]>()],
+                _pad_c: [0; 0x8000 - ::core::mem::size_of::<[glam::Mat4; 512]>()],
                 d: self.d,
-                _pad_d: [0; 0x40 - core::mem::size_of::<[glam::Vec3A; 4]>()],
+                _pad_d: [0; 0x40 - ::core::mem::size_of::<[glam::Vec3A; 4]>()],
             }
         }
     }

@@ -1068,25 +1068,25 @@ mod tests {
         pub struct Input0 {
             /// size: 4, offset: 0x0, type: `u32`
             pub a: u32,
-            pub _pad_a: [u8; 0x8 - core::mem::size_of::<u32>()],
+            pub _pad_a: [u8; 0x8 - ::core::mem::size_of::<u32>()],
             /// size: 4, offset: 0x8, type: `i32`
             pub b: i32,
-            pub _pad_b: [u8; 0x18 - core::mem::size_of::<i32>()],
+            pub _pad_b: [u8; 0x18 - ::core::mem::size_of::<i32>()],
             /// size: 4, offset: 0x20, type: `f32`
             pub c: f32,
             pub d: [u8; 0x4],
-            pub _pad_d: [u8; 0x1C - core::mem::size_of::<u32>()],
+            pub _pad_d: [u8; 0x1C - ::core::mem::size_of::<u32>()],
         }
         impl Input0 {
             pub const fn new(a: u32, b: i32, c: f32) -> Self {
                 Self {
                     a,
-                    _pad_a: [0; 0x8 - core::mem::size_of::<u32>()],
+                    _pad_a: [0; 0x8 - ::core::mem::size_of::<u32>()],
                     b,
-                    _pad_b: [0; 0x18 - core::mem::size_of::<i32>()],
+                    _pad_b: [0; 0x18 - ::core::mem::size_of::<i32>()],
                     c,
                     d: [0; 0x4],
-                    _pad_d: [0; 0x1C - core::mem::size_of::<u32>()],
+                    _pad_d: [0; 0x1C - ::core::mem::size_of::<u32>()],
                 }
             }
         }
@@ -1102,12 +1102,12 @@ mod tests {
             pub const fn build(&self) -> Input0 {
                 Input0 {
                     a: self.a,
-                    _pad_a: [0; 0x8 - core::mem::size_of::<u32>()],
+                    _pad_a: [0; 0x8 - ::core::mem::size_of::<u32>()],
                     b: self.b,
-                    _pad_b: [0; 0x18 - core::mem::size_of::<i32>()],
+                    _pad_b: [0; 0x18 - ::core::mem::size_of::<i32>()],
                     c: self.c,
                     d: [0; 0x4],
-                    _pad_d: [0; 0x1C - core::mem::size_of::<u32>()],
+                    _pad_d: [0; 0x1C - ::core::mem::size_of::<u32>()],
                 }
             }
         }

@@ -94,14 +94,14 @@ pub mod main {
         pub color: glam::Vec4,
         /// size: 4, offset: 0x10, type: `f32`
         pub width: f32,
-        pub _pad_width: [u8; 0x10 - core::mem::size_of::<f32>()],
+        pub _pad_width: [u8; 0x10 - ::core::mem::size_of::<f32>()],
     }
     impl Style {
         pub const fn new(color: glam::Vec4, width: f32) -> Self {
             Self {
                 color,
                 width,
-                _pad_width: [0; 0x10 - core::mem::size_of::<f32>()],
+                _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
             }
         }
     }
@@ -116,7 +116,7 @@ pub mod main {
             Style {
                 color: self.color,
                 width: self.width,
-                _pad_width: [0; 0x10 - core::mem::size_of::<f32>()],
+                _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
             }
         }
     }

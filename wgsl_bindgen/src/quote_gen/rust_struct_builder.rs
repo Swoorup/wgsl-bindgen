@@ -121,7 +121,7 @@ impl<'a> NagaToRustStructState<'a> {
 
             let pad_name = Ident::new(&pad_name, Span::call_site());
             let pad_size_tokens =
-              quote!(#member_size - core::mem::size_of::<#rust_type>());
+              quote!(#member_size - ::core::mem::size_of::<#rust_type>());
 
             let padding = Padding {
               pad_name,

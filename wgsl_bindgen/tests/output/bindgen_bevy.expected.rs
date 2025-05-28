@@ -278,7 +278,7 @@ pub mod bevy_pbr {
                 pub flags: u32,
                 /// size: 4, offset: 0x30, type: `f32`
                 pub alpha_cutoff: f32,
-                pub _pad_alpha_cutoff: [u8; 0x10 - core::mem::size_of::<f32>()],
+                pub _pad_alpha_cutoff: [u8; 0x10 - ::core::mem::size_of::<f32>()],
             }
             impl StandardMaterial {
                 pub const fn new(
@@ -298,7 +298,7 @@ pub mod bevy_pbr {
                         reflectance,
                         flags,
                         alpha_cutoff,
-                        _pad_alpha_cutoff: [0; 0x10 - core::mem::size_of::<f32>()],
+                        _pad_alpha_cutoff: [0; 0x10 - ::core::mem::size_of::<f32>()],
                     }
                 }
             }
@@ -323,7 +323,7 @@ pub mod bevy_pbr {
                         reflectance: self.reflectance,
                         flags: self.flags,
                         alpha_cutoff: self.alpha_cutoff,
-                        _pad_alpha_cutoff: [0; 0x10 - core::mem::size_of::<f32>()],
+                        _pad_alpha_cutoff: [0; 0x10 - ::core::mem::size_of::<f32>()],
                     }
                 }
             }
@@ -432,12 +432,12 @@ pub mod bevy_pbr {
             pub inverse_projection: glam::Mat4,
             /// size: 12, offset: 0x180, type: `vec3<f32>`
             pub world_position: glam::Vec3A,
-            pub _pad_world_position: [u8; 0xC - core::mem::size_of::<glam::Vec3A>()],
+            pub _pad_world_position: [u8; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
             /// size: 4, offset: 0x18C, type: `f32`
             pub width: f32,
             /// size: 4, offset: 0x190, type: `f32`
             pub height: f32,
-            pub _pad_height: [u8; 0x10 - core::mem::size_of::<f32>()],
+            pub _pad_height: [u8; 0x10 - ::core::mem::size_of::<f32>()],
         }
         impl View {
             pub const fn new(
@@ -459,10 +459,11 @@ pub mod bevy_pbr {
                     projection,
                     inverse_projection,
                     world_position,
-                    _pad_world_position: [0; 0xC - core::mem::size_of::<glam::Vec3A>()],
+                    _pad_world_position: [0; 0xC
+                        - ::core::mem::size_of::<glam::Vec3A>()],
                     width,
                     height,
-                    _pad_height: [0; 0x10 - core::mem::size_of::<f32>()],
+                    _pad_height: [0; 0x10 - ::core::mem::size_of::<f32>()],
                 }
             }
         }
@@ -489,10 +490,11 @@ pub mod bevy_pbr {
                     projection: self.projection,
                     inverse_projection: self.inverse_projection,
                     world_position: self.world_position,
-                    _pad_world_position: [0; 0xC - core::mem::size_of::<glam::Vec3A>()],
+                    _pad_world_position: [0; 0xC
+                        - ::core::mem::size_of::<glam::Vec3A>()],
                     width: self.width,
                     height: self.height,
-                    _pad_height: [0; 0x10 - core::mem::size_of::<f32>()],
+                    _pad_height: [0; 0x10 - ::core::mem::size_of::<f32>()],
                 }
             }
         }
@@ -510,14 +512,15 @@ pub mod bevy_pbr {
             pub color: glam::Vec4,
             /// size: 12, offset: 0x50, type: `vec3<f32>`
             pub direction_to_light: glam::Vec3A,
-            pub _pad_direction_to_light: [u8; 0xC - core::mem::size_of::<glam::Vec3A>()],
+            pub _pad_direction_to_light: [u8; 0xC
+                - ::core::mem::size_of::<glam::Vec3A>()],
             /// size: 4, offset: 0x5C, type: `u32`
             pub flags: u32,
             /// size: 4, offset: 0x60, type: `f32`
             pub shadow_depth_bias: f32,
             /// size: 4, offset: 0x64, type: `f32`
             pub shadow_normal_bias: f32,
-            pub _pad_shadow_normal_bias: [u8; 0xC - core::mem::size_of::<f32>()],
+            pub _pad_shadow_normal_bias: [u8; 0xC - ::core::mem::size_of::<f32>()],
         }
         impl DirectionalLight {
             pub const fn new(
@@ -533,11 +536,11 @@ pub mod bevy_pbr {
                     color,
                     direction_to_light,
                     _pad_direction_to_light: [0; 0xC
-                        - core::mem::size_of::<glam::Vec3A>()],
+                        - ::core::mem::size_of::<glam::Vec3A>()],
                     flags,
                     shadow_depth_bias,
                     shadow_normal_bias,
-                    _pad_shadow_normal_bias: [0; 0xC - core::mem::size_of::<f32>()],
+                    _pad_shadow_normal_bias: [0; 0xC - ::core::mem::size_of::<f32>()],
                 }
             }
         }
@@ -558,11 +561,11 @@ pub mod bevy_pbr {
                     color: self.color,
                     direction_to_light: self.direction_to_light,
                     _pad_direction_to_light: [0; 0xC
-                        - core::mem::size_of::<glam::Vec3A>()],
+                        - ::core::mem::size_of::<glam::Vec3A>()],
                     flags: self.flags,
                     shadow_depth_bias: self.shadow_depth_bias,
                     shadow_normal_bias: self.shadow_normal_bias,
-                    _pad_shadow_normal_bias: [0; 0xC - core::mem::size_of::<f32>()],
+                    _pad_shadow_normal_bias: [0; 0xC - ::core::mem::size_of::<f32>()],
                 }
             }
         }
@@ -587,7 +590,7 @@ pub mod bevy_pbr {
             /// size: 4, offset: 0xA4, type: `i32`
             pub spot_light_shadowmap_offset: i32,
             pub _pad_spot_light_shadowmap_offset: [u8; 0xC
-                - core::mem::size_of::<i32>()],
+                - ::core::mem::size_of::<i32>()],
         }
         impl Lights {
             pub const fn new(
@@ -606,7 +609,7 @@ pub mod bevy_pbr {
                     n_directional_lights,
                     spot_light_shadowmap_offset,
                     _pad_spot_light_shadowmap_offset: [0; 0xC
-                        - core::mem::size_of::<i32>()],
+                        - ::core::mem::size_of::<i32>()],
                 }
             }
         }
@@ -630,7 +633,7 @@ pub mod bevy_pbr {
                     n_directional_lights: self.n_directional_lights,
                     spot_light_shadowmap_offset: self.spot_light_shadowmap_offset,
                     _pad_spot_light_shadowmap_offset: [0; 0xC
-                        - core::mem::size_of::<i32>()],
+                        - ::core::mem::size_of::<i32>()],
                 }
             }
         }
@@ -725,7 +728,7 @@ pub mod bevy_pbr {
             pub inverse_transpose_model: glam::Mat4,
             /// size: 4, offset: 0x80, type: `u32`
             pub flags: u32,
-            pub _pad_flags: [u8; 0x10 - core::mem::size_of::<u32>()],
+            pub _pad_flags: [u8; 0x10 - ::core::mem::size_of::<u32>()],
         }
         impl Mesh {
             pub const fn new(
@@ -737,7 +740,7 @@ pub mod bevy_pbr {
                     model,
                     inverse_transpose_model,
                     flags,
-                    _pad_flags: [0; 0x10 - core::mem::size_of::<u32>()],
+                    _pad_flags: [0; 0x10 - ::core::mem::size_of::<u32>()],
                 }
             }
         }
@@ -754,7 +757,7 @@ pub mod bevy_pbr {
                     model: self.model,
                     inverse_transpose_model: self.inverse_transpose_model,
                     flags: self.flags,
-                    _pad_flags: [0; 0x10 - core::mem::size_of::<u32>()],
+                    _pad_flags: [0; 0x10 - ::core::mem::size_of::<u32>()],
                 }
             }
         }

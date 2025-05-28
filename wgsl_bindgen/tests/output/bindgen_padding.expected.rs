@@ -66,7 +66,7 @@ pub mod padding {
         pub color: glam::Vec4,
         /// size: 4, offset: 0x10, type: `f32`
         pub width: f32,
-        pub _pad_width: [u8; 0x8 - core::mem::size_of::<f32>()],
+        pub _pad_width: [u8; 0x8 - ::core::mem::size_of::<f32>()],
         pub _padding: [u8; 0x8],
     }
     impl Style {
@@ -74,7 +74,7 @@ pub mod padding {
             Self {
                 color,
                 width,
-                _pad_width: [0; 0x8 - core::mem::size_of::<f32>()],
+                _pad_width: [0; 0x8 - ::core::mem::size_of::<f32>()],
                 _padding: [0; 0x8],
             }
         }
@@ -90,7 +90,7 @@ pub mod padding {
             Style {
                 color: self.color,
                 width: self.width,
-                _pad_width: [0; 0x8 - core::mem::size_of::<f32>()],
+                _pad_width: [0; 0x8 - ::core::mem::size_of::<f32>()],
                 _padding: [0; 0x8],
             }
         }
