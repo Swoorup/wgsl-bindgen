@@ -1,0 +1,5 @@
+---
+source: wgsl_bindgen/src/structs.rs
+expression: actual.to_string()
+---
+# [repr (C , align (16))] # [derive (Debug , PartialEq , Clone , Copy)] pub struct UniformsData { # [doc = " size: 48, offset: 0x0, type: `mat3x3<f32>`"] pub centered_mvp : glam :: Mat3A } impl UniformsData { pub const fn new (centered_mvp : glam :: Mat3A) -> Self { Self { centered_mvp } } } const UNIFORMS_DATA_ASSERTS : () = { assert ! (std :: mem :: offset_of ! (UniformsData , centered_mvp) == 0) ; assert ! (std :: mem :: size_of :: < UniformsData > () == 48) ; } ; unsafe impl bytemuck :: Zeroable for UniformsData { } unsafe impl bytemuck :: Pod for UniformsData { }

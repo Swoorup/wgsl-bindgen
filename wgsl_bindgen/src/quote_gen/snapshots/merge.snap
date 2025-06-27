@@ -1,0 +1,17 @@
+---
+source: wgsl_bindgen/src/quote_gen/rust_module_builder.rs
+---
+pub mod a {
+    pub mod b {
+        pub mod c {
+            struct A;
+            struct C;
+        }
+        pub mod d {
+            struct B;
+        }
+        pub mod e {
+            struct D;
+        }
+    }
+}

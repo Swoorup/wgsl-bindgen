@@ -1,0 +1,18 @@
+---
+source: wgsl_bindgen/src/structs.rs
+---
+#[repr(C, align(8))]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Uniform {
+    /// size: 8, offset: 0x0, type: `vec2<f32>`
+    pub position_data: [f32; 2],
+}
+pub const fn Uniform(position_data: [f32; 2]) -> Uniform {
+    Uniform { position_data }
+}
+const UNIFORM_ASSERTS: () = {
+    assert!(std::mem::offset_of!(Uniform, position_data) == 0);
+    assert!(std::mem::size_of:: < Uniform > () == 8);
+};
+unsafe impl bytemuck::Zeroable for Uniform {}
+unsafe impl bytemuck::Pod for Uniform {}

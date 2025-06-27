@@ -1,0 +1,5 @@
+---
+source: wgsl_bindgen/src/structs.rs
+expression: actual.to_string()
+---
+# [repr (C)] # [derive (Debug , PartialEq , Clone , Copy , encase :: ShaderType)] pub (crate) struct Scalars { pub a : u32 , pub b : i32 , pub c : f32 } impl Scalars { pub const fn new (a : u32 , b : i32 , c : f32) -> Self { Self { a , b , c } } }

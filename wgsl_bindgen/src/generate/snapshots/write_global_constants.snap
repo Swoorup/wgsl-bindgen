@@ -1,0 +1,6 @@
+---
+source: wgsl_bindgen/src/generate/consts.rs
+---
+pub const UNSIGNED_CONST: u32 = 34u32;
+pub const SMALL_FLOAT_CONST: half::f16 = half::f16::from_f32_const(0.099975586f32);
+pub const BOOL_CONST: bool = true;

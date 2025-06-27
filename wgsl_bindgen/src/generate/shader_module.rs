@@ -573,7 +573,7 @@ mod tests {
   use indoc::indoc;
 
   use super::*;
-  use crate::assert_tokens_eq;
+  use crate::assert_tokens_snapshot;
 
   #[test]
   fn test_create_canonical_variable_name() {
@@ -595,7 +595,7 @@ mod tests {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = compute_module(&module, WgslShaderSourceType::EmbedSource.into());
 
-    assert_tokens_eq!(quote!(), actual);
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -614,44 +614,6 @@ mod tests {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = compute_module(&module, WgslShaderSourceType::EmbedSource.into());
 
-    assert_tokens_eq!(
-      quote! {
-          pub mod compute {
-              pub const MAIN1_WORKGROUP_SIZE: [u32; 3] = [1, 2, 3];
-              pub fn create_main1_pipeline_embed_source(device: &wgpu::Device) -> wgpu::ComputePipeline {
-                  let module = super::create_shader_module_embed_source(device);
-                  let layout = super::create_pipeline_layout(device);
-                  device
-                      .create_compute_pipeline(
-                          &wgpu::ComputePipelineDescriptor {
-                              label: Some("Compute Pipeline main1"),
-                              layout: Some(&layout),
-                              module: &module,
-                              entry_point: Some("main1"),
-                              compilation_options: Default::default(),
-                              cache: None,
-                          },
-                      )
-              }
-              pub const MAIN2_WORKGROUP_SIZE: [u32; 3] = [256, 1, 1];
-              pub fn create_main2_pipeline_embed_source(device: &wgpu::Device) -> wgpu::ComputePipeline {
-                  let module = super::create_shader_module_embed_source(device);
-                  let layout = super::create_pipeline_layout(device);
-                  device
-                      .create_compute_pipeline(
-                          &wgpu::ComputePipelineDescriptor {
-                              label: Some("Compute Pipeline main2"),
-                              layout: Some(&layout),
-                              module: &module,
-                              entry_point: Some("main2"),
-                              compilation_options: Default::default(),
-                              cache: None,
-                          },
-                      )
-              }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 }

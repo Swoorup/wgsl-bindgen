@@ -1,0 +1,118 @@
+---
+source: wgsl_bindgen/src/structs.rs
+---
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct Scalars {
+    pub a: u32,
+    pub b: i32,
+    pub c: f32,
+}
+impl Scalars {
+    pub const fn new(a: u32, b: i32, c: f32) -> Self {
+        Self { a, b, c }
+    }
+}
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct VectorsU32 {
+    pub a: nalgebra::SVector<u32, 2>,
+    pub b: nalgebra::SVector<u32, 3>,
+    pub c: nalgebra::SVector<u32, 4>,
+}
+impl VectorsU32 {
+    pub const fn new(
+        a: nalgebra::SVector<u32, 2>,
+        b: nalgebra::SVector<u32, 3>,
+        c: nalgebra::SVector<u32, 4>,
+    ) -> Self {
+        Self { a, b, c }
+    }
+}
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct VectorsI32 {
+    pub a: nalgebra::SVector<i32, 2>,
+    pub b: nalgebra::SVector<i32, 3>,
+    pub c: nalgebra::SVector<i32, 4>,
+}
+impl VectorsI32 {
+    pub const fn new(
+        a: nalgebra::SVector<i32, 2>,
+        b: nalgebra::SVector<i32, 3>,
+        c: nalgebra::SVector<i32, 4>,
+    ) -> Self {
+        Self { a, b, c }
+    }
+}
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct VectorsF32 {
+    pub a: nalgebra::SVector<f32, 2>,
+    pub b: nalgebra::SVector<f32, 3>,
+    pub c: nalgebra::SVector<f32, 4>,
+}
+impl VectorsF32 {
+    pub const fn new(
+        a: nalgebra::SVector<f32, 2>,
+        b: nalgebra::SVector<f32, 3>,
+        c: nalgebra::SVector<f32, 4>,
+    ) -> Self {
+        Self { a, b, c }
+    }
+}
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct MatricesF32 {
+    pub a: nalgebra::SMatrix<f32, 4, 4>,
+    pub b: nalgebra::SMatrix<f32, 3, 4>,
+    pub c: nalgebra::SMatrix<f32, 2, 4>,
+    pub d: nalgebra::SMatrix<f32, 4, 3>,
+    pub e: nalgebra::SMatrix<f32, 3, 3>,
+    pub f: nalgebra::SMatrix<f32, 2, 3>,
+    pub g: nalgebra::SMatrix<f32, 4, 2>,
+    pub h: nalgebra::SMatrix<f32, 3, 2>,
+    pub i: nalgebra::SMatrix<f32, 2, 2>,
+}
+impl MatricesF32 {
+    pub const fn new(
+        a: nalgebra::SMatrix<f32, 4, 4>,
+        b: nalgebra::SMatrix<f32, 3, 4>,
+        c: nalgebra::SMatrix<f32, 2, 4>,
+        d: nalgebra::SMatrix<f32, 4, 3>,
+        e: nalgebra::SMatrix<f32, 3, 3>,
+        f: nalgebra::SMatrix<f32, 2, 3>,
+        g: nalgebra::SMatrix<f32, 4, 2>,
+        h: nalgebra::SMatrix<f32, 3, 2>,
+        i: nalgebra::SMatrix<f32, 2, 2>,
+    ) -> Self {
+        Self { a, b, c, d, e, f, g, h, i }
+    }
+}
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct StaticArrays {
+    pub a: [u32; 5],
+    pub b: [f32; 3],
+    pub c: [nalgebra::SMatrix<f32, 4, 4>; 512],
+}
+impl StaticArrays {
+    pub const fn new(
+        a: [u32; 5],
+        b: [f32; 3],
+        c: [nalgebra::SMatrix<f32, 4, 4>; 512],
+    ) -> Self {
+        Self { a, b, c }
+    }
+}
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+pub struct Nested {
+    pub a: MatricesF32,
+    pub b: VectorsF32,
+}
+impl Nested {
+    pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
+        Self { a, b }
+    }
+}

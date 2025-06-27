@@ -301,7 +301,7 @@ mod test {
   use indoc::indoc;
 
   use super::*;
-  use crate::assert_tokens_eq;
+  use crate::assert_tokens_snapshot;
 
   #[test]
   fn write_vertex_module_empty() {
@@ -316,7 +316,7 @@ mod test {
       .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
-    assert_tokens_eq!(quote!(), actual);
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -339,44 +339,7 @@ mod test {
       .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32x2,
-                      offset: std::mem::offset_of!(Self, b) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32x3,
-                      offset: std::mem::offset_of!(Self, c) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float32x4,
-                      offset: std::mem::offset_of!(Self, d) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<Self>() as u64,
-                      step_mode,
-                      attributes: &Self::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -399,44 +362,7 @@ mod test {
       .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64x2,
-                      offset: std::mem::offset_of!(Self, b) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64x3,
-                      offset: std::mem::offset_of!(Self, c) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Float64x4,
-                      offset: std::mem::offset_of!(Self, d) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<Self>() as u64,
-                      step_mode,
-                      attributes: &Self::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -459,44 +385,7 @@ mod test {
       .map(|it| it.tokenstream)
       .collect::<TokenStream>();
 
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32x2,
-                      offset: std::mem::offset_of!(Self, b) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32x3,
-                      offset: std::mem::offset_of!(Self, c) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Uint32x4,
-                      offset: std::mem::offset_of!(Self, d) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<Self>() as u64,
-                      step_mode,
-                      attributes: &Self::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -519,15 +408,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = entry_point_constants(&module);
 
-    assert_tokens_eq!(
-      quote! {
-          pub const ENTRY_VS_MAIN: &str = "vs_main";
-          pub const ENTRY_ANOTHER_VS: &str = "another_vs";
-          pub const ENTRY_FS_MAIN: &str = "fs_main";
-          pub const ENTRY_ANOTHER_FS: &str = "another_fs";
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -541,38 +422,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_states("test", &module);
 
-    assert_tokens_eq!(
-      quote! {
-          #[derive(Debug)]
-          pub struct VertexEntry<const N: usize> {
-              pub entry_point: &'static str,
-              pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-              pub constants: Vec<(&'static str, f64)>,
-          }
-          pub fn vertex_state<'a, const N: usize>(
-              module: &'a wgpu::ShaderModule,
-              entry: &'a VertexEntry<N>,
-          ) -> wgpu::VertexState<'a> {
-              wgpu::VertexState {
-                  module,
-                  entry_point: Some(entry.entry_point),
-                  buffers: &entry.buffers,
-                  compilation_options: wgpu::PipelineCompilationOptions {
-                    constants: &entry.constants,
-                    ..Default::default()
-                  },
-              }
-          }
-          pub fn vs_main_entry() -> VertexEntry<0> {
-              VertexEntry {
-                  entry_point: ENTRY_VS_MAIN,
-                  buffers: [],
-                  constants: Default::default(),
-              }
-          }
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -592,45 +442,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_states("test", &module);
 
-    assert_tokens_eq!(
-      quote! {
-          #[derive(Debug)]
-          pub struct VertexEntry<const N: usize> {
-              pub entry_point: &'static str,
-              pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-              pub constants: Vec<(&'static str, f64)>,
-          }
-          pub fn vertex_state<'a, const N: usize>(
-              module: &'a wgpu::ShaderModule,
-              entry: &'a VertexEntry<N>,
-          ) -> wgpu::VertexState<'a> {
-              wgpu::VertexState {
-                  module,
-                  entry_point: Some(entry.entry_point),
-                  buffers: &entry.buffers,
-                  compilation_options: wgpu::PipelineCompilationOptions {
-                    constants: &entry.constants,
-                    ..Default::default()
-                  },
-              }
-          }
-          pub fn vs_main_1_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
-              VertexEntry {
-                  entry_point: ENTRY_VS_MAIN_1,
-                  buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
-                  constants: Default::default()
-              }
-          }
-          pub fn vs_main_2_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
-              VertexEntry {
-                  entry_point: ENTRY_VS_MAIN_2,
-                  buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
-                  constants: Default::default()
-              }
-          }
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -651,45 +463,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_states("test", &module);
 
-    assert_tokens_eq!(
-      quote! {
-          #[derive(Debug)]
-          pub struct VertexEntry<const N: usize> {
-              pub entry_point: &'static str,
-              pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-              pub constants: Vec<(&'static str, f64)>,
-          }
-          pub fn vertex_state<'a, const N: usize>(
-              module: &'a wgpu::ShaderModule,
-              entry: &'a VertexEntry<N>,
-          ) -> wgpu::VertexState<'a> {
-              wgpu::VertexState {
-                  module,
-                  entry_point: Some(entry.entry_point),
-                  buffers: &entry.buffers,
-                  compilation_options: wgpu::PipelineCompilationOptions {
-                    constants: &entry.constants,
-                    ..Default::default()
-                  },
-              }
-          }
-          pub fn vs_main_entry(
-            input0: wgpu::VertexStepMode,
-            input1: wgpu::VertexStepMode,
-            overrides: &OverrideConstants
-          ) -> VertexEntry<2> {
-              VertexEntry {
-                  entry_point: ENTRY_VS_MAIN,
-                  buffers: [
-                      Input0::vertex_buffer_layout(input0),
-                      Input1::vertex_buffer_layout(input1),
-                  ],
-                  constants: overrides.constants(),
-              }
-          }
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -706,7 +480,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = vertex_states("test", &module);
 
-    assert_tokens_eq!(quote!(), actual)
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -731,67 +505,7 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = fragment_states(&module);
 
-    assert_tokens_eq!(
-      quote! {
-          #[derive(Debug)]
-          pub struct FragmentEntry<const N: usize> {
-              pub entry_point: &'static str,
-              pub targets: [Option<wgpu::ColorTargetState>; N],
-              pub constants: Vec<(&'static str, f64)>,
-          }
-          pub fn fragment_state<'a, const N: usize>(
-              module: &'a wgpu::ShaderModule,
-              entry: &'a FragmentEntry<N>,
-          ) -> wgpu::FragmentState<'a> {
-              wgpu::FragmentState {
-                  module,
-                  entry_point: Some(entry.entry_point),
-                  targets: &entry.targets,
-                  compilation_options: wgpu::PipelineCompilationOptions {
-                      constants: &entry.constants,
-                      ..Default::default()
-                  },
-              }
-          }
-          pub fn fs_multiple_entry(
-              targets: [Option<wgpu::ColorTargetState>; 2]
-          ) -> FragmentEntry<2> {
-              FragmentEntry {
-                  entry_point: ENTRY_FS_MULTIPLE,
-                  targets,
-                  constants: Default::default(),
-              }
-          }
-          pub fn fs_single_entry(
-              targets: [Option<wgpu::ColorTargetState>; 1]
-          ) -> FragmentEntry<1> {
-              FragmentEntry {
-                  entry_point: ENTRY_FS_SINGLE,
-                  targets,
-                  constants: Default::default(),
-              }
-          }
-          pub fn fs_single_builtin_entry(
-              targets: [Option<wgpu::ColorTargetState>; 0]
-          ) -> FragmentEntry<0> {
-              FragmentEntry {
-                  entry_point: ENTRY_FS_SINGLE_BUILTIN,
-                  targets,
-                  constants: Default::default(),
-              }
-          }
-          pub fn fs_empty_entry(
-              targets: [Option<wgpu::ColorTargetState>; 0]
-          ) -> FragmentEntry<0> {
-              FragmentEntry {
-                  entry_point: ENTRY_FS_EMPTY,
-                  targets,
-                  constants: Default::default(),
-              }
-          }
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -806,40 +520,6 @@ mod test {
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let actual = fragment_states(&module);
 
-    assert_tokens_eq!(
-      quote! {
-          #[derive(Debug)]
-          pub struct FragmentEntry<const N: usize> {
-              pub entry_point: &'static str,
-              pub targets: [Option<wgpu::ColorTargetState>; N],
-              pub constants: Vec<(&'static str, f64)>,
-          }
-          pub fn fragment_state<'a, const N: usize>(
-              module: &'a wgpu::ShaderModule,
-              entry: &'a FragmentEntry<N>,
-          ) -> wgpu::FragmentState<'a> {
-              wgpu::FragmentState {
-                  module,
-                  entry_point: Some(entry.entry_point),
-                  targets: &entry.targets,
-                  compilation_options: wgpu::PipelineCompilationOptions {
-                      constants: &entry.constants,
-                      ..Default::default()
-                  },
-              }
-          }
-          pub fn fs_single_entry(
-              targets: [Option<wgpu::ColorTargetState>; 1],
-              overrides: &OverrideConstants
-          ) -> FragmentEntry<1> {
-              FragmentEntry {
-                  entry_point: ENTRY_FS_SINGLE,
-                  targets,
-                  constants: overrides.constants(),
-              }
-          }
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual);
   }
 }
