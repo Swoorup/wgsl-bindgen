@@ -68,8 +68,8 @@ impl State {
             ..Default::default()
           },
           memory_hints: Default::default(),
+          ..Default::default()
         },
-        None,
       )
       .await
       .unwrap();

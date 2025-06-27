@@ -441,9 +441,9 @@ pub mod layouts {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Nested {
-        /// size: 368, offset: 0x0, type: `struct`
+        /// size: 368, offset: 0x0, type: `MatricesF32`
         pub a: MatricesF32,
-        /// size: 48, offset: 0x170, type: `struct`
+        /// size: 48, offset: 0x170, type: `VectorsF32`
         pub b: VectorsF32,
     }
     impl Nested {
@@ -456,7 +456,7 @@ pub mod layouts {
     pub struct Uniforms {
         /// size: 16, offset: 0x0, type: `vec4<f32>`
         pub color_rgb: glam::Vec4,
-        /// size: 16, offset: 0x10, type: `struct`
+        /// size: 16, offset: 0x10, type: `Scalars`
         pub scalars: Scalars,
     }
     impl Uniforms {
@@ -498,7 +498,7 @@ pub mod layouts {
     pub struct VertexEntry<const N: usize> {
         pub entry_point: &'static str,
         pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn vertex_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,
@@ -525,7 +525,7 @@ pub mod layouts {
     pub struct FragmentEntry<const N: usize> {
         pub entry_point: &'static str,
         pub targets: [Option<wgpu::ColorTargetState>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn fragment_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,

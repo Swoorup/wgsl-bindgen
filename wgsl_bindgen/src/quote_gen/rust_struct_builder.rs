@@ -1,6 +1,7 @@
 use std::usize;
 
 use derive_more::IsVariant;
+use naga::common::wgsl::TypeContext;
 use naga::StructMember;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
@@ -159,6 +160,7 @@ impl<'a> NagaToRustStructState<'a> {
           name_ident: name_ident.clone(),
           naga_member,
           naga_type,
+          naga_ty_handle: naga_member.ty,
           rust_type: syn::Type::Verbatim(rust_type),
           is_rsa,
         })
@@ -181,6 +183,7 @@ pub struct Field<'a> {
   pub name_ident: Ident,
   pub naga_member: &'a naga::StructMember,
   pub naga_type: &'a naga::Type,
+  pub naga_ty_handle: naga::Handle<naga::Type>,
   pub rust_type: syn::Type,
   pub is_rsa: bool,
 }
@@ -435,12 +438,13 @@ impl<'a> RustStructBuilder<'a> {
             is_rsa: is_rts,
             naga_member: member,
             naga_type,
+            naga_ty_handle
           } = field;
 
           let doc_comment = if self.is_directly_shareable() {
             let offset = member.offset;
             let size = naga_type.inner.size(gctx);
-            let ty_name = naga_type.inner.to_wgsl(&gctx);
+            let ty_name = gctx.type_to_string(naga_ty_handle.clone());
             let ty_name = demangle_str(&ty_name);
             let doc = format!(" size: {size}, offset: 0x{offset:X}, type: `{ty_name}`");
 

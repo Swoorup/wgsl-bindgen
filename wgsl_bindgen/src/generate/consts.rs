@@ -35,6 +35,10 @@ pub fn consts_items(
           naga::Literal::I64(v) => Some(quote!(i64 = #v)),
           naga::Literal::AbstractInt(v) => Some(quote!(i64 = #v)),
           naga::Literal::AbstractFloat(v) => Some(quote!(f64 = #v)),
+          naga::Literal::F16(v) => {
+            let v = v.to_f32();
+            Some(quote!(half::f16 = half::f16::from_f32_const(#v)))
+          }
         },
         _ => None,
       }?;
@@ -122,9 +126,9 @@ pub fn pipeline_overridable_constants(
       .collect();
 
   let init_entries = if insert_optional_entries.is_empty() {
-    quote!(let entries = std::collections::HashMap::from([#(#required_entries),*]);)
+    quote!(let entries = vec![#(#required_entries),*];)
   } else {
-    quote!(let mut entries = std::collections::HashMap::from([#(#required_entries),*]);)
+    quote!(let mut entries = vec![#(#required_entries),*];)
   };
 
   if !fields.is_empty() {
@@ -134,9 +138,8 @@ pub fn pipeline_overridable_constants(
             #(#fields),*
         }
 
-        // TODO: Only start with the required ones.
         impl OverrideConstants {
-            pub fn constants(&self) -> std::collections::HashMap<String, f64> {
+            pub fn constants(&self) -> Vec<(&'static str, f64)> {
                 #init_entries
                 #(#insert_optional_entries);*
                 entries
@@ -172,17 +175,21 @@ mod tests {
   #[test]
   fn write_global_constants() {
     let source = indoc! {r#"
+            enable f16;
             const INT_CONST = 12;
             const UNSIGNED_CONST = 34u;
             const FLOAT_CONST = 0.1;
-            // TODO: Naga doesn't implement f16, even though it's in the WGSL spec
-            // const SMALL_FLOAT_CONST:f16 = 0.1h;
+            const SMALL_FLOAT_CONST:f16 = 0.1h;
             const BOOL_CONST = true;
 
             @fragment
-            fn main() {
-                // TODO: This is valid WGSL syntax, but naga doesn't support it apparently.
-                // const C_INNER = 456;
+            fn main() -> @location(0) vec4<f32> {
+                return vec4<f32>(
+                    f32(INT_CONST),
+                    f32(UNSIGNED_CONST),
+                    FLOAT_CONST,
+                    SMALL_FLOAT_CONST
+                );
             }
         "#};
 
@@ -194,9 +201,8 @@ mod tests {
 
     assert_tokens_eq!(
       quote! {
-          pub const INT_CONST: i32 = 12i32;
           pub const UNSIGNED_CONST: u32 = 34u32;
-          pub const FLOAT_CONST: f32 = 0.1f32;
+          pub const SMALL_FLOAT_CONST: half::f16 = half::f16::from_f32_const(0.099975586f32);
           pub const BOOL_CONST: bool = true;
       },
       actual
@@ -242,12 +248,11 @@ mod tests {
           }
 
           impl OverrideConstants {
-              pub fn constants(&self) -> std::collections::HashMap<String, f64> {
-                  let mut entries = std::collections::HashMap::from([
-                      ("b3".to_owned(), if self.b3 { 1.0 } else { 0.0 }),
-                      ("f2".to_owned(), self.f2 as f64),
-                      ("i2".to_owned(), self.i2 as f64)
-                  ]);
+              pub fn constants(&self) -> Vec<(&'static str, f64)> {
+                  let mut entries = vec![
+                      ("b3".to_owned(), if self.b3 { 1.0 } else { 0.0 }), ("f2".to_owned(), self.f2
+                      as f64), ("i2".to_owned(), self.i2 as f64)
+                  ];
                   if let Some(value) = self.b1 {
                       entries.insert("b1".to_owned(), if value { 1.0 } else { 0.0 });
                   }

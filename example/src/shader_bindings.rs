@@ -182,7 +182,7 @@ pub mod triangle {
     pub struct VertexEntry<const N: usize> {
         pub entry_point: &'static str,
         pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn vertex_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,
@@ -209,7 +209,7 @@ pub mod triangle {
     pub struct FragmentEntry<const N: usize> {
         pub entry_point: &'static str,
         pub targets: [Option<wgpu::ColorTargetState>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn fragment_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,
@@ -401,7 +401,7 @@ fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
     let color = _e4.xyz;
     let _e7 = timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
     let t = (_e7 * 0.5f);
-    const center = vec2<f32>(0.5f, 0.5f);
+    let center = vec2<f32>(0.5f, 0.5f);
     let dist = distance(uv, center);
     let ripple = ((sin(((dist * 15f) - (t * 2f))) * 0.5f) + 0.5f);
     let color_shift = vec3<f32>((0.5f + (0.5f * sin(t))), (0.5f + (0.5f * sin((t + 2f)))), (0.5f + (0.5f * sin((t + 4f)))));
