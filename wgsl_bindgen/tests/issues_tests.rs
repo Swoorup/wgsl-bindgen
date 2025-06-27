@@ -1,7 +1,6 @@
 use std::fs::read_to_string;
 
 use miette::{IntoDiagnostic, Result};
-use pretty_assertions::assert_eq;
 use wgsl_bindgen::*;
 
 #[test]
@@ -23,8 +22,6 @@ fn test_issue_35() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/issue_35.actual.rs").unwrap();
-  let expected = read_to_string("tests/output/issue_35.expected.rs").unwrap();
-
-  assert_eq!(expected, actual);
+  insta::assert_snapshot!("issue_35", actual);
   Ok(())
 }
