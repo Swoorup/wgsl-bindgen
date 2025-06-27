@@ -1,7 +1,10 @@
-indent_style = "Block"
+# Stable rustfmt configuration
 reorder_imports = true
 tab_spaces = 2
-max_width=90
-fn_call_width=80
-group_imports="StdExternalCrate"
-imports_granularity = "Module"
+max_width = 90
+fn_call_width = 80
+
+# Note: The following options require nightly rustfmt:
+# indent_style = "Block"
+# group_imports = "StdExternalCrate" 
+# imports_granularity = "Module"

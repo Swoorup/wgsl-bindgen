@@ -82,7 +82,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   ) -> TokenStream {
     match source_type {
       WgslShaderSourceType::EmbedSource => {
-        return quote!();
+        quote!()
       }
       _ => {
         let fn_name = format_ident!("{}", source_type.load_shader_module_fn_name());

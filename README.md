@@ -1,11 +1,52 @@
 # wgsl-bindgen
 
-[![Latest Version](https://img.shields.io/crates/v/wgsl_bindgen.svg)](https://crates.io/crates/wgsl_bindgen) [![docs.rs](https://docs.rs/wgsl_bindgen/badge.svg)](https://docs.rs/wgsl_bindgen)  
-An experimental library for generating typesafe Rust bindings from [WGSL](https://www.w3.org/TR/WGSL/) shaders to [wgpu](https://github.com/gfx-rs/wgpu).
+[![Latest Version](https://img.shields.io/crates/v/wgsl_bindgen.svg)](https://crates.io/crates/wgsl_bindgen) [![docs.rs](https://docs.rs/wgsl_bindgen/badge.svg)](https://docs.rs/wgsl_bindgen) ![License](https://img.shields.io/crates/l/wgsl_bindgen) ![Rust Version](https://img.shields.io/badge/rust-1.70+-blue)
 
-wgsl_bindgen, powered by [naga-oil](https://github.com/bevyengine/naga_oil), is a tool that integrates into your Rust build process. It parses WGSL shaders and generates corresponding Rust modules. These modules contain type definitions and boilerplate code that match your shaders, reducing the risk of runtime errors by catching mismatches at compile time.
+🚀 **Generate typesafe Rust bindings from [WGSL](https://www.w3.org/TR/WGSL/) shaders for [wgpu](https://github.com/gfx-rs/wgpu)** 
 
-The tool facilitates a shader-focused workflow. When you modify your WGSL shaders, the changes are automatically reflected in the Rust code. This immediate feedback helps catch errors early, making it easier to work with shaders.
+wgsl_bindgen transforms your WGSL shader development workflow by automatically generating Rust types, constants, and boilerplate code that perfectly match your shaders. Powered by [naga-oil](https://github.com/bevyengine/naga_oil), it integrates seamlessly into your build process to catch shader-related errors at compile time rather than runtime.
+
+## 🎯 Why wgsl_bindgen?
+
+**Before**: Manual, error-prone shader bindings
+```rust
+// ❌ Easy to make mistakes - no compile-time verification
+let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+    entries: &[
+        wgpu::BindGroupEntry {
+            binding: 0, // Is this the right binding index?
+            resource: texture_view.as_binding(), // Is this the right type?
+        },
+        wgpu::BindGroupEntry {
+            binding: 1, // What if you change the shader?
+            resource: sampler.as_binding(),
+        },
+    ],
+    // ... more boilerplate
+});
+```
+
+**After**: Typesafe, auto-generated bindings
+```rust
+// ✅ Compile-time safety - generated from your actual shaders
+let bind_group = my_shader::WgpuBindGroup0::from_bindings(
+    device,
+    my_shader::WgpuBindGroup0Entries::new(my_shader::WgpuBindGroup0EntriesParams {
+        my_texture: &texture_view,  // Type-checked parameter names
+        my_sampler: &sampler,       // Matches your WGSL exactly
+    })
+);
+bind_group.set(&mut render_pass); // Simple, safe usage
+```
+
+## ✨ Key Benefits
+
+- 🛡️ **Type Safety**: Catch shader binding mismatches at compile time
+- 🔄 **Automatic Sync**: Changes to WGSL automatically update Rust bindings  
+- 📝 **Reduced Boilerplate**: Generate tedious wgpu setup code automatically
+- 🎮 **Shader-First Workflow**: Design in WGSL, get Rust bindings for free
+- 🔧 **Flexible**: Works with bytemuck, encase, serde, and custom types
+- ⚡ **Fast**: Build-time generation with intelligent caching
 
 ## Features
 
@@ -34,39 +75,192 @@ The tool facilitates a shader-focused workflow. When you modify your WGSL shader
 -   Const validation of [WGSL memory layout](#memory-layout) for provided vector and matrix types and generated structs when using bytemuck
 -   Override the alignment for the struct generated. This also affects the size of the struct generated.
 
-## Usage
+## 🚀 Quick Start
 
-When enabling derives for crates like bytemuck, serde, or encase, these dependencies should also be added to the `Cargo.toml` with the appropriate derive features. See the provided [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for basic usage.
+### 1. Add to your `Cargo.toml`
 
 ```toml
-[dependencies]
-bytemuck = "..."
-include_file_path = "..."
-
 [build-dependencies]
-wgsl_bindgen = "..."
+wgsl_bindgen = "0.18"
+
+[dependencies]
+wgpu = "22"
+bytemuck = { version = "1.0", features = ["derive"] }
+# Optional: for additional features
+# encase = "0.8"
+# serde = { version = "1.0", features = ["derive"] }
 ```
 
-Then, in your build.rs:
+### 2. Create your WGSL shader (`shaders/my_shader.wgsl`)
 
-```rust
-use wgsl_bindgen::WgslBindgenOptionBuilder;
+```wgsl
+struct Uniforms {
+    transform: mat4x4<f32>,
+    time: f32,
+}
 
-fn main() {
-  let bindgen = WgslBindgenOptionBuilder::default()
-    .workspace_root("shaders")
-    .add_entry_point("shaders/pbr.wgsl")
-    .add_entry_point("shaders/pfx.wgsl")
-    .output("src/shader.rs")
-    .build()
-    .unwrap();
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+    @location(1) uv: vec2<f32>,
+}
 
-  bindgen.generate().unwrap();
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+}
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+@group(0) @binding(1) var my_texture: texture_2d<f32>;
+@group(0) @binding(2) var my_sampler: sampler;
+
+@vertex
+fn vs_main(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+    output.clip_position = uniforms.transform * vec4<f32>(input.position, 1.0);
+    output.uv = input.uv;
+    return output;
+}
+
+@fragment  
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(my_texture, my_sampler, input.uv);
 }
 ```
 
-This will generate Rust bindings for the WGSL shader at `src/pbr.wgsl`, `src/pfx.wgsl` and write them to `src/shader.rs`.
-See the example crate for how to use the generated code. Run the example with `cargo run`.
+### 3. Set up build script (`build.rs`)
+
+```rust
+use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslTypeSerializeStrategy, GlamWgslTypeMap};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    WgslBindgenOptionBuilder::default()
+        .workspace_root("shaders")
+        .add_entry_point("shaders/my_shader.wgsl")
+        .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+        .type_map(GlamWgslTypeMap) // Use glam for math types
+        .output("src/shader_bindings.rs")
+        .build()?
+        .generate()?;
+    Ok(())
+}
+```
+
+### 4. Use the generated bindings
+
+```rust
+// Include the generated bindings
+mod shader_bindings;
+use shader_bindings::my_shader;
+
+fn setup_render_pipeline(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> wgpu::RenderPipeline {
+    // Create shader module from generated code
+    let shader = my_shader::create_shader_module_embed_source(device);
+    
+    // Use generated pipeline layout
+    let pipeline_layout = my_shader::create_pipeline_layout(device);
+    
+    // Use generated vertex entry with proper buffer layout
+    let vertex_entry = my_shader::vs_main_entry(wgpu::VertexStepMode::Vertex);
+    
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        layout: Some(&pipeline_layout),
+        vertex: my_shader::vertex_state(&shader, &vertex_entry),
+        fragment: Some(my_shader::fragment_state(&shader, &my_shader::fs_main_entry([
+            Some(wgpu::ColorTargetState {
+                format: surface_format,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            })
+        ]))),
+        // ... other pipeline state
+    })
+}
+
+fn setup_bind_group(device: &wgpu::Device, texture_view: &wgpu::TextureView, sampler: &wgpu::Sampler) -> my_shader::WgpuBindGroup0 {
+    // Create uniform buffer with generated struct
+    let uniforms = my_shader::Uniforms::new(
+        glam::Mat4::IDENTITY,  // transform
+        0.0,                   // time
+    );
+    let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        contents: bytemuck::cast_slice(&[uniforms]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+    
+    // Create bind group using generated types - fully type-safe!
+    my_shader::WgpuBindGroup0::from_bindings(
+        device,
+        my_shader::WgpuBindGroup0Entries::new(my_shader::WgpuBindGroup0EntriesParams {
+            uniforms: wgpu::BufferBinding {
+                buffer: &uniform_buffer,
+                offset: 0,
+                size: None,
+            },
+            my_texture: texture_view,
+            my_sampler: sampler,
+        })
+    )
+}
+```
+
+🎉 **That's it!** Your shader bindings are now fully type-safe and will automatically update when you modify your WGSL files.
+
+> 📚 **See the [example project](./example) for a complete working demo with multiple shaders, including advanced features like texture arrays and overlay rendering.**
+
+## 🔧 Advanced Configuration
+
+### Serialization Strategies
+
+Choose how your WGSL types are serialized to Rust:
+
+```rust
+// For zero-copy, compile-time verified layouts (recommended)
+.serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+
+// For runtime padding/alignment handling
+.serialization_strategy(WgslTypeSerializeStrategy::Encase)
+```
+
+### Type Mapping
+
+Use your preferred math library:
+
+```rust
+// glam (recommended for games)
+.type_map(GlamWgslTypeMap)
+
+// nalgebra (recommended for scientific computing)  
+.type_map(NalgebraWgslTypeMap)
+
+// Use built-in Rust arrays (no external dependencies)
+.type_map(RustWgslTypeMap)
+```
+
+### Custom Types
+
+Override specific types or structs:
+
+```rust
+.override_struct_field_type([
+    ("MyStruct", "my_field", quote!(MyCustomType))
+])
+.add_override_struct_mapping(("MyWgslStruct", quote!(my_crate::MyRustStruct)))
+```
+
+### Shader Source Options
+
+Control how shaders are embedded:
+
+```rust
+// Embed shader source directly (recommended for most cases)
+.shader_source_type(WgslShaderSourceType::EmbedSource)
+
+// Use file paths for hot-reloading during development
+.shader_source_type(WgslShaderSourceType::HardCodedFilePath)
+
+// Use naga-oil composer for advanced import features
+.shader_source_type(WgslShaderSourceType::EmbedWithNagaOilComposer)
+```
 
 ## Wgsl Import Resolution
 
@@ -114,15 +308,93 @@ While bind groups can easily be set all at once using the `set_bind_groups` func
 
 Organizing bind groups in this way can also help to better organize rendering resources in application code instead of redundantly storing all resources with each object. The `BindGroup0` may only need to be stored once while `WgpuBindGroup3` may be stored for each mesh in the scene. Note that bind groups store references to their underlying resource bindings, so it is not necessary to recreate a bind group if the only the uniform or storage buffer contents change. Avoid creating new bind groups during rendering if possible for best performance.
 
-## Limitations
+## 🔍 Best Practices
 
--   It may be necessary to disable running this function for shaders with unsupported types or features.
-    Please make an issue if any new or existing WGSL syntax is unsupported.
-    The goal is just to generate most of the tedious and error prone boilerplate required to use WGSL shaders with wgpu.
--   Most but not all WGSL types are currently supported.
--   Vertex attributes using floating point types in WGSL like `vec2<f32>` are assumed to use float inputs instead of normalized attributes like unorm or snorm integers.
--   All textures are assumed to be filterable and all samplers are assumed to be filtering. This may lead to compatibility issues. This can usually be resolved by requesting the native only feature TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES.
--   It's possible to achieve slightly better performance than the generated code in some cases like avoiding redundant bind group bindings or adjusting resource shader stage visibility. This should be addressed by using some handwritten code where appropriate.
+### Performance Tips
+
+1. **Organize bind groups by update frequency**:
+   ```rust
+   // Bind group 0: Per-frame data (transforms, time)
+   // Bind group 1: Per-material data (textures, material properties)  
+   // Bind group 2: Per-object data (model matrices, instance data)
+   ```
+
+2. **Use RenderBundles for static geometry**:
+   ```rust
+   let render_bundle = device.create_render_bundle_encoder(&descriptor);
+   bind_group.set(&mut render_bundle);
+   render_bundle.draw(0..vertex_count, 0..1);
+   let bundle = render_bundle.finish(&descriptor);
+   ```
+
+3. **Prefer bytemuck for zero-copy performance**:
+   ```rust
+   .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+   ```
+
+### Development Workflow
+
+1. **Start with your WGSL shaders** - design your rendering pipeline in the shader language
+2. **Configure wgsl_bindgen** - set up your build script with appropriate options
+3. **Use generated types** - let the compiler guide you to correct usage
+4. **Iterate safely** - modify shaders and let Rust catch any breaking changes
+
+### Common Patterns
+
+```rust
+// Generated structs work seamlessly with wgpu
+let vertices = vec![
+    my_shader::VertexInput::new(glam::Vec3::ZERO, glam::Vec2::ZERO),
+    my_shader::VertexInput::new(glam::Vec3::X, glam::Vec2::X),
+    my_shader::VertexInput::new(glam::Vec3::Y, glam::Vec2::Y),
+];
+
+// Update uniforms safely with type checking
+let uniforms = my_shader::Uniforms::new(
+    camera.view_projection_matrix(),
+    time.elapsed_secs(),
+);
+queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+```
+
+## ⚠️ Current Limitations
+
+- Some advanced WGSL features may not be fully supported yet - please [file an issue](https://github.com/Swoorup/wgsl-bindgen/issues) for missing features
+- Vertex attributes currently assume standard float types rather than normalized integer formats
+- All textures are assumed to be filterable (can be resolved with `TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES`)
+- Generated code prioritizes safety and convenience over maximum performance (you can optimize specific hotspots manually when needed)
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [contribution guidelines](CONTRIBUTING.md) for details on:
+
+- Reporting bugs and requesting features  
+- Setting up the development environment
+- Running tests and adding new test cases
+- Code style and documentation standards
+
+## 📊 Comparison with Alternatives
+
+| Feature | wgsl_bindgen | Manual wgpu | wgsl_to_wgpu |
+|---------|--------------|-------------|--------------|
+| **Type Safety** | ✅ Compile-time | ❌ Runtime errors | ✅ Compile-time |
+| **WGSL Import Support** | ✅ Full naga-oil | ❌ Manual includes | ❌ Limited |
+| **Binding Arrays** | ✅ Full support | ⚠️ Manual setup | ❌ Not supported |
+| **Custom Types** | ✅ Flexible mapping | ❌ Manual work | ⚠️ Limited |
+| **Memory Layout** | ✅ Validated | ❌ Error-prone | ⚠️ Basic validation |
+| **Maintenance** | ✅ Auto-updates | ❌ Manual sync | ⚠️ Manual sync |
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [naga-oil](https://github.com/bevyengine/naga_oil) - WGSL import system and preprocessing
+- [wgpu](https://github.com/gfx-rs/wgpu) - WebGPU implementation for Rust
+- [naga](https://github.com/gfx-rs/naga) - Shader translation and validation
+- [wgsl_to_wgpu](https://github.com/ScanMountGoat/wgsl_to_wgpu/) - Original inspiration
+- The WebGPU working group for the WGSL specification
 
 ## Differences from the [wgsl_to_wgpu](https://github.com/ScanMountGoat/wgsl_to_wgpu/) fork.
 

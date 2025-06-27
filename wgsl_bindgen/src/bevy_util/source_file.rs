@@ -30,7 +30,7 @@ impl SourceFile {
     };
 
     source.imports =
-      parse_imports::get_import_statements::<SmallVec<_>>(&source.content.as_ref());
+      parse_imports::get_import_statements::<SmallVec<_>>(source.content.as_ref());
     source
   }
 

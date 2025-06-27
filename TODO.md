@@ -1,17 +1,10 @@
 # Rough ideas. 
 
-* Treat `_pad` as padding members and automatically initiallize it in init struct. 
-  This requires moving the pad field as a member in struct member entry info to a member entry variant type?
-
 * Allow injecting dynamic shader defines at build-time (we already have a runtime mechanism from generation)
 
 * Allow generation directly from shader strings.
 
-* proc_macro as an option alongside of build.rs. We need proc_macro::tracked* feature?
-
-* Use something like derivative and use MaybeUninit for padded fields
-
-* Use rustfmt instead of prettyparse
+* proc_macro as an option alongside of build.rs.
 
 * Use struct like this instead directly using the array.
   * ```rust

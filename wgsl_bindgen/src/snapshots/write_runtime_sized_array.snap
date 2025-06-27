@@ -1,14 +1,17 @@
 ---
 source: wgsl_bindgen/src/structs.rs
 ---
-#[derive(Debug, PartialEq, Clone, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, encase :: ShaderType)]
 pub struct RtsStruct {
-    pub other_data: i32,
-    #[size(runtime)]
-    pub the_array: Vec<u32>,
+  pub other_data: i32,
+  #[size(runtime)]
+  pub the_array: Vec<u32>,
 }
 impl RtsStruct {
-    pub const fn new(other_data: i32, the_array: Vec<u32>) -> Self {
-        Self { other_data, the_array }
+  pub const fn new(other_data: i32, the_array: Vec<u32>) -> Self {
+    Self {
+      other_data,
+      the_array,
     }
+  }
 }

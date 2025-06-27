@@ -155,8 +155,7 @@ pub fn vertex_struct_impls(
   invoking_entry_module: &str,
   module: &naga::Module,
 ) -> Vec<RustSourceItem> {
-  let structs = vertex_input_structs_impls(invoking_entry_module, module);
-  structs
+  vertex_input_structs_impls(invoking_entry_module, module)
 }
 
 fn vertex_input_structs_impls(

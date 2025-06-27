@@ -3,20 +3,23 @@ source: wgsl_bindgen/src/structs.rs
 ---
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct RtsStruct<const N: usize> {
-    /// size: 4, offset: 0x0, type: `i32`
-    pub other_data: i32,
-    /// size: 4, offset: 0x4, type: `array<u32>`
-    pub the_array: [u32; N],
+  #[doc = " size: 4, offset: 0x0, type: `i32`"]
+  pub other_data: i32,
+  #[doc = " size: 4, offset: 0x4, type: `array<u32>`"]
+  pub the_array: [u32; N],
 }
 impl<const N: usize> RtsStruct<N> {
-    pub const fn new(other_data: i32, the_array: [u32; N]) -> Self {
-        Self { other_data, the_array }
+  pub const fn new(other_data: i32, the_array: [u32; N]) -> Self {
+    Self {
+      other_data,
+      the_array,
     }
+  }
 }
 const RTS_STRUCT_ASSERTS: () = {
-    assert!(std::mem::offset_of!(RtsStruct < 1 >, other_data) == 0);
-    assert!(std::mem::offset_of!(RtsStruct < 1 >, the_array) == 4);
-    assert!(std::mem::size_of:: < RtsStruct < 1 > > () == 8);
+  assert!(std::mem::offset_of!(RtsStruct<1>, other_data) == 0);
+  assert!(std::mem::offset_of!(RtsStruct<1>, the_array) == 4);
+  assert!(std::mem::size_of::<RtsStruct<1>>() == 8);
 };
 unsafe impl<const N: usize> bytemuck::Zeroable for RtsStruct<N> {}
 unsafe impl<const N: usize> bytemuck::Pod for RtsStruct<N> {}

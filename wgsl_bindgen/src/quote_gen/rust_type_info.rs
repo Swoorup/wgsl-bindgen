@@ -147,13 +147,11 @@ fn assert_alignment_and_size(
   let size_after_alignment = alignment.round_up(size as u32);
   assert_eq!(
     alignment, expected_alignment,
-    "Built in type {:?} has unexpected alignment",
-    ty
+    "Built in type {ty:?} has unexpected alignment"
   );
   assert_eq!(
     size_after_alignment, expected_size_after_alignment,
-    "Built in type {:?} has unexpected size",
-    ty
+    "Built in type {ty:?} has unexpected size"
   );
 }
 
@@ -315,7 +313,7 @@ pub(crate) fn rust_type(
     } => {
       // panic!("Runtime-sized arrays can only be used in variable declarations or as the last field of a struct.");
       let element_type =
-        rust_type(invoking_entry_module, module, &module.types[*base], &options);
+        rust_type(invoking_entry_module, module, &module.types[*base], options);
       let member_type = match options.serialization_strategy {
         WgslTypeSerializeStrategy::Encase => {
           quote!(Vec<#element_type>)
@@ -351,14 +349,12 @@ pub(crate) fn rust_type(
 
       // check if the last member is a runtime sized array
       if let Some(last) = members.last() {
-        match &module.types[last.ty].inner {
-          naga::TypeInner::Array {
-            size: naga::ArraySize::Dynamic,
-            ..
-          } => {
-            mapped_type.size = None;
-          }
-          _ => {}
+        if let naga::TypeInner::Array {
+          size: naga::ArraySize::Dynamic,
+          ..
+        } = &module.types[last.ty].inner
+        {
+          mapped_type.size = None;
         }
       }
 

@@ -46,7 +46,7 @@ impl ModulePathResolver {
         .as_slice()
         .iter()
         .map(|s| s.as_str())
-        .chain(module_name_builder.into_iter())
+        .chain(module_name_builder)
         .collect::<Vec<_>>()
         .join("::");
 
@@ -64,7 +64,7 @@ impl ModulePathResolver {
   ) -> impl Iterator<Item = (SourceModuleName, SourceFilePath)> + 'a {
     (0..import_parts.len())
       .filter_map(move |i| {
-        Self::create_path(module_prefix, &from_dir, &import_parts[0..=i])
+        Self::create_path(module_prefix, from_dir, &import_parts[0..=i])
       })
       .filter(|(_, path)| path.as_ref() != current_source_path.as_path())
       .rev()
@@ -101,7 +101,7 @@ impl ModulePathResolver {
     .chain(Self::generate_paths_for_dir(
       &self.entry_module_prefix,
       import_parts.clone(),
-      &source_dir,
+      source_dir,
       source_path,
     ))
     .collect::<FxIndexSet<_>>();

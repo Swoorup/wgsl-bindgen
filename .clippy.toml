@@ -1,0 +1,15 @@
+# Clippy configuration for wgsl_bindgen
+# More permissive settings for CI to allow release
+
+# Allow functions with many arguments (common in binding generation)
+too-many-arguments-threshold = 10
+
+# Allow large types 
+large-error-threshold = 300
+enum-variant-size-threshold = 512
+
+# Allow some common patterns that are acceptable in this codebase
+avoid-breaking-exported-api = true
+
+# Allow module inception pattern (common in this codebase)
+allow-private-module-inception = true

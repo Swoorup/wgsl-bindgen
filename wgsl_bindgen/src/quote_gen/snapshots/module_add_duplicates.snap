@@ -2,8 +2,8 @@
 source: wgsl_bindgen/src/quote_gen/rust_module_builder.rs
 ---
 pub mod a {
-    struct B;
-    pub mod b {
-        struct A;
-    }
+  struct B;
+  pub mod b {
+    struct A;
+  }
 }

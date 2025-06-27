@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use naga::{Handle, Type};
 use crate::quote_gen::{RustSourceItem, RustSourceItemPath, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
+use naga::{Handle, Type};
 
 /// Returns a list of Rust structs that represent the WGSL structs in the module.
 pub fn structs_items(
@@ -98,7 +98,7 @@ fn rust_struct(
     rust_item_path,
     naga_members,
     naga_module,
-    &options,
+    options,
     layout,
     is_directly_sharable,
     is_host_sharable,
@@ -147,11 +147,14 @@ fn struct_has_rts_array_member(
 #[cfg(test)]
 mod tests {
   use indoc::indoc;
-  use quote::quote;
   use proc_macro2::TokenStream;
+  use quote::quote;
 
   use super::*;
-  use crate::{WgslBindgenOption, WgslTypeSerializeStrategy, WgslTypeVisibility, WgslTypeMapBuild, GlamWgslTypeMap, NalgebraWgslTypeMap, RustWgslTypeMap, assert_tokens_snapshot};
+  use crate::{
+    assert_tokens_snapshot, GlamWgslTypeMap, NalgebraWgslTypeMap, RustWgslTypeMap,
+    WgslBindgenOption, WgslTypeMapBuild, WgslTypeSerializeStrategy, WgslTypeVisibility,
+  };
 
   pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
     structs_items("", module, options)

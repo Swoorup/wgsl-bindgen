@@ -3,55 +3,53 @@ source: wgsl_bindgen/src/generate/entry.rs
 ---
 #[derive(Debug)]
 pub struct FragmentEntry<const N: usize> {
-    pub entry_point: &'static str,
-    pub targets: [Option<wgpu::ColorTargetState>; N],
-    pub constants: Vec<(&'static str, f64)>,
+  pub entry_point: &'static str,
+  pub targets: [Option<wgpu::ColorTargetState>; N],
+  pub constants: Vec<(&'static str, f64)>,
 }
 pub fn fragment_state<'a, const N: usize>(
-    module: &'a wgpu::ShaderModule,
-    entry: &'a FragmentEntry<N>,
+  module: &'a wgpu::ShaderModule,
+  entry: &'a FragmentEntry<N>,
 ) -> wgpu::FragmentState<'a> {
-    wgpu::FragmentState {
-        module,
-        entry_point: Some(entry.entry_point),
-        targets: &entry.targets,
-        compilation_options: wgpu::PipelineCompilationOptions {
-            constants: &entry.constants,
-            ..Default::default()
-        },
-    }
+  wgpu::FragmentState {
+    module,
+    entry_point: Some(entry.entry_point),
+    targets: &entry.targets,
+    compilation_options: wgpu::PipelineCompilationOptions {
+      constants: &entry.constants,
+      ..Default::default()
+    },
+  }
 }
 pub fn fs_multiple_entry(
-    targets: [Option<wgpu::ColorTargetState>; 2],
+  targets: [Option<wgpu::ColorTargetState>; 2],
 ) -> FragmentEntry<2> {
-    FragmentEntry {
-        entry_point: ENTRY_FS_MULTIPLE,
-        targets,
-        constants: Default::default(),
-    }
+  FragmentEntry {
+    entry_point: ENTRY_FS_MULTIPLE,
+    targets,
+    constants: Default::default(),
+  }
 }
-pub fn fs_single_entry(
-    targets: [Option<wgpu::ColorTargetState>; 1],
-) -> FragmentEntry<1> {
-    FragmentEntry {
-        entry_point: ENTRY_FS_SINGLE,
-        targets,
-        constants: Default::default(),
-    }
+pub fn fs_single_entry(targets: [Option<wgpu::ColorTargetState>; 1]) -> FragmentEntry<1> {
+  FragmentEntry {
+    entry_point: ENTRY_FS_SINGLE,
+    targets,
+    constants: Default::default(),
+  }
 }
 pub fn fs_single_builtin_entry(
-    targets: [Option<wgpu::ColorTargetState>; 0],
+  targets: [Option<wgpu::ColorTargetState>; 0],
 ) -> FragmentEntry<0> {
-    FragmentEntry {
-        entry_point: ENTRY_FS_SINGLE_BUILTIN,
-        targets,
-        constants: Default::default(),
-    }
+  FragmentEntry {
+    entry_point: ENTRY_FS_SINGLE_BUILTIN,
+    targets,
+    constants: Default::default(),
+  }
 }
 pub fn fs_empty_entry(targets: [Option<wgpu::ColorTargetState>; 0]) -> FragmentEntry<0> {
-    FragmentEntry {
-        entry_point: ENTRY_FS_EMPTY,
-        targets,
-        constants: Default::default(),
-    }
+  FragmentEntry {
+    entry_point: ENTRY_FS_EMPTY,
+    targets,
+    constants: Default::default(),
+  }
 }

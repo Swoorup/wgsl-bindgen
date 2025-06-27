@@ -23,7 +23,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       | naga::TypeInner::Matrix { .. } => BindResourceType::BufferArray,
       naga::TypeInner::Image { .. } => BindResourceType::TextureArray,
       naga::TypeInner::Sampler { .. } => BindResourceType::SamplerArray,
-      _ => panic!("Unsupported array base type: {:?}", base_type),
+      _ => panic!("Unsupported array base type: {base_type:?}"),
     }
   }
   /// Generates a binding entry from a parameter variable and a group binding.
@@ -105,7 +105,9 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
       naga::TypeInner::Array { .. } => BindResourceType::Buffer,
       naga::TypeInner::Scalar(_) => BindResourceType::Buffer,
-      naga::TypeInner::AccelerationStructure { .. } => BindResourceType::AccelerationStructure,
+      naga::TypeInner::AccelerationStructure { .. } => {
+        BindResourceType::AccelerationStructure
+      }
       naga::TypeInner::BindingArray { base, .. } => {
         let base_type = &self.data.naga_module.types[base].inner;
         Self::get_array_resource_type(base_type)
@@ -186,8 +188,8 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
             }
           }
 
-          pub fn as_array(self) -> [#entry_struct_type; #entries_length] {
-            [ #(#all_entries),* ]
+          pub fn as_array(&self) -> [#entry_struct_type; #entries_length] {
+            [ #(#all_entries.clone()),* ]
           }
 
           pub fn collect<B: FromIterator<#entry_struct_type>>(self) -> B {
@@ -262,7 +264,7 @@ impl<'a> BindGroupStructBuilder<'a> {
             }
 
             pub fn from_bindings(device: &wgpu::Device, bindings: #bind_group_entries_struct_name) -> Self {
-                let bind_group_layout = Self::get_bind_group_layout(&device);
+                let bind_group_layout = Self::get_bind_group_layout(device);
                 let entries = bindings.as_array();
                 let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some(#bind_group_label),
@@ -342,7 +344,7 @@ impl<'a> SingleBindGroupBuilder<'a> {
     );
     let bindgroup = bindgroup_struct_builder.build();
 
-    let rust_source_item = RustSourceItem::new(
+    RustSourceItem::new(
       RustSourceItemCategory::TypeDefs | RustSourceItemCategory::TypeImpls,
       source_item_path,
       quote! {
@@ -350,9 +352,7 @@ impl<'a> SingleBindGroupBuilder<'a> {
         #bind_group_entries_struct
         #bindgroup
       },
-    );
-
-    rust_source_item
+    )
   }
 }
 
@@ -372,8 +372,9 @@ fn generate_binding_type_for_type(
     | naga::TypeInner::Vector { .. }
     | naga::TypeInner::Matrix { .. } => {
       let buffer_binding_type = buffer_binding_type(address_space);
-      
-      let rust_type = rust_type(Some(invoking_entry_module), naga_module, binding_type, options);
+
+      let rust_type =
+        rust_type(Some(invoking_entry_module), naga_module, binding_type, options);
       let min_binding_size = rust_type.quote_min_binding_size();
 
       quote!(wgpu::BindingType::Buffer {
@@ -486,7 +487,7 @@ fn bind_group_layout_entry(
   );
 
   let binding_index = Index::from(binding_index as usize);
-  
+
   // Handle count for BindingArray
   let count = match &binding_type.inner {
     naga::TypeInner::BindingArray { size, .. } => match size {

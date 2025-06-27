@@ -41,7 +41,7 @@ impl WGSLBindgen {
 
     if options.emit_rerun_if_change {
       for file in Self::iter_files_to_watch(&dependency_tree) {
-        println!("cargo:rerun-if-changed={}", file);
+        println!("cargo:rerun-if-changed={file}");
       }
     }
 
@@ -62,7 +62,7 @@ impl WGSLBindgen {
   fn get_contents_hash(options: &WgslBindgenOption, dep_tree: &DependencyTree) -> String {
     let mut hasher = blake3::Hasher::new();
 
-    hasher.update(format!("{:?}", options).as_bytes());
+    hasher.update(format!("{options:?}").as_bytes());
     hasher.update(PKG_VER.as_bytes());
 
     for SourceFile { content, .. } in dep_tree.parsed_files() {

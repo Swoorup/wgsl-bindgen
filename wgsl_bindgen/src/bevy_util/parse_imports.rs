@@ -37,7 +37,7 @@ fn import_prefix_regex() -> &'static Regex {
 fn parse_import_stmt(input: &str) -> IndexMap<String, Vec<String>> {
   let mut declared_imports = IndexMap::default();
   naga_oil::compose::parse_imports::parse_imports(input, &mut declared_imports)
-    .expect(format!("failed to parse imports: '{}'", input).as_str());
+    .unwrap_or_else(|_| panic!("failed to parse imports: '{input}'"));
   declared_imports
 }
 
@@ -129,7 +129,7 @@ mod tests {
 
   use super::*;
 
-  const TEST_IMPORTS: &'static str = r#"
+  const TEST_IMPORTS: &str = r#"
 #import a::b::{c::{d, e}, f, g::{h as i, j}}
 #import a::b c, d
 #import a, b

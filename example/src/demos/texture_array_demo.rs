@@ -4,245 +4,253 @@ use std::time::Instant;
 use wgpu::util::DeviceExt;
 
 pub struct TextureArrayDemo {
-    pipeline: wgpu::RenderPipeline,
-    bind_group0: shader_bindings::simple_array_demo::WgpuBindGroup0,
-    bind_group1: shader_bindings::simple_array_demo::WgpuBindGroup1,
-    bind_group2: shader_bindings::simple_array_demo::WgpuBindGroup2,
-    vertex_buffer: wgpu::Buffer,
-    time_buffer: wgpu::Buffer,
-    textures: Vec<wgpu::TextureView>,
-    samplers: Vec<wgpu::Sampler>,
-    start_time: Instant,
-    surface_format: wgpu::TextureFormat,
+  pipeline: wgpu::RenderPipeline,
+  bind_group0: shader_bindings::simple_array_demo::WgpuBindGroup0,
+  bind_group1: shader_bindings::simple_array_demo::WgpuBindGroup1,
+  bind_group2: shader_bindings::simple_array_demo::WgpuBindGroup2,
+  vertex_buffer: wgpu::Buffer,
+  time_buffer: wgpu::Buffer,
+  textures: Vec<wgpu::TextureView>,
+  samplers: Vec<wgpu::Sampler>,
+  start_time: Instant,
+  surface_format: wgpu::TextureFormat,
 }
 
 impl Demo for TextureArrayDemo {
-    fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        surface_format: wgpu::TextureFormat,
-    ) -> Self {
-        // Create shader and pipeline layout
-        let shader = shader_bindings::simple_array_demo::create_shader_module_embed_source(device);
-        let render_pipeline_layout =
-            shader_bindings::simple_array_demo::create_pipeline_layout(device);
+  fn new(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    surface_format: wgpu::TextureFormat,
+  ) -> Self {
+    // Create shader and pipeline layout
+    let shader =
+      shader_bindings::simple_array_demo::create_shader_module_embed_source(device);
+    let render_pipeline_layout =
+      shader_bindings::simple_array_demo::create_pipeline_layout(device);
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("TextureArray Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: shader_bindings::simple_array_demo::vertex_state(
-                &shader,
-                &shader_bindings::simple_array_demo::vs_main_entry(wgpu::VertexStepMode::Vertex),
-            ),
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some(shader_bindings::simple_array_demo::ENTRY_FS_MAIN),
-                targets: &[Some(surface_format.into())],
-                compilation_options: Default::default(),
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-            cache: Default::default(),
-        });
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+      label: Some("TextureArray Render Pipeline"),
+      layout: Some(&render_pipeline_layout),
+      vertex: shader_bindings::simple_array_demo::vertex_state(
+        &shader,
+        &shader_bindings::simple_array_demo::vs_main_entry(wgpu::VertexStepMode::Vertex),
+      ),
+      fragment: Some(wgpu::FragmentState {
+        module: &shader,
+        entry_point: Some(shader_bindings::simple_array_demo::ENTRY_FS_MAIN),
+        targets: &[Some(surface_format.into())],
+        compilation_options: Default::default(),
+      }),
+      primitive: wgpu::PrimitiveState::default(),
+      depth_stencil: None,
+      multisample: wgpu::MultisampleState::default(),
+      multiview: None,
+      cache: Default::default(),
+    });
 
-        // Create multiple interesting textures for the array
-        let textures = Self::create_texture_array(device, queue);
-        let samplers = Self::create_sampler_array(device);
+    // Create multiple interesting textures for the array
+    let textures = Self::create_texture_array(device, queue);
+    let samplers = Self::create_sampler_array(device);
 
-        let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("time buffer"),
-            contents: bytemuck::cast_slice(&[0.0f32]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
+    let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: Some("time buffer"),
+      contents: bytemuck::cast_slice(&[0.0f32]),
+      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
 
-        // Create texture and sampler arrays for the bind group
-        let texture_views: Vec<&wgpu::TextureView> = textures.iter().collect();
-        let sampler_refs: Vec<&wgpu::Sampler> = samplers.iter().collect();
+    // Create texture and sampler arrays for the bind group
+    let texture_views: Vec<&wgpu::TextureView> = textures.iter().collect();
+    let sampler_refs: Vec<&wgpu::Sampler> = samplers.iter().collect();
 
-        // Use the generated types with texture arrays
-        let bind_group0 = shader_bindings::simple_array_demo::WgpuBindGroup0::from_bindings(
-            device,
-            shader_bindings::simple_array_demo::WgpuBindGroup0Entries::new(
-                shader_bindings::simple_array_demo::WgpuBindGroup0EntriesParams {
-                    texture_array: &texture_views[..],
-                    sampler_array: &sampler_refs[..],
-                },
-            ),
-        );
+    // Use the generated types with texture arrays
+    let bind_group0 = shader_bindings::simple_array_demo::WgpuBindGroup0::from_bindings(
+      device,
+      shader_bindings::simple_array_demo::WgpuBindGroup0Entries::new(
+        shader_bindings::simple_array_demo::WgpuBindGroup0EntriesParams {
+          texture_array: &texture_views[..],
+          sampler_array: &sampler_refs[..],
+        },
+      ),
+    );
 
-        let bind_group2 = shader_bindings::simple_array_demo::WgpuBindGroup2::from_bindings(
-            device,
-            shader_bindings::simple_array_demo::WgpuBindGroup2Entries::new(
-                shader_bindings::simple_array_demo::WgpuBindGroup2EntriesParams {
-                    time: time_buffer.as_entire_buffer_binding(),
-                },
-            ),
-        );
+    let bind_group2 = shader_bindings::simple_array_demo::WgpuBindGroup2::from_bindings(
+      device,
+      shader_bindings::simple_array_demo::WgpuBindGroup2Entries::new(
+        shader_bindings::simple_array_demo::WgpuBindGroup2EntriesParams {
+          time: time_buffer.as_entire_buffer_binding(),
+        },
+      ),
+    );
 
-        let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("uniforms"),
-            contents: bytemuck::cast_slice(&[shader_bindings::simple_array_demo::Uniforms(
-                glam::vec4(1.0, 1.0, 1.0, 1.0),
-            )]),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: Some("uniforms"),
+      contents: bytemuck::cast_slice(&[shader_bindings::simple_array_demo::Uniforms(
+        glam::vec4(1.0, 1.0, 1.0, 1.0),
+      )]),
+      usage: wgpu::BufferUsages::UNIFORM,
+    });
 
-        let bind_group1 = shader_bindings::simple_array_demo::WgpuBindGroup1::from_bindings(
-            device,
-            shader_bindings::simple_array_demo::WgpuBindGroup1Entries::new(
-                shader_bindings::simple_array_demo::WgpuBindGroup1EntriesParams {
-                    uniforms: uniforms_buffer.as_entire_buffer_binding(),
-                },
-            ),
-        );
+    let bind_group1 = shader_bindings::simple_array_demo::WgpuBindGroup1::from_bindings(
+      device,
+      shader_bindings::simple_array_demo::WgpuBindGroup1Entries::new(
+        shader_bindings::simple_array_demo::WgpuBindGroup1EntriesParams {
+          uniforms: uniforms_buffer.as_entire_buffer_binding(),
+        },
+      ),
+    );
 
-        // Initialize the vertex buffer based on the expected input structs.
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("vertex buffer"),
-            contents: bytemuck::cast_slice(&[
-                shader_bindings::simple_array_demo::VertexInput(glam::vec3a(-1.0, -1.0, 0.0)),
-                shader_bindings::simple_array_demo::VertexInput(glam::vec3a(3.0, -1.0, 0.0)),
-                shader_bindings::simple_array_demo::VertexInput(glam::vec3a(-1.0, 3.0, 0.0)),
-            ]),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+    // Initialize the vertex buffer based on the expected input structs.
+    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: Some("vertex buffer"),
+      contents: bytemuck::cast_slice(&[
+        shader_bindings::simple_array_demo::VertexInput(glam::vec3a(-1.0, -1.0, 0.0)),
+        shader_bindings::simple_array_demo::VertexInput(glam::vec3a(3.0, -1.0, 0.0)),
+        shader_bindings::simple_array_demo::VertexInput(glam::vec3a(-1.0, 3.0, 0.0)),
+      ]),
+      usage: wgpu::BufferUsages::VERTEX,
+    });
 
-        Self {
-            pipeline,
-            bind_group0,
-            bind_group1,
-            bind_group2,
-            vertex_buffer,
-            time_buffer,
-            textures,
-            samplers,
-            start_time: Instant::now(),
-            surface_format,
-        }
+    Self {
+      pipeline,
+      bind_group0,
+      bind_group1,
+      bind_group2,
+      vertex_buffer,
+      time_buffer,
+      textures,
+      samplers,
+      start_time: Instant::now(),
+      surface_format,
     }
+  }
 
-    fn name(&self) -> &'static str {
-        "TextureArray Demo"
-    }
+  fn name(&self) -> &'static str {
+    "TextureArray Demo"
+  }
 
-    fn description(&self) -> &'static str {
-        "Advanced demo showcasing texture arrays with animated blending and effects"
-    }
+  fn description(&self) -> &'static str {
+    "Advanced demo showcasing texture arrays with animated blending and effects"
+  }
 
-    fn update(&mut self, _device: &wgpu::Device, queue: &wgpu::Queue, elapsed_time: f32) {
-        // Update the time buffer
-        queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[elapsed_time]));
-    }
+  fn update(&mut self, _device: &wgpu::Device, queue: &wgpu::Queue, elapsed_time: f32) {
+    // Update the time buffer
+    queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[elapsed_time]));
+  }
 
-    fn render<'a>(&'a mut self, _device: &wgpu::Device, render_pass: &mut wgpu::RenderPass<'a>) {
-        render_pass.set_pipeline(&self.pipeline);
+  fn render<'a>(
+    &'a mut self,
+    _device: &wgpu::Device,
+    render_pass: &mut wgpu::RenderPass<'a>,
+  ) {
+    render_pass.set_pipeline(&self.pipeline);
 
-        // Push constant data also needs to follow alignment rules.
-        let push_constant = shader_bindings::simple_array_demo::PushConstants {
-            color_matrix: glam::Mat4::IDENTITY,
-        };
+    // Push constant data also needs to follow alignment rules.
+    let push_constant = shader_bindings::simple_array_demo::PushConstants {
+      color_matrix: glam::Mat4::IDENTITY,
+    };
 
-        render_pass.set_push_constants(
-            wgpu::ShaderStages::VERTEX_FRAGMENT,
-            0,
-            bytemuck::cast_slice(&[push_constant]),
-        );
+    render_pass.set_push_constants(
+      wgpu::ShaderStages::VERTEX_FRAGMENT,
+      0,
+      bytemuck::cast_slice(&[push_constant]),
+    );
 
-        // Use this function to ensure all bind groups are set.
-        self.bind_group0.set(render_pass);
-        self.bind_group1.set(render_pass);
-        self.bind_group2.set(render_pass);
+    // Use this function to ensure all bind groups are set.
+    self.bind_group0.set(render_pass);
+    self.bind_group1.set(render_pass);
+    self.bind_group2.set(render_pass);
 
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..3, 0..1);
-    }
+    render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+    render_pass.draw(0..3, 0..1);
+  }
 
-    fn get_pipeline(&self) -> &wgpu::RenderPipeline {
-        &self.pipeline
-    }
+  fn get_pipeline(&self) -> &wgpu::RenderPipeline {
+    &self.pipeline
+  }
 }
 
 impl TextureArrayDemo {
-    fn create_texture_array(device: &wgpu::Device, queue: &wgpu::Queue) -> Vec<wgpu::TextureView> {
-        vec![
-            // Texture 1: Blue-purple gradient
-            Self::create_texture_with_pattern(device, queue, |x, y| {
-                let r = (x as f32 / 4.0) * 128.0;
-                let g = (y as f32 / 4.0) * 64.0;
-                let b = 255.0 - (x as f32 / 4.0) * 128.0;
-                [r as u8, g as u8, b as u8, 255]
-            }),
-            // Texture 2: Checkerboard pattern
-            Self::create_texture_with_pattern(device, queue, |x, y| {
-                let is_checker = (x + y) % 2 == 0;
-                if is_checker {
-                    [255, 128, 64, 255] // Orange
-                } else {
-                    [64, 128, 255, 255] // Blue
-                }
-            }),
-        ]
-    }
+  fn create_texture_array(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+  ) -> Vec<wgpu::TextureView> {
+    vec![
+      // Texture 1: Blue-purple gradient
+      Self::create_texture_with_pattern(device, queue, |x, y| {
+        let r = (x as f32 / 4.0) * 128.0;
+        let g = (y as f32 / 4.0) * 64.0;
+        let b = 255.0 - (x as f32 / 4.0) * 128.0;
+        [r as u8, g as u8, b as u8, 255]
+      }),
+      // Texture 2: Checkerboard pattern
+      Self::create_texture_with_pattern(device, queue, |x, y| {
+        let is_checker = (x + y) % 2 == 0;
+        if is_checker {
+          [255, 128, 64, 255] // Orange
+        } else {
+          [64, 128, 255, 255] // Blue
+        }
+      }),
+    ]
+  }
 
-    fn create_texture_with_pattern<F>(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        pattern_fn: F,
-    ) -> wgpu::TextureView
-    where
-        F: Fn(u32, u32) -> [u8; 4] + Clone,
-    {
-        let size = 8;
-        let data: Vec<u8> = (0..size)
-            .flat_map(|y| {
-                let pattern_fn = pattern_fn.clone();
-                (0..size).flat_map(move |x| pattern_fn(x, y))
-            })
-            .collect();
+  fn create_texture_with_pattern<F>(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    pattern_fn: F,
+  ) -> wgpu::TextureView
+  where
+    F: Fn(u32, u32) -> [u8; 4] + Clone,
+  {
+    let size = 8;
+    let data: Vec<u8> = (0..size)
+      .flat_map(|y| {
+        let pattern_fn = pattern_fn.clone();
+        (0..size).flat_map(move |x| pattern_fn(x, y))
+      })
+      .collect();
 
-        let texture = device.create_texture_with_data(
-            queue,
-            &wgpu::TextureDescriptor {
-                label: None,
-                size: wgpu::Extent3d {
-                    width: size,
-                    height: size,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8Unorm,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING,
-                view_formats: &[],
-            },
-            wgpu::util::TextureDataOrder::LayerMajor,
-            &data,
-        );
+    let texture = device.create_texture_with_data(
+      queue,
+      &wgpu::TextureDescriptor {
+        label: None,
+        size: wgpu::Extent3d {
+          width: size,
+          height: size,
+          depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+      },
+      wgpu::util::TextureDataOrder::LayerMajor,
+      &data,
+    );
 
-        texture.create_view(&wgpu::TextureViewDescriptor::default())
-    }
+    texture.create_view(&wgpu::TextureViewDescriptor::default())
+  }
 
-    fn create_sampler_array(device: &wgpu::Device) -> Vec<wgpu::Sampler> {
-        vec![
-            // Linear sampler
-            device.create_sampler(&wgpu::SamplerDescriptor {
-                mag_filter: wgpu::FilterMode::Linear,
-                min_filter: wgpu::FilterMode::Linear,
-                address_mode_u: wgpu::AddressMode::Repeat,
-                address_mode_v: wgpu::AddressMode::Repeat,
-                ..Default::default()
-            }),
-            // Nearest sampler
-            device.create_sampler(&wgpu::SamplerDescriptor {
-                mag_filter: wgpu::FilterMode::Nearest,
-                min_filter: wgpu::FilterMode::Nearest,
-                address_mode_u: wgpu::AddressMode::ClampToEdge,
-                address_mode_v: wgpu::AddressMode::ClampToEdge,
-                ..Default::default()
-            }),
-        ]
-    }
+  fn create_sampler_array(device: &wgpu::Device) -> Vec<wgpu::Sampler> {
+    vec![
+      // Linear sampler
+      device.create_sampler(&wgpu::SamplerDescriptor {
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
+        address_mode_u: wgpu::AddressMode::Repeat,
+        address_mode_v: wgpu::AddressMode::Repeat,
+        ..Default::default()
+      }),
+      // Nearest sampler
+      device.create_sampler(&wgpu::SamplerDescriptor {
+        mag_filter: wgpu::FilterMode::Nearest,
+        min_filter: wgpu::FilterMode::Nearest,
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        ..Default::default()
+      }),
+    ]
+  }
 }

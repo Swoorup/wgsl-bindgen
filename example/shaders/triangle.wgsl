@@ -50,10 +50,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   // Simple time variable
   let t = time * 0.5;
   
-  // Create a simple ripple effect from the center
+  // Create a simple ripple effect from the center - adjusted for low res
   let center = vec2<f32>(0.5, 0.5);
   let dist = distance(uv, center);
-  let ripple = sin(dist * 15.0 - t * 2.0) * 0.5 + 0.5;
+  // Reduce ripple frequency for better visibility on low-res displays
+  let ripple = sin(dist * 12.0 - t * 1.8) * 0.4 + 0.6;
   
   // Simple color cycling
   let color_shift = vec3<f32>(
@@ -62,8 +63,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     0.5 + 0.5 * sin(t + 4.0)
   );
   
-  // Simple vignette effect
-  let vignette = smoothstep(0.0, 0.7, 1.0 - dist * 1.5);
+  // Softer vignette effect for low-res displays
+  let vignette = smoothstep(0.0, 0.8, 1.0 - dist * 1.2);
   
   // Combine effects
   let final_color = color * uniforms.color_rgb.rgb * color_shift * (0.7 + 0.3 * ripple) * vignette;

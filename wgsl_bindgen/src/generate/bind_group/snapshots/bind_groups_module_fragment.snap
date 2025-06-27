@@ -3,84 +3,79 @@ source: wgsl_bindgen/src/generate/bind_group/mod.rs
 ---
 #[derive(Debug)]
 pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub transforms: wgpu::BufferBinding<'a>,
+  pub transforms: wgpu::BufferBinding<'a>,
 }
 #[derive(Clone, Debug)]
 pub struct WgpuBindGroup0Entries<'a> {
-    pub transforms: wgpu::BindGroupEntry<'a>,
+  pub transforms: wgpu::BindGroupEntry<'a>,
 }
 impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-        Self {
-            transforms: wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(params.transforms),
-            },
-        }
+  pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+    Self {
+      transforms: wgpu::BindGroupEntry {
+        binding: 0,
+        resource: wgpu::BindingResource::Buffer(params.transforms),
+      },
     }
-    pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-        [self.transforms]
-    }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-        self.as_array().into_iter().collect()
-    }
+  }
+  pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
+    [self.transforms.clone()]
+  }
+  pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+    self.as_array().into_iter().collect()
+  }
 }
 #[derive(Debug)]
 pub struct WgpuBindGroup0(wgpu::BindGroup);
 impl WgpuBindGroup0 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-        label: Some("Test::BindGroup0::LayoutDescriptor"),
-        entries: &[
-            /// @binding(0): "transforms"
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: std::num::NonZeroU64::new(
-                        std::mem::size_of::<_root::test::Transforms>() as _,
-                    ),
-                },
-                count: None,
-            },
-        ],
+  pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+    wgpu::BindGroupLayoutDescriptor {
+      label: Some("Test::BindGroup0::LayoutDescriptor"),
+      entries: &[
+        #[doc = " @binding(0): \"transforms\""]
+        wgpu::BindGroupLayoutEntry {
+          binding: 0,
+          visibility: wgpu::ShaderStages::FRAGMENT,
+          ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+              _root::test::Transforms,
+            >() as _),
+          },
+          count: None,
+        },
+      ],
     };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-    }
-    pub fn from_bindings(
-        device: &wgpu::Device,
-        bindings: WgpuBindGroup0Entries,
-    ) -> Self {
-        let bind_group_layout = Self::get_bind_group_layout(&device);
-        let entries = bindings.as_array();
-        let bind_group = device
-            .create_bind_group(
-                &wgpu::BindGroupDescriptor {
-                    label: Some("Test::BindGroup0"),
-                    layout: &bind_group_layout,
-                    entries: &entries,
-                },
-            );
-        Self(bind_group)
-    }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-        pass.set_bind_group(0, &self.0, &[]);
-    }
+  pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+  }
+  pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+    let bind_group_layout = Self::get_bind_group_layout(device);
+    let entries = bindings.as_array();
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+      label: Some("Test::BindGroup0"),
+      layout: &bind_group_layout,
+      entries: &entries,
+    });
+    Self(bind_group)
+  }
+  pub fn set(&self, pass: &mut impl SetBindGroup) {
+    pass.set_bind_group(0, &self.0, &[]);
+  }
 }
-/// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
-/// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
-///   - Bind group 0: Least frequent updates (e.g. per frame resources)
-///   - Bind group 1: More frequent updates
-///   - Bind group 2: More frequent updates
-///   - Bind group 3: Most frequent updates (e.g. per draw resources)
+#[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+#[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+#[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+#[doc = "   - Bind group 1: More frequent updates"]
+#[doc = "   - Bind group 2: More frequent updates"]
+#[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
 #[derive(Debug, Copy, Clone)]
 pub struct WgpuBindGroups<'a> {
-    pub bind_group0: &'a WgpuBindGroup0,
+  pub bind_group0: &'a WgpuBindGroup0,
 }
 impl<'a> WgpuBindGroups<'a> {
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-        self.bind_group0.set(pass);
-    }
+  pub fn set(&self, pass: &mut impl SetBindGroup) {
+    self.bind_group0.set(pass);
+  }
 }
