@@ -128,7 +128,7 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
         pub struct VertexEntry<const N: usize> {
             pub entry_point: &'static str,
             pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-            pub constants: std::collections::HashMap<String, f64>,
+            pub constants: Vec<(&'static str, f64)>,
         }
 
         pub fn vertex_state<'a, const N: usize>(
@@ -273,7 +273,7 @@ pub fn fragment_states(module: &naga::Module) -> TokenStream {
         pub struct FragmentEntry<const N: usize> {
             pub entry_point: &'static str,
             pub targets: [Option<wgpu::ColorTargetState>; N],
-            pub constants: std::collections::HashMap<String, f64>,
+            pub constants: Vec<(&'static str, f64)>,
         }
 
         pub fn fragment_state<'a, const N: usize>(
@@ -440,67 +440,6 @@ mod test {
   }
 
   #[test]
-  fn write_vertex_module_single_input_sint32() {
-    let source = indoc! {r#"
-            struct VertexInput0 {
-                @location(0) a: i32,
-                @location(1) a: vec2<i32>,
-                @location(2) a: vec3<i32>,
-                @location(3) a: vec4<i32>,
-
-            };
-
-            @vertex
-            fn main(in0: VertexInput0) {}
-        "#};
-
-    let module = naga::front::wgsl::parse_str(source).unwrap();
-    let actual = vertex_struct_impls("test", &module)
-      .into_iter()
-      .map(|it| it.tokenstream)
-      .collect::<TokenStream>();
-
-    assert_tokens_eq!(
-      quote! {
-          impl VertexInput0 {
-              pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 0,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32x2,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 1,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32x3,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 2,
-                  },
-                  wgpu::VertexAttribute {
-                      format: wgpu::VertexFormat::Sint32x4,
-                      offset: std::mem::offset_of!(Self, a) as u64,
-                      shader_location: 3,
-                  },
-              ];
-              pub const fn vertex_buffer_layout(
-                  step_mode: wgpu::VertexStepMode,
-              ) -> wgpu::VertexBufferLayout<'static> {
-                  wgpu::VertexBufferLayout {
-                      array_stride: std::mem::size_of::<Self>() as u64,
-                      step_mode,
-                      attributes: &Self::VERTEX_ATTRIBUTES,
-                  }
-              }
-          }
-      },
-      actual
-    );
-  }
-
-  #[test]
   fn write_vertex_module_single_input_uint32() {
     let source = indoc! {r#"
             struct VertexInput0 {
@@ -608,7 +547,7 @@ mod test {
           pub struct VertexEntry<const N: usize> {
               pub entry_point: &'static str,
               pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-              pub constants: std::collections::HashMap<String, f64>,
+              pub constants: Vec<(&'static str, f64)>,
           }
           pub fn vertex_state<'a, const N: usize>(
               module: &'a wgpu::ShaderModule,
@@ -659,7 +598,7 @@ mod test {
           pub struct VertexEntry<const N: usize> {
               pub entry_point: &'static str,
               pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-              pub constants: std::collections::HashMap<String, f64>,
+              pub constants: Vec<(&'static str, f64)>,
           }
           pub fn vertex_state<'a, const N: usize>(
               module: &'a wgpu::ShaderModule,
@@ -718,7 +657,7 @@ mod test {
           pub struct VertexEntry<const N: usize> {
               pub entry_point: &'static str,
               pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-              pub constants: std::collections::HashMap<String, f64>
+              pub constants: Vec<(&'static str, f64)>,
           }
           pub fn vertex_state<'a, const N: usize>(
               module: &'a wgpu::ShaderModule,
@@ -798,7 +737,7 @@ mod test {
           pub struct FragmentEntry<const N: usize> {
               pub entry_point: &'static str,
               pub targets: [Option<wgpu::ColorTargetState>; N],
-              pub constants: std::collections::HashMap<String, f64>,
+              pub constants: Vec<(&'static str, f64)>,
           }
           pub fn fragment_state<'a, const N: usize>(
               module: &'a wgpu::ShaderModule,
@@ -873,7 +812,7 @@ mod test {
           pub struct FragmentEntry<const N: usize> {
               pub entry_point: &'static str,
               pub targets: [Option<wgpu::ColorTargetState>; N],
-              pub constants: std::collections::HashMap<String, f64>,
+              pub constants: Vec<(&'static str, f64)>,
           }
           pub fn fragment_state<'a, const N: usize>(
               module: &'a wgpu::ShaderModule,

@@ -1122,7 +1122,7 @@ pub mod pbr {
     pub struct FragmentEntry<const N: usize> {
         pub entry_point: &'static str,
         pub targets: [Option<wgpu::ColorTargetState>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn fragment_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,
@@ -1342,8 +1342,8 @@ fn saturateX_naga_oil_mod_XMJSXM6K7OBRHEOR2OV2GS3DTX(value: f32) -> f32 {
 }
 
 fn EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(f0_: vec3<f32>, perceptual_roughness_1: f32, NoV: f32) -> vec3<f32> {
-    const c0_ = vec4<f32>(-1f, -0.0275f, -0.572f, 0.022f);
-    const c1_ = vec4<f32>(1f, 0.0425f, 1.04f, -0.04f);
+    let c0_ = vec4<f32>(-1f, -0.0275f, -0.572f, 0.022f);
+    let c1_ = vec4<f32>(1f, 0.0425f, 1.04f, -0.04f);
     let r = ((perceptual_roughness_1 * c0_) + c1_);
     let a004_ = ((min((r.x * r.x), exp2((-9.28f * NoV))) * r.x) + r.y);
     let AB = ((vec2<f32>(-1.04f, 1.04f) * a004_) + r.zw);
@@ -1626,7 +1626,7 @@ fn fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_i
     if ((any((offset_position_ndc.xy < vec2(-1f))) || (offset_position_ndc.z < 0f)) || any((offset_position_ndc > vec3(1f)))) {
         return 1f;
     }
-    const flip_correction = vec2<f32>(0.5f, -0.5f);
+    let flip_correction = vec2<f32>(0.5f, -0.5f);
     let light_local = ((offset_position_ndc.xy * flip_correction) + vec2<f32>(0.5f, 0.5f));
     let depth_2 = offset_position_ndc.z;
     let _e57 = textureSampleCompareLevel(directional_shadow_texturesX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, directional_shadow_textures_samplerX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, light_local, i32(light_id_2), depth_2);

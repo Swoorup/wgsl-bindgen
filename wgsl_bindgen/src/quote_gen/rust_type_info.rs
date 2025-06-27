@@ -107,6 +107,7 @@ pub(crate) fn rust_scalar_type(
     (ScalarKind::Uint, 2) => RustTypeInfo(quote!(u16), 2, alignment),
     (ScalarKind::Sint, 4) => RustTypeInfo(quote!(i32), 4, alignment),
     (ScalarKind::Uint, 4) => RustTypeInfo(quote!(u32), 4, alignment),
+    (ScalarKind::Float, 2) => RustTypeInfo(quote!(half::f16), 2, alignment),
     (ScalarKind::Float, 4) => RustTypeInfo(quote!(f32), 4, alignment),
     (ScalarKind::Float, 8) => RustTypeInfo(quote!(f64), 8, alignment),
     // TODO: Do booleans have a width?
@@ -364,7 +365,7 @@ pub(crate) fn rust_type(
       mapped_type
     }
     naga::TypeInner::BindingArray { base: _, size: _ } => todo!(),
-    naga::TypeInner::AccelerationStructure => todo!(),
-    naga::TypeInner::RayQuery => todo!(),
+    naga::TypeInner::AccelerationStructure { .. } => todo!(),
+    naga::TypeInner::RayQuery { .. } => todo!(),
   }
 }

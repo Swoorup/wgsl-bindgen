@@ -12,6 +12,8 @@ pub fn shader_stages(module: &naga::Module) -> wgpu::ShaderStages {
       naga::ShaderStage::Vertex => wgpu::ShaderStages::VERTEX,
       naga::ShaderStage::Fragment => wgpu::ShaderStages::FRAGMENT,
       naga::ShaderStage::Compute => wgpu::ShaderStages::COMPUTE,
+      naga::ShaderStage::Task => wgpu::ShaderStages::TASK,
+      naga::ShaderStage::Mesh => wgpu::ShaderStages::MESH,
     })
     .collect()
 }
@@ -217,7 +219,7 @@ mod tests {
         "#};
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
-    assert_eq!(wgpu::ShaderStages::all(), shader_stages(&module));
+    assert_eq!(wgpu::ShaderStages::COMPUTE | wgpu::ShaderStages::VERTEX_FRAGMENT, shader_stages(&module));
   }
 
   #[test]

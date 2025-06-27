@@ -86,7 +86,7 @@ pub mod clear {
     pub struct VertexEntry<const N: usize> {
         pub entry_point: &'static str,
         pub buffers: [wgpu::VertexBufferLayout<'static>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn vertex_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,
@@ -113,7 +113,7 @@ pub mod clear {
     pub struct FragmentEntry<const N: usize> {
         pub entry_point: &'static str,
         pub targets: [Option<wgpu::ColorTargetState>; N],
-        pub constants: std::collections::HashMap<String, f64>,
+        pub constants: Vec<(&'static str, f64)>,
     }
     pub fn fragment_state<'a, const N: usize>(
         module: &'a wgpu::ShaderModule,

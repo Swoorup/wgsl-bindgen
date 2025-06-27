@@ -72,7 +72,7 @@ pub fn make_valid_rust_import(value: &str) -> String {
 }
 
 // https://github.com/bevyengine/naga_oil/blob/master/src/compose/mod.rs#L421-L431
-pub fn demangle_str(string: &str) -> Cow<str> {
+pub fn demangle_str(string: &str) -> Cow<'_, str> {
   undecorate_regex().replace_all(string, |caps: &regex::Captures| {
     format!(
       "{}{}::{}",

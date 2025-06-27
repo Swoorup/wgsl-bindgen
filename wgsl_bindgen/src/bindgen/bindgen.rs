@@ -75,7 +75,7 @@ impl WGSLBindgen {
   fn generate_naga_module_for_entry(
     ir_capabilities: Option<WgslShaderIrCapabilities>,
     entry: SourceWithFullDependenciesResult<'_>,
-  ) -> Result<WgslEntryResult, WgslBindgenError> {
+  ) -> Result<WgslEntryResult<'_>, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
       let msg = err.emit_to_string(composer);
       WgslBindgenError::NagaModuleComposeError {

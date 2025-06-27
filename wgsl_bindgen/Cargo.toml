@@ -39,6 +39,9 @@ pathdiff.workspace = true
 enumflags2.workspace = true
 heck.workspace = true
 
+[features]
+minify = []
+
 [dev-dependencies]
 indoc.workspace = true
 pretty_assertions.workspace = true

@@ -1145,7 +1145,7 @@ mod tests {
         #[repr(C, align(4))]
         #[derive(Debug, PartialEq, Clone, Copy)]
         pub struct Outer {
-            /// size: 4, offset: 0x0, type: `struct`
+            /// size: 4, offset: 0x0, type: `Inner`
             pub inner: Inner,
         }
         impl Outer {
