@@ -75,6 +75,7 @@ impl<'a> RawShadersBindGroups<'a> {
       });
       SingleBindGroupData {
         bindings: merged_bindings,
+        naga_module: existing_group.naga_module,
       }
     }
 
@@ -182,6 +183,7 @@ pub fn get_bind_group_data_for_entry<'a>(
         .entry(binding.group)
         .or_insert(SingleBindGroupData {
           bindings: Vec::new(),
+          naga_module: module,
         });
       let binding_type = &module.types[module.global_variables[global_handle.0].ty];
 

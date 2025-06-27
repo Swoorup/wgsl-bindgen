@@ -36,7 +36,7 @@
 //! }
 //! ```
 
-#[allow(dead_code, unused)]
+#![allow(dead_code, unused)]
 extern crate wgpu_types as wgpu;
 
 use bevy_util::SourceWithFullDependenciesResult;
