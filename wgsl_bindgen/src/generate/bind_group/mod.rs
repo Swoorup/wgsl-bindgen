@@ -529,4 +529,40 @@ mod tests {
 
     assert_tokens_snapshot!(actual);
   }
+
+  #[test]
+  fn bind_groups_module_acceleration_structure() {
+    // Test AccelerationStructure binding type.
+    let source = indoc! {r#"
+            struct Transforms {};
+
+            @group(0) @binding(0) var<uniform> transforms: Transforms;
+            @group(0) @binding(1) var acc_struct: acceleration_structure;
+
+            @vertex
+            fn vs_main() {}
+
+            @fragment
+            fn fs_main() {}
+        "#};
+
+    let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
+    let bind_group_data = get_bind_group_data_for_entry(
+      &module,
+      wgpu::ShaderStages::VERTEX_FRAGMENT,
+      &options,
+      "test",
+    )
+    .unwrap()
+    .bind_group_data;
+
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::VERTEX_FRAGMENT,
+      &options,
+    );
+
+    assert_tokens_snapshot!(actual);
+  }
 }

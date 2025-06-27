@@ -40,6 +40,9 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       naga::TypeInner::Sampler { .. } => {
         entry_cons(binding_index, binding_var, BindResourceType::Sampler)
       }
+      naga::TypeInner::AccelerationStructure { .. } => {
+        entry_cons(binding_index, binding_var, BindResourceType::AccelerationStructure)
+      }
       // TODO: Better error handling.
       _ => panic!("Failed to generate BindingType."),
     }
@@ -84,6 +87,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
       naga::TypeInner::Array { .. } => BindResourceType::Buffer,
       naga::TypeInner::Scalar(_) => BindResourceType::Buffer,
+      naga::TypeInner::AccelerationStructure { .. } => BindResourceType::AccelerationStructure,
       _ => panic!("Unsupported type for binding fields."),
     };
 
@@ -417,6 +421,9 @@ fn bind_group_layout_entry(
         quote!(wgpu::SamplerBindingType::Filtering)
       };
       quote!(wgpu::BindingType::Sampler(#sampler_type))
+    }
+    naga::TypeInner::AccelerationStructure { vertex_return } => {
+      quote!(wgpu::BindingType::AccelerationStructure { vertex_return: #vertex_return })
     }
     // TODO: Better error handling.
     unknown => panic!("Failed to generate BindingType for {:?}.", &unknown),
