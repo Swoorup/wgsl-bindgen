@@ -9,6 +9,8 @@ fn main() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .workspace_root("shaders")
     .add_entry_point("shaders/triangle.wgsl")
+    .add_entry_point("shaders/simple_array_demo.wgsl")
+    .add_entry_point("shaders/overlay.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
@@ -20,9 +22,7 @@ fn main() -> Result<()> {
     .add_custom_padding_field_regexp(Regex::new("_pad.*").unwrap())
     .short_constructor(2)
     .shader_source_type(
-      WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer
-        | WgslShaderSourceType::EmbedWithNagaOilComposer
-        | WgslShaderSourceType::EmbedSource,
+      WgslShaderSourceType::EmbedSource,
     )
     .derive_serde(false)
     .output("src/shader_bindings.rs")

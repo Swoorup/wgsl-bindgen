@@ -2,17 +2,21 @@
 //
 // ^ wgsl_bindgen version 0.18.2
 // Changes made to this file will not be saved.
-// SourceHash: 4cc0db593a96673f7f63768316ce4a549a8b9779e11fa6ec31618a77ec0895ed
+// SourceHash: c6f2b1c20299bf1290c95f5a8bb02f3dce946d8def5aa6c92b6997fa0ae569cd
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
     Triangle,
+    SimpleArrayDemo,
+    Overlay,
 }
 impl ShaderEntry {
     pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
         match self {
             Self::Triangle => triangle::create_pipeline_layout(device),
+            Self::SimpleArrayDemo => simple_array_demo::create_pipeline_layout(device),
+            Self::Overlay => overlay::create_pipeline_layout(device),
         }
     }
     pub fn create_shader_module_embed_source(
@@ -21,60 +25,10 @@ impl ShaderEntry {
     ) -> wgpu::ShaderModule {
         match self {
             Self::Triangle => triangle::create_shader_module_embed_source(device),
-        }
-    }
-    pub fn create_shader_module_embedded(
-        &self,
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        match self {
-            Self::Triangle => {
-                triangle::create_shader_module_embedded(device, shader_defs)
+            Self::SimpleArrayDemo => {
+                simple_array_demo::create_shader_module_embed_source(device)
             }
-        }
-    }
-    pub fn create_shader_module_from_path(
-        &self,
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        match self {
-            Self::Triangle => {
-                triangle::create_shader_module_from_path(device, shader_defs)
-            }
-        }
-    }
-    pub fn load_shader_module_embedded(
-        &self,
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        match self {
-            Self::Triangle => {
-                triangle::load_shader_module_embedded(composer, shader_defs)
-            }
-        }
-    }
-    pub fn load_shader_module_from_path(
-        &self,
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        match self {
-            Self::Triangle => {
-                triangle::load_shader_module_from_path(composer, shader_defs)
-            }
-        }
-    }
-    pub fn shader_entry_filename(&self) -> &'static str {
-        match self {
-            Self::Triangle => "triangle.wgsl",
-        }
-    }
-    pub fn shader_paths(&self) -> &[&str] {
-        match self {
-            Self::Triangle => triangle::SHADER_PATHS,
+            Self::Overlay => overlay::create_shader_module_embed_source(device),
         }
     }
 }
@@ -128,6 +82,27 @@ pub mod layout_asserts {
     const TRIANGLE_PUSH_CONSTANTS_ASSERTS: () = {
         assert!(std::mem::offset_of!(triangle::PushConstants, color_matrix) == 0);
         assert!(std::mem::size_of:: < triangle::PushConstants > () == 64);
+    };
+    const SIMPLE_ARRAY_DEMO_UNIFORMS_ASSERTS: () = {
+        assert!(std::mem::offset_of!(simple_array_demo::Uniforms, color_rgb) == 0);
+        assert!(std::mem::size_of:: < simple_array_demo::Uniforms > () == 16);
+    };
+    const SIMPLE_ARRAY_DEMO_PUSH_CONSTANTS_ASSERTS: () = {
+        assert!(
+            std::mem::offset_of!(simple_array_demo::PushConstants, color_matrix) == 0
+        );
+        assert!(std::mem::size_of:: < simple_array_demo::PushConstants > () == 64);
+    };
+    const OVERLAY_INFO_DATA_ASSERTS: () = {
+        assert!(std::mem::offset_of!(overlay::InfoData, demo_index) == 0);
+        assert!(std::mem::offset_of!(overlay::InfoData, total_demos) == 4);
+        assert!(std::mem::offset_of!(overlay::InfoData, time) == 8);
+        assert!(std::mem::offset_of!(overlay::InfoData, scale_factor) == 12);
+        assert!(std::mem::offset_of!(overlay::InfoData, window_width) == 16);
+        assert!(std::mem::offset_of!(overlay::InfoData, window_height) == 20);
+        assert!(std::mem::offset_of!(overlay::InfoData, padding1) == 24);
+        assert!(std::mem::offset_of!(overlay::InfoData, padding2) == 28);
+        assert!(std::mem::size_of:: < overlay::InfoData > () == 32);
     };
 }
 pub mod triangle {
@@ -235,6 +210,106 @@ pub mod triangle {
         }
     }
     #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+        pub main_texture: &'a wgpu::TextureView,
+        pub main_sampler: &'a wgpu::Sampler,
+        pub time: wgpu::BufferBinding<'a>,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+        pub main_texture: wgpu::BindGroupEntry<'a>,
+        pub main_sampler: wgpu::BindGroupEntry<'a>,
+        pub time: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+        pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+            Self {
+                main_texture: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(params.main_texture),
+                },
+                main_sampler: wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(params.main_sampler),
+                },
+                time: wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Buffer(params.time),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
+            [self.main_texture, self.main_sampler, self.time]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("Triangle::BindGroup0::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "main_texture"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: true,
+                        },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                /// @binding(1): "main_sampler"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                /// @binding(2): "time"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<f32>() as _,
+                        ),
+                    },
+                    count: None,
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup0Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("Triangle::BindGroup0"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(0, &self.0, &[]);
+        }
+    }
+    #[derive(Debug)]
     pub struct WgpuBindGroup1EntriesParams<'a> {
         pub uniforms: wgpu::BufferBinding<'a>,
     }
@@ -310,7 +385,7 @@ pub mod triangle {
     ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
     #[derive(Debug, Copy, Clone)]
     pub struct WgpuBindGroups<'a> {
-        pub bind_group0: &'a global_bindings::WgpuBindGroup0,
+        pub bind_group0: &'a WgpuBindGroup0,
         pub bind_group1: &'a WgpuBindGroup1,
     }
     impl<'a> WgpuBindGroups<'a> {
@@ -334,7 +409,7 @@ pub mod triangle {
                 &wgpu::PipelineLayoutDescriptor {
                     label: Some("Triangle::PipelineLayout"),
                     bind_group_layouts: &[
-                        &global_bindings::WgpuBindGroup0::get_bind_group_layout(device),
+                        &WgpuBindGroup0::get_bind_group_layout(device),
                         &WgpuBindGroup1::get_bind_group_layout(device),
                     ],
                     push_constant_ranges: &[
@@ -375,11 +450,11 @@ struct PushConstants {
 }
 
 @group(0) @binding(0) 
-var color_textureX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: texture_2d<f32>;
+var main_texture: texture_2d<f32>;
 @group(0) @binding(1) 
-var color_samplerX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: sampler;
+var main_sampler: sampler;
 @group(0) @binding(2) 
-var<uniform> timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: f32;
+var<uniform> time: f32;
 @group(1) @binding(0) 
 var<uniform> uniforms: Uniforms;
 var<push_constant> constants: PushConstants;
@@ -397,9 +472,9 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 @fragment 
 fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
     let uv = in_1.tex_coords;
-    let _e4 = textureSample(color_textureX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX, color_samplerX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX, uv);
+    let _e4 = textureSample(main_texture, main_sampler, uv);
     let color = _e4.xyz;
-    let _e7 = timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
+    let _e7 = time;
     let t = (_e7 * 0.5f);
     let center = vec2<f32>(0.5f, 0.5f);
     let dist = distance(uv, center);
@@ -412,109 +487,6 @@ fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
     return (_e65 * vec4<f32>(final_color, 1f));
 }
 "#;
-    pub fn load_shader_module_embedded(
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        composer
-            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: include_str!("../shaders/global_bindings.wgsl"),
-                file_path: "../shaders/global_bindings.wgsl",
-                language: naga_oil::compose::ShaderLanguage::Wgsl,
-                shader_defs: shader_defs.clone(),
-                as_name: Some("global_bindings".into()),
-                ..Default::default()
-            })?;
-        composer
-            .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: include_str!("../shaders/triangle.wgsl"),
-                file_path: "../shaders/triangle.wgsl",
-                shader_defs,
-                ..Default::default()
-            })
-    }
-    pub fn create_shader_module_embedded(
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        let mut composer = naga_oil::compose::Composer::default()
-            .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
-        let module = load_shader_module_embedded(&mut composer, shader_defs)?;
-        let info = wgpu::naga::valid::Validator::new(
-                wgpu::naga::valid::ValidationFlags::empty(),
-                wgpu::naga::valid::Capabilities::all(),
-            )
-            .validate(&module)
-            .unwrap();
-        let shader_string = wgpu::naga::back::wgsl::write_string(
-                &module,
-                &info,
-                wgpu::naga::back::wgsl::WriterFlags::empty(),
-            )
-            .expect("failed to convert naga module to source");
-        let source = std::borrow::Cow::Owned(shader_string);
-        let shader_module = device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("triangle.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            });
-        Ok(shader_module)
-    }
-    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/triangle.wgsl"
-    );
-    pub const GLOBAL_BINDINGS_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/global_bindings.wgsl"
-    );
-    pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, GLOBAL_BINDINGS_PATH];
-    pub fn load_shader_module_from_path(
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        composer
-            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &std::fs::read_to_string(GLOBAL_BINDINGS_PATH).unwrap(),
-                file_path: "../shaders/global_bindings.wgsl",
-                language: naga_oil::compose::ShaderLanguage::Wgsl,
-                shader_defs: shader_defs.clone(),
-                as_name: Some("global_bindings".into()),
-                ..Default::default()
-            })?;
-        composer
-            .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
-                file_path: "../shaders/triangle.wgsl",
-                shader_defs,
-                ..Default::default()
-            })
-    }
-    pub fn create_shader_module_from_path(
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        let mut composer = naga_oil::compose::Composer::default()
-            .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
-        let module = load_shader_module_from_path(&mut composer, shader_defs)?;
-        let info = wgpu::naga::valid::Validator::new(
-                wgpu::naga::valid::ValidationFlags::empty(),
-                wgpu::naga::valid::Capabilities::all(),
-            )
-            .validate(&module)
-            .unwrap();
-        let shader_string = wgpu::naga::back::wgsl::write_string(
-                &module,
-                &info,
-                wgpu::naga::back::wgsl::WriterFlags::empty(),
-            )
-            .expect("failed to convert naga module to source");
-        let source = std::borrow::Cow::Owned(shader_string);
-        let shader_module = device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("triangle.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            });
-        Ok(shader_module)
-    }
 }
 pub mod bytemuck_impls {
     use super::{_root, _root::*};
@@ -524,40 +496,146 @@ pub mod bytemuck_impls {
     unsafe impl bytemuck::Pod for triangle::VertexInput {}
     unsafe impl bytemuck::Zeroable for triangle::PushConstants {}
     unsafe impl bytemuck::Pod for triangle::PushConstants {}
+    unsafe impl bytemuck::Zeroable for simple_array_demo::Uniforms {}
+    unsafe impl bytemuck::Pod for simple_array_demo::Uniforms {}
+    unsafe impl bytemuck::Zeroable for simple_array_demo::VertexInput {}
+    unsafe impl bytemuck::Pod for simple_array_demo::VertexInput {}
+    unsafe impl bytemuck::Zeroable for simple_array_demo::PushConstants {}
+    unsafe impl bytemuck::Pod for simple_array_demo::PushConstants {}
+    unsafe impl bytemuck::Zeroable for overlay::InfoData {}
+    unsafe impl bytemuck::Pod for overlay::InfoData {}
 }
-pub mod global_bindings {
+pub mod simple_array_demo {
     use super::{_root, _root::*};
+    #[repr(C, align(16))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct Uniforms {
+        /// size: 16, offset: 0x0, type: `vec4<f32>`
+        pub color_rgb: glam::Vec4,
+    }
+    pub const fn Uniforms(color_rgb: glam::Vec4) -> Uniforms {
+        Uniforms { color_rgb }
+    }
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct VertexInput {
+        pub position: glam::Vec3A,
+    }
+    pub const fn VertexInput(position: glam::Vec3A) -> VertexInput {
+        VertexInput { position }
+    }
+    impl VertexInput {
+        pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [
+            wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x3,
+                offset: std::mem::offset_of!(Self, position) as u64,
+                shader_location: 0,
+            },
+        ];
+        pub const fn vertex_buffer_layout(
+            step_mode: wgpu::VertexStepMode,
+        ) -> wgpu::VertexBufferLayout<'static> {
+            wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<Self>() as u64,
+                step_mode,
+                attributes: &Self::VERTEX_ATTRIBUTES,
+            }
+        }
+    }
+    #[repr(C, align(16))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct PushConstants {
+        /// size: 64, offset: 0x0, type: `mat4x4<f32>`
+        pub color_matrix: glam::Mat4,
+    }
+    pub const fn PushConstants(color_matrix: glam::Mat4) -> PushConstants {
+        PushConstants { color_matrix }
+    }
+    pub const ENTRY_VS_MAIN: &str = "vs_main";
+    pub const ENTRY_FS_MAIN: &str = "fs_main";
+    #[derive(Debug)]
+    pub struct VertexEntry<const N: usize> {
+        pub entry_point: &'static str,
+        pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+        pub constants: Vec<(&'static str, f64)>,
+    }
+    pub fn vertex_state<'a, const N: usize>(
+        module: &'a wgpu::ShaderModule,
+        entry: &'a VertexEntry<N>,
+    ) -> wgpu::VertexState<'a> {
+        wgpu::VertexState {
+            module,
+            entry_point: Some(entry.entry_point),
+            buffers: &entry.buffers,
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
+        }
+    }
+    pub fn vs_main_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
+        VertexEntry {
+            entry_point: ENTRY_VS_MAIN,
+            buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
+            constants: Default::default(),
+        }
+    }
+    #[derive(Debug)]
+    pub struct FragmentEntry<const N: usize> {
+        pub entry_point: &'static str,
+        pub targets: [Option<wgpu::ColorTargetState>; N],
+        pub constants: Vec<(&'static str, f64)>,
+    }
+    pub fn fragment_state<'a, const N: usize>(
+        module: &'a wgpu::ShaderModule,
+        entry: &'a FragmentEntry<N>,
+    ) -> wgpu::FragmentState<'a> {
+        wgpu::FragmentState {
+            module,
+            entry_point: Some(entry.entry_point),
+            targets: &entry.targets,
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
+        }
+    }
+    pub fn fs_main_entry(
+        targets: [Option<wgpu::ColorTargetState>; 1],
+    ) -> FragmentEntry<1> {
+        FragmentEntry {
+            entry_point: ENTRY_FS_MAIN,
+            targets,
+            constants: Default::default(),
+        }
+    }
     #[derive(Debug)]
     pub struct WgpuBindGroup0EntriesParams<'a> {
-        pub color_texture: &'a wgpu::TextureView,
-        pub color_sampler: &'a wgpu::Sampler,
-        pub time: wgpu::BufferBinding<'a>,
+        pub texture_array: &'a [&'a wgpu::TextureView],
+        pub sampler_array: &'a [&'a wgpu::Sampler],
     }
     #[derive(Clone, Debug)]
     pub struct WgpuBindGroup0Entries<'a> {
-        pub color_texture: wgpu::BindGroupEntry<'a>,
-        pub color_sampler: wgpu::BindGroupEntry<'a>,
-        pub time: wgpu::BindGroupEntry<'a>,
+        pub texture_array: wgpu::BindGroupEntry<'a>,
+        pub sampler_array: wgpu::BindGroupEntry<'a>,
     }
     impl<'a> WgpuBindGroup0Entries<'a> {
         pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
             Self {
-                color_texture: wgpu::BindGroupEntry {
+                texture_array: wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(params.color_texture),
+                    resource: wgpu::BindingResource::TextureViewArray(
+                        params.texture_array,
+                    ),
                 },
-                color_sampler: wgpu::BindGroupEntry {
+                sampler_array: wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(params.color_sampler),
-                },
-                time: wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Buffer(params.time),
+                    resource: wgpu::BindingResource::SamplerArray(params.sampler_array),
                 },
             }
         }
-        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
-            [self.color_texture, self.color_sampler, self.time]
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+            [self.texture_array, self.sampler_array]
         }
         pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
             self.as_array().into_iter().collect()
@@ -567,9 +645,9 @@ pub mod global_bindings {
     pub struct WgpuBindGroup0(wgpu::BindGroup);
     impl WgpuBindGroup0 {
         pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-            label: Some("GlobalBindings::BindGroup0::LayoutDescriptor"),
+            label: Some("SimpleArrayDemo::BindGroup0::LayoutDescriptor"),
             entries: &[
-                /// @binding(0): "_root::global_bindings::color_texture"
+                /// @binding(0): "texture_array"
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -580,18 +658,142 @@ pub mod global_bindings {
                         view_dimension: wgpu::TextureViewDimension::D2,
                         multisampled: false,
                     },
-                    count: None,
+                    count: Some(std::num::NonZeroU32::new(2u32).unwrap()),
                 },
-                /// @binding(1): "_root::global_bindings::color_sampler"
+                /// @binding(1): "sampler_array"
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: Some(std::num::NonZeroU32::new(2u32).unwrap()),
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup0Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("SimpleArrayDemo::BindGroup0"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(0, &self.0, &[]);
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup1EntriesParams<'a> {
+        pub uniforms: wgpu::BufferBinding<'a>,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup1Entries<'a> {
+        pub uniforms: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup1Entries<'a> {
+        pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+            Self {
+                uniforms: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(params.uniforms),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            [self.uniforms]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup1(wgpu::BindGroup);
+    impl WgpuBindGroup1 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("SimpleArrayDemo::BindGroup1::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "uniforms"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<_root::simple_array_demo::Uniforms>()
+                                as _,
+                        ),
+                    },
                     count: None,
                 },
-                /// @binding(2): "_root::global_bindings::time"
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
+            bindings: WgpuBindGroup1Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("SimpleArrayDemo::BindGroup1"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(1, &self.0, &[]);
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup2EntriesParams<'a> {
+        pub time: wgpu::BufferBinding<'a>,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup2Entries<'a> {
+        pub time: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup2Entries<'a> {
+        pub fn new(params: WgpuBindGroup2EntriesParams<'a>) -> Self {
+            Self {
+                time: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(params.time),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+            [self.time]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup2(wgpu::BindGroup);
+    impl WgpuBindGroup2 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("SimpleArrayDemo::BindGroup2::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "time"
                 wgpu::BindGroupLayoutEntry {
-                    binding: 2,
+                    binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
@@ -609,6 +811,329 @@ pub mod global_bindings {
         }
         pub fn from_bindings(
             device: &wgpu::Device,
+            bindings: WgpuBindGroup2Entries,
+        ) -> Self {
+            let bind_group_layout = Self::get_bind_group_layout(&device);
+            let entries = bindings.as_array();
+            let bind_group = device
+                .create_bind_group(
+                    &wgpu::BindGroupDescriptor {
+                        label: Some("SimpleArrayDemo::BindGroup2"),
+                        layout: &bind_group_layout,
+                        entries: &entries,
+                    },
+                );
+            Self(bind_group)
+        }
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            pass.set_bind_group(2, &self.0, &[]);
+        }
+    }
+    /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
+    /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
+    ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
+    ///   - Bind group 1: More frequent updates
+    ///   - Bind group 2: More frequent updates
+    ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+        pub bind_group0: &'a WgpuBindGroup0,
+        pub bind_group1: &'a WgpuBindGroup1,
+        pub bind_group2: &'a WgpuBindGroup2,
+    }
+    impl<'a> WgpuBindGroups<'a> {
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            self.bind_group0.set(pass);
+            self.bind_group1.set(pass);
+            self.bind_group2.set(pass);
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+        pub fn bind_group_layout_entries(
+            entries: [wgpu::BindGroupLayout; 3],
+        ) -> [wgpu::BindGroupLayout; 3] {
+            entries
+        }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device
+            .create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("SimpleArrayDemo::PipelineLayout"),
+                    bind_group_layouts: &[
+                        &WgpuBindGroup0::get_bind_group_layout(device),
+                        &WgpuBindGroup1::get_bind_group_layout(device),
+                        &WgpuBindGroup2::get_bind_group_layout(device),
+                    ],
+                    push_constant_ranges: &[
+                        wgpu::PushConstantRange {
+                            stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                            range: 0..64,
+                        },
+                    ],
+                },
+            )
+    }
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("simple_array_demo.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    pub const SHADER_STRING: &'static str = r#"
+struct Uniforms {
+    color_rgb: vec4<f32>,
+}
+
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+}
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex_coords: vec2<f32>,
+}
+
+struct PushConstants {
+    color_matrix: mat4x4<f32>,
+}
+
+@group(0) @binding(0) 
+var texture_array: binding_array<texture_2d<f32>, 2>;
+@group(0) @binding(1) 
+var sampler_array: binding_array<sampler, 2>;
+@group(2) @binding(0) 
+var<uniform> time: f32;
+@group(1) @binding(0) 
+var<uniform> uniforms: Uniforms;
+var<push_constant> constants: PushConstants;
+
+@vertex 
+fn vs_main(in: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+
+    out.clip_position = vec4<f32>(in.position.xyz, 1f);
+    out.tex_coords = ((in.position.xy * 0.5f) + vec2(0.5f));
+    let _e15 = out;
+    return _e15;
+}
+
+@fragment 
+fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
+    let base_uv = in_1.tex_coords;
+    let _e3 = time;
+    let t = (_e3 * 0.5f);
+    let uv1_ = (base_uv + vec2<f32>((sin(t) * 0.1f), (cos((t * 1.3f)) * 0.1f)));
+    let uv2_ = ((base_uv * (1f + (0.2f * sin((t * 0.7f))))) + vec2<f32>((cos((t * 0.8f)) * 0.05f), (sin((t * 1.1f)) * 0.05f)));
+    let _e40 = textureSample(texture_array[0], sampler_array[0], uv1_);
+    let color1_ = _e40.xyz;
+    let _e46 = textureSample(texture_array[1], sampler_array[1], uv2_);
+    let color2_ = _e46.xyz;
+    let center = vec2<f32>(0.5f, 0.5f);
+    let dist = distance(base_uv, center);
+    let blend_factor = (0.5f + (0.5f * sin((t + (dist * 8f)))));
+    let blended_color = mix(color1_, color2_, blend_factor);
+    let color_mod = vec3<f32>((0.8f + (0.2f * sin(t))), (0.8f + (0.2f * sin((t + 2f)))), (0.8f + (0.2f * sin((t + 4f)))));
+    let ripple = ((sin(((dist * 12f) - (t * 3f))) * 0.3f) + 0.7f);
+    let _e93 = uniforms.color_rgb;
+    let final_color = (((blended_color * _e93.xyz) * color_mod) * ripple);
+    let vignette = smoothstep(0f, 0.8f, (1f - (dist * 1.5f)));
+    let _e107 = constants.color_matrix;
+    return (_e107 * vec4<f32>((final_color * vignette), 1f));
+}
+"#;
+}
+pub mod overlay {
+    use super::{_root, _root::*};
+    #[repr(C, align(4))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct InfoData {
+        /// size: 4, offset: 0x0, type: `f32`
+        pub demo_index: f32,
+        /// size: 4, offset: 0x4, type: `f32`
+        pub total_demos: f32,
+        /// size: 4, offset: 0x8, type: `f32`
+        pub time: f32,
+        /// size: 4, offset: 0xC, type: `f32`
+        pub scale_factor: f32,
+        /// size: 4, offset: 0x10, type: `f32`
+        pub window_width: f32,
+        /// size: 4, offset: 0x14, type: `f32`
+        pub window_height: f32,
+        /// size: 4, offset: 0x18, type: `f32`
+        pub padding1: f32,
+        /// size: 4, offset: 0x1C, type: `f32`
+        pub padding2: f32,
+    }
+    impl InfoData {
+        pub const fn new(
+            demo_index: f32,
+            total_demos: f32,
+            time: f32,
+            scale_factor: f32,
+            window_width: f32,
+            window_height: f32,
+            padding1: f32,
+            padding2: f32,
+        ) -> Self {
+            Self {
+                demo_index,
+                total_demos,
+                time,
+                scale_factor,
+                window_width,
+                window_height,
+                padding1,
+                padding2,
+            }
+        }
+    }
+    pub const ENTRY_VS_MAIN: &str = "vs_main";
+    pub const ENTRY_FS_MAIN: &str = "fs_main";
+    #[derive(Debug)]
+    pub struct VertexEntry<const N: usize> {
+        pub entry_point: &'static str,
+        pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+        pub constants: Vec<(&'static str, f64)>,
+    }
+    pub fn vertex_state<'a, const N: usize>(
+        module: &'a wgpu::ShaderModule,
+        entry: &'a VertexEntry<N>,
+    ) -> wgpu::VertexState<'a> {
+        wgpu::VertexState {
+            module,
+            entry_point: Some(entry.entry_point),
+            buffers: &entry.buffers,
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
+        }
+    }
+    pub fn vs_main_entry() -> VertexEntry<0> {
+        VertexEntry {
+            entry_point: ENTRY_VS_MAIN,
+            buffers: [],
+            constants: Default::default(),
+        }
+    }
+    #[derive(Debug)]
+    pub struct FragmentEntry<const N: usize> {
+        pub entry_point: &'static str,
+        pub targets: [Option<wgpu::ColorTargetState>; N],
+        pub constants: Vec<(&'static str, f64)>,
+    }
+    pub fn fragment_state<'a, const N: usize>(
+        module: &'a wgpu::ShaderModule,
+        entry: &'a FragmentEntry<N>,
+    ) -> wgpu::FragmentState<'a> {
+        wgpu::FragmentState {
+            module,
+            entry_point: Some(entry.entry_point),
+            targets: &entry.targets,
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: &entry.constants,
+                ..Default::default()
+            },
+        }
+    }
+    pub fn fs_main_entry(
+        targets: [Option<wgpu::ColorTargetState>; 1],
+    ) -> FragmentEntry<1> {
+        FragmentEntry {
+            entry_point: ENTRY_FS_MAIN,
+            targets,
+            constants: Default::default(),
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+        pub info: wgpu::BufferBinding<'a>,
+        pub text_texture: &'a wgpu::TextureView,
+        pub text_sampler: &'a wgpu::Sampler,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+        pub info: wgpu::BindGroupEntry<'a>,
+        pub text_texture: wgpu::BindGroupEntry<'a>,
+        pub text_sampler: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+        pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+            Self {
+                info: wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(params.info),
+                },
+                text_texture: wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(params.text_texture),
+                },
+                text_sampler: wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(params.text_sampler),
+                },
+            }
+        }
+        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
+            [self.info, self.text_texture, self.text_sampler]
+        }
+        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+            self.as_array().into_iter().collect()
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
+            label: Some("Overlay::BindGroup0::LayoutDescriptor"),
+            entries: &[
+                /// @binding(0): "info"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(
+                            std::mem::size_of::<_root::overlay::InfoData>() as _,
+                        ),
+                    },
+                    count: None,
+                },
+                /// @binding(1): "text_texture"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: true,
+                        },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                /// @binding(2): "text_sampler"
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        };
+        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+        pub fn from_bindings(
+            device: &wgpu::Device,
             bindings: WgpuBindGroup0Entries,
         ) -> Self {
             let bind_group_layout = Self::get_bind_group_layout(&device);
@@ -616,7 +1141,7 @@ pub mod global_bindings {
             let bind_group = device
                 .create_bind_group(
                     &wgpu::BindGroupDescriptor {
-                        label: Some("GlobalBindings::BindGroup0"),
+                        label: Some("Overlay::BindGroup0"),
                         layout: &bind_group_layout,
                         entries: &entries,
                     },
@@ -627,4 +1152,108 @@ pub mod global_bindings {
             pass.set_bind_group(0, &self.0, &[]);
         }
     }
+    /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
+    /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
+    ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
+    ///   - Bind group 1: More frequent updates
+    ///   - Bind group 2: More frequent updates
+    ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+        pub bind_group0: &'a WgpuBindGroup0,
+    }
+    impl<'a> WgpuBindGroups<'a> {
+        pub fn set(&self, pass: &mut impl SetBindGroup) {
+            self.bind_group0.set(pass);
+        }
+    }
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+        pub fn bind_group_layout_entries(
+            entries: [wgpu::BindGroupLayout; 1],
+        ) -> [wgpu::BindGroupLayout; 1] {
+            entries
+        }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device
+            .create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("Overlay::PipelineLayout"),
+                    bind_group_layouts: &[
+                        &WgpuBindGroup0::get_bind_group_layout(device),
+                    ],
+                    push_constant_ranges: &[],
+                },
+            )
+    }
+    pub fn create_shader_module_embed_source(
+        device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+        device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("overlay.wgsl"),
+                source: wgpu::ShaderSource::Wgsl(source),
+            })
+    }
+    pub const SHADER_STRING: &'static str = r#"
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex_coords: vec2<f32>,
+}
+
+struct InfoData {
+    demo_index: f32,
+    total_demos: f32,
+    time: f32,
+    scale_factor: f32,
+    window_width: f32,
+    window_height: f32,
+    padding1_: f32,
+    padding2_: f32,
+}
+
+@group(0) @binding(0) 
+var<uniform> info: InfoData;
+@group(0) @binding(1) 
+var text_texture: texture_2d<f32>;
+@group(0) @binding(2) 
+var text_sampler: sampler;
+
+@vertex 
+fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
+    var out: VertexOutput;
+
+    let x = f32(((vertex_index & 1u) * 2u));
+    let y = f32(((vertex_index >> 1u) * 2u));
+    let dpi_scale = info.scale_factor;
+    let dpi_adjusted_scale = mix(1.2f, 0.9f, clamp(((dpi_scale - 1f) / 2f), 0f, 1f));
+    let _e26 = info.window_width;
+    let _e29 = info.window_height;
+    let min_dimension = min(_e26, _e29);
+    let size_boost = max(1f, (min_dimension / 1200f));
+    let effective_scale = (dpi_adjusted_scale * size_boost);
+    let overlay_height = min(0.8f, (0.5f * effective_scale));
+    out.clip_position = vec4<f32>(((x * 2f) - 1f), (1f - (y * overlay_height)), 0f, 1f);
+    let text_scale_y = min(1f, (0.8f / effective_scale));
+    out.tex_coords = vec2<f32>((x * 1f), (y * text_scale_y));
+    let _e61 = out;
+    return _e61;
+}
+
+@fragment 
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let text_color = textureSample(text_texture, text_sampler, in.tex_coords);
+    let bg_color = vec4<f32>(0.05f, 0.05f, 0.08f, 0.9f);
+    let gradient = (1f - (in.tex_coords.y * 0.5f));
+    let _e18 = info.time;
+    let _e23 = info.demo_index;
+    let color_shift = (0.1f * sin(((_e18 * 0.5f) + (_e23 * 3.14159f))));
+    let tinted_bg = (bg_color + vec4<f32>((color_shift * 0.2f), (color_shift * 0.1f), (color_shift * 0.3f), 0f));
+    let final_color = mix((tinted_bg * gradient), vec4<f32>(1f, 1f, 1f, 1f), text_color.w);
+    return final_color;
+}
+"#;
 }
