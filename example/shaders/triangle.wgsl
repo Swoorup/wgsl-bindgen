@@ -1,8 +1,7 @@
-#import global_bindings::{
-  color_texture, 
-  color_sampler, 
-  time
-}
+// Classic triangle demo
+@group(0) @binding(0) var main_texture: texture_2d<f32>;
+@group(0) @binding(1) var main_sampler: sampler;
+@group(0) @binding(2) var<uniform> time: f32;
 
 struct Uniforms {
   color_rgb: vec4<f32>,
@@ -46,7 +45,7 @@ var<push_constant> constants: PushConstants;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let uv = in.tex_coords;
-  let color = textureSample(color_texture, color_sampler, uv).rgb;
+  let color = textureSample(main_texture, main_sampler, uv).rgb;
   
   // Simple time variable
   let t = time * 0.5;
