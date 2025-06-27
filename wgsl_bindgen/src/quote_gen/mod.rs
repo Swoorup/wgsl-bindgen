@@ -46,7 +46,7 @@ pub(crate) fn demangle_and_fully_qualify_str(
 
   match (demangled.contains("::"), default_mod_path) {
     (true, _) => {
-      format!("{}::{}", MOD_REFERENCE_ROOT, demangled)
+      format!("{MOD_REFERENCE_ROOT}::{demangled}")
     }
     (false, None) => demangled.to_string(),
     (false, Some(default_mod_path)) => {

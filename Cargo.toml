@@ -17,7 +17,7 @@ bytemuck = "1.13"
 case = "1.0"
 colored = "3.0"
 data-encoding = "2.5"
-derivative = "2.2"
+educe = "0.6"
 derive_builder = "0.20"
 derive_more = { version = "2.0", features = ["full"] }
 encase = "0.11"

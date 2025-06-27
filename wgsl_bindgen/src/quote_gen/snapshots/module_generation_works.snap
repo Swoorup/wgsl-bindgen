@@ -2,13 +2,13 @@
 source: wgsl_bindgen/src/quote_gen/rust_module_builder.rs
 ---
 pub mod a {
-    pub mod b {
-        pub mod c {
-            struct B;
-            struct C;
-            pub mod d {
-                struct A;
-            }
-        }
+  pub mod b {
+    pub mod c {
+      struct B;
+      struct C;
+      pub mod d {
+        struct A;
+      }
     }
+  }
 }

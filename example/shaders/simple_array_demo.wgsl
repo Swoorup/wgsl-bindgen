@@ -62,14 +62,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         0.8 + 0.2 * sin(t + 4.0)
     );
     
-    // Apply ripple effect
-    let ripple = sin(dist * 12.0 - t * 3.0) * 0.3 + 0.7;
+    // Apply gentler ripple effect for low-res displays
+    let ripple = sin(dist * 10.0 - t * 2.5) * 0.25 + 0.75;
     
     // Combine all effects
     let final_color = blended_color * uniforms.color_rgb.rgb * color_mod * ripple;
     
-    // Add vignette
-    let vignette = smoothstep(0.0, 0.8, 1.0 - dist * 1.5);
+    // Softer vignette for low-res displays
+    let vignette = smoothstep(0.0, 0.9, 1.0 - dist * 1.3);
     
     // Apply the color matrix from push constants
     return constants.color_matrix * vec4(final_color * vignette, 1.0);

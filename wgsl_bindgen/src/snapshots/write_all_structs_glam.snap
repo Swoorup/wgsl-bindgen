@@ -2,101 +2,111 @@
 source: wgsl_bindgen/src/structs.rs
 ---
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct Scalars {
-    pub a: u32,
-    pub b: i32,
-    pub c: f32,
+  pub a: u32,
+  pub b: i32,
+  pub c: f32,
 }
 impl Scalars {
-    pub const fn new(a: u32, b: i32, c: f32) -> Self {
-        Self { a, b, c }
-    }
+  pub const fn new(a: u32, b: i32, c: f32) -> Self {
+    Self { a, b, c }
+  }
 }
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct VectorsU32 {
-    pub a: glam::UVec2,
-    pub b: glam::UVec3,
-    pub c: glam::UVec4,
+  pub a: glam::UVec2,
+  pub b: glam::UVec3,
+  pub c: glam::UVec4,
 }
 impl VectorsU32 {
-    pub const fn new(a: glam::UVec2, b: glam::UVec3, c: glam::UVec4) -> Self {
-        Self { a, b, c }
-    }
+  pub const fn new(a: glam::UVec2, b: glam::UVec3, c: glam::UVec4) -> Self {
+    Self { a, b, c }
+  }
 }
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct VectorsI32 {
-    pub a: glam::IVec2,
-    pub b: glam::IVec3,
-    pub c: glam::IVec4,
+  pub a: glam::IVec2,
+  pub b: glam::IVec3,
+  pub c: glam::IVec4,
 }
 impl VectorsI32 {
-    pub const fn new(a: glam::IVec2, b: glam::IVec3, c: glam::IVec4) -> Self {
-        Self { a, b, c }
-    }
+  pub const fn new(a: glam::IVec2, b: glam::IVec3, c: glam::IVec4) -> Self {
+    Self { a, b, c }
+  }
 }
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct VectorsF32 {
-    pub a: glam::Vec2,
-    pub b: glam::Vec3A,
-    pub c: glam::Vec4,
+  pub a: glam::Vec2,
+  pub b: glam::Vec3A,
+  pub c: glam::Vec4,
 }
 impl VectorsF32 {
-    pub const fn new(a: glam::Vec2, b: glam::Vec3A, c: glam::Vec4) -> Self {
-        Self { a, b, c }
-    }
+  pub const fn new(a: glam::Vec2, b: glam::Vec3A, c: glam::Vec4) -> Self {
+    Self { a, b, c }
+  }
 }
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct MatricesF32 {
-    pub a: glam::Mat4,
-    pub b: [[f32; 4]; 4],
-    pub c: [[f32; 2]; 4],
-    pub d: [[f32; 4]; 3],
-    pub e: glam::Mat3A,
-    pub f: [[f32; 2]; 3],
-    pub g: [[f32; 4]; 2],
-    pub h: [[f32; 4]; 2],
-    pub i: glam::Mat2,
+  pub a: glam::Mat4,
+  pub b: [[f32; 4]; 4],
+  pub c: [[f32; 2]; 4],
+  pub d: [[f32; 4]; 3],
+  pub e: glam::Mat3A,
+  pub f: [[f32; 2]; 3],
+  pub g: [[f32; 4]; 2],
+  pub h: [[f32; 4]; 2],
+  pub i: glam::Mat2,
 }
 impl MatricesF32 {
-    pub const fn new(
-        a: glam::Mat4,
-        b: [[f32; 4]; 4],
-        c: [[f32; 2]; 4],
-        d: [[f32; 4]; 3],
-        e: glam::Mat3A,
-        f: [[f32; 2]; 3],
-        g: [[f32; 4]; 2],
-        h: [[f32; 4]; 2],
-        i: glam::Mat2,
-    ) -> Self {
-        Self { a, b, c, d, e, f, g, h, i }
+  pub const fn new(
+    a: glam::Mat4,
+    b: [[f32; 4]; 4],
+    c: [[f32; 2]; 4],
+    d: [[f32; 4]; 3],
+    e: glam::Mat3A,
+    f: [[f32; 2]; 3],
+    g: [[f32; 4]; 2],
+    h: [[f32; 4]; 2],
+    i: glam::Mat2,
+  ) -> Self {
+    Self {
+      a,
+      b,
+      c,
+      d,
+      e,
+      f,
+      g,
+      h,
+      i,
     }
+  }
 }
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct StaticArrays {
-    pub a: [u32; 5],
-    pub b: [f32; 3],
-    pub c: [glam::Mat4; 512],
+  pub a: [u32; 5],
+  pub b: [f32; 3],
+  pub c: [glam::Mat4; 512],
 }
 impl StaticArrays {
-    pub const fn new(a: [u32; 5], b: [f32; 3], c: [glam::Mat4; 512]) -> Self {
-        Self { a, b, c }
-    }
+  pub const fn new(a: [u32; 5], b: [f32; 3], c: [glam::Mat4; 512]) -> Self {
+    Self { a, b, c }
+  }
 }
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
+#[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct Nested {
-    pub a: MatricesF32,
-    pub b: VectorsF32,
+  pub a: MatricesF32,
+  pub b: VectorsF32,
 }
 impl Nested {
-    pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
-        Self { a, b }
-    }
+  pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
+    Self { a, b }
+  }
 }

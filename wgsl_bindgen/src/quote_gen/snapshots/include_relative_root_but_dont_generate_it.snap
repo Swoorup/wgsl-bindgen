@@ -2,12 +2,12 @@
 source: wgsl_bindgen/src/quote_gen/rust_module_builder.rs
 ---
 pub mod a {
+  use super::{_root, _root::*};
+  struct B {
+    a: a::b::A,
+  }
+  pub mod b {
     use super::{_root, _root::*};
-    struct B {
-        a: a::b::A,
-    }
-    pub mod b {
-        use super::{_root, _root::*};
-        struct A;
-    }
+    struct A;
+  }
 }

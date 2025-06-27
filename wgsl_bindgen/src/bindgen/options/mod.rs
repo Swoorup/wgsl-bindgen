@@ -168,7 +168,8 @@ impl From<(Regex, &str)> for OverrideBindGroupEntryModulePath {
 impl From<(&str, &str)> for OverrideBindGroupEntryModulePath {
   fn from((bind_group_entry_regex, target_path): (&str, &str)) -> Self {
     Self {
-      bind_group_entry_regex: Regex::new(bind_group_entry_regex).expect("Failed to create bind group entry regex"),
+      bind_group_entry_regex: Regex::new(bind_group_entry_regex)
+        .expect("Failed to create bind group entry regex"),
       target_path: target_path.to_string(),
     }
   }

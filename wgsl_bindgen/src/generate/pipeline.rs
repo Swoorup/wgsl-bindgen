@@ -59,7 +59,7 @@ fn push_constant_range(
 
   // Use a single push constant range for all shader stages.
   // This allows easily setting push constants in a single call with offset 0.
-  let push_constant_range = push_constant_size.map(|size| {
+  push_constant_size.map(|size| {
     let size = Index::from(size as usize);
     quote! {
         wgpu::PushConstantRange {
@@ -67,8 +67,7 @@ fn push_constant_range(
             range: 0..#size
         }
     }
-  });
-  push_constant_range
+  })
 }
 
 pub fn create_pipeline_layout_fn(
@@ -119,9 +118,9 @@ pub fn create_pipeline_layout_fn(
     };
 
   let push_constant_range =
-    push_constant_range(&naga_module, shader_entry_bind_groups.shader_stages);
+    push_constant_range(naga_module, shader_entry_bind_groups.shader_stages);
 
-  let pipeline_layout_name = format!("{}::PipelineLayout", entry_name);
+  let pipeline_layout_name = format!("{entry_name}::PipelineLayout");
 
   quote! {
     #additional_pipeline_entries_struct

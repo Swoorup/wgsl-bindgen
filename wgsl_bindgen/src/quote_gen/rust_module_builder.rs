@@ -81,7 +81,7 @@ impl RustModule {
         if existing != received {
           return Err(RustModuleBuilderError::DuplicateContentError {
             id: id.to_string(),
-            existing: pretty_print(&existing_content),
+            existing: pretty_print(existing_content),
             received: pretty_print(&content),
           });
         }

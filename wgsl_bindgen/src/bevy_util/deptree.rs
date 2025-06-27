@@ -151,7 +151,7 @@ impl DependencyTree {
   ) -> Result<(), DependencyTreeError> {
     let possible_source_path = self
       .resolver
-      .generate_best_possible_paths(&import_path_part, parent_source_path)
+      .generate_best_possible_paths(import_path_part, parent_source_path)
       .into_iter()
       .find(|(_, path)| path.is_file()); // make sure this is not reimporting itself
 
@@ -212,12 +212,7 @@ impl DependencyTree {
 
     for import_stmt in &source_file.imports.clone() {
       for import_path_part in import_stmt.get_import_path_parts() {
-        self.crawl_import_module(
-          &source_path,
-          &import_stmt,
-          &import_path_part,
-          limiter,
-        )?
+        self.crawl_import_module(&source_path, import_stmt, &import_path_part, limiter)?
       }
     }
 

@@ -26,7 +26,7 @@ indexmap.workspace = true
 smallvec.workspace = true
 derive_more.workspace = true
 fxhash.workspace = true
-derivative.workspace = true
+educe.workspace = true
 smol_str.workspace = true
 colored.workspace = true
 derive_builder.workspace = true
@@ -41,6 +41,11 @@ heck.workspace = true
 
 [features]
 minify = []
+
+# Note: wgsl-minifier currently has version conflicts with naga
+# [dependencies.wgsl-minifier]
+# version = "0.7"
+# optional = true
 
 [dev-dependencies]
 indoc.workspace = true

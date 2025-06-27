@@ -16,14 +16,12 @@ use crate::{WgslBindgenOption, WgslEntryResult, WgslShaderSourceType};
 impl<'a> WgslEntryResult<'a> {
   fn get_label(&self) -> TokenStream {
     let get_label = || {
-      Some(
-        self
-          .source_including_deps
-          .source_file
-          .file_path
-          .file_name()?
-          .to_str()?,
-      )
+      self
+        .source_including_deps
+        .source_file
+        .file_path
+        .file_name()?
+        .to_str()
     };
 
     match get_label() {
@@ -264,7 +262,7 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
           })
       }
   };
-  let shader_str_def = quote!(pub const SHADER_STRING: &'static str = #shader_literal;);
+  let shader_str_def = quote!(pub const SHADER_STRING: &str = #shader_literal;);
 
   quote! {
     #create_shader_module
@@ -323,7 +321,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
           create_canonical_variable_name(&module_name, true)
         );
 
-        let relative_file_path = get_path_relative_to(&self.output_dir, &dep.file_path);
+        let relative_file_path = get_path_relative_to(self.output_dir, &dep.file_path);
 
         let assignment = quote! {
           pub const #module_name_var: &str = include_absolute_path::include_absolute_path!(#relative_file_path);
@@ -332,8 +330,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
         (module_name_var, assignment)
       }).unzip();
 
-    let shader_entry_path =
-      get_path_relative_to(&self.output_dir, &self.entry_source_path);
+    let shader_entry_path = get_path_relative_to(self.output_dir, self.entry_source_path);
     let entry_name_var = format_ident!("SHADER_ENTRY_PATH");
 
     let assignment = quote! {
@@ -372,7 +369,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
           .unwrap();
         let as_name_assignment = quote! { as_name: Some(#as_name.into()) };
 
-        let relative_file_path = get_path_relative_to(&self.output_dir, &dep.file_path);
+        let relative_file_path = get_path_relative_to(self.output_dir, &dep.file_path);
         let source = if self
           .source_type
           .is_hard_coded_file_path_with_naga_oil_composer()
@@ -400,7 +397,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     let load_shader_module_fn_name = self.source_type.load_shader_module_fn_name();
 
     let relative_file_path =
-      get_path_relative_to(self.output_dir, &self.entry_source_path);
+      get_path_relative_to(self.output_dir, self.entry_source_path);
 
     let source = if self
       .source_type
@@ -520,7 +517,7 @@ pub(crate) fn shader_module(
     token_stream.append_all(generate_shader_module_embedded(entry));
   }
 
-  let capabilities = options.ir_capabilities.clone();
+  let capabilities = options.ir_capabilities;
 
   if source_type.contains(EmbedWithNagaOilComposer) {
     let builder = ComposeShaderModuleBuilder::new(

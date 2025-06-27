@@ -1,7 +1,7 @@
-mod bindgen;
 mod errors;
 mod options;
+mod wgsl_bindgen_impl;
 
-pub use bindgen::*;
 pub use errors::*;
 pub use options::*;
+pub use wgsl_bindgen_impl::*;

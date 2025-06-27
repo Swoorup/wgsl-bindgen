@@ -140,7 +140,7 @@ impl<'a> RawShadersBindGroups<'a> {
         let common_bindgroup = common_bind_groups.get(group_no).map(|(_, group)| group);
         let is_common = Some(group.first_module())
           == common_bindgroup.map(|group| group.first_module());
-        let reusable_bindgroup = is_common.then(|| common_bindgroup).flatten();
+        let reusable_bindgroup = is_common.then_some(common_bindgroup).flatten();
 
         if let Some(reusable_bindgroup) = reusable_bindgroup {
           shader_entry_bindgroups.bind_group_ref.insert(

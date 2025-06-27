@@ -9,7 +9,8 @@ pub fn module_to_source(
   // If we minify, do the first pass before writing out
   #[cfg(feature = "minify")]
   {
-    wgsl_minifier::minify_module(&mut module);
+    // TODO: Re-enable when wgsl-minifier supports naga 25.x
+    // wgsl_minifier::minify_module(&mut module);
   }
 
   // Mini validation to get module info
@@ -29,7 +30,10 @@ pub fn module_to_source(
 
   // Remove whitespace if minifying
   #[cfg(feature = "minify")]
-  let src = wgsl_minifier::minify_wgsl_source(&src);
+  {
+    // TODO: Re-enable when wgsl-minifier supports naga 25.x
+    // let src = wgsl_minifier::minify_wgsl_source(&src);
+  }
 
-  return Ok(src);
+  Ok(src)
 }

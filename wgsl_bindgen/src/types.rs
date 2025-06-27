@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use derivative::Derivative;
 use derive_more::{AsRef, Deref, Display, From, Into};
+use educe::Educe;
 use fxhash::FxBuildHasher;
 use indexmap::{IndexMap, IndexSet};
 use smol_str::SmolStr;
@@ -9,9 +9,9 @@ use smol_str::SmolStr;
 pub type FxIndexMap<K, V> = IndexMap<K, V, FxBuildHasher>;
 pub type FxIndexSet<T> = IndexSet<T, FxBuildHasher>;
 
-#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
+#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Educe, Deref, Display)]
 #[display("{}", _0.to_str().unwrap())]
-#[derivative(Debug = "transparent")]
+#[educe(Debug(name = false, named_field = false))]
 pub struct SourceFilePath(PathBuf);
 
 impl SourceFilePath {
@@ -35,9 +35,9 @@ impl SourceFilePath {
   }
 }
 
-#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
+#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Educe, Deref, Display)]
 #[display("{}", _0.to_str().unwrap())]
-#[derivative(Debug = "transparent")]
+#[educe(Debug(name = false, named_field = false))]
 pub struct SourceFileDir(PathBuf);
 
 impl SourceFileDir {
@@ -57,9 +57,9 @@ impl From<&SourceFilePath> for SourceFileDir {
 }
 
 /// Import part path used in the import statement
-#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
+#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Educe, Deref, Display)]
 #[display("{}", _0)]
-#[derivative(Debug = "transparent")]
+#[educe(Debug(name = false, named_field = false))]
 pub struct ImportPathPart(SmolStr);
 
 impl ImportPathPart {
@@ -68,9 +68,9 @@ impl ImportPathPart {
   }
 }
 
-#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Derivative, Deref, Display)]
+#[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Educe, Deref, Display)]
 #[display("{}", _0)]
-#[derivative(Debug = "transparent")]
+#[educe(Debug(name = false, named_field = false))]
 pub struct SourceModuleName(SmolStr);
 
 impl SourceModuleName {

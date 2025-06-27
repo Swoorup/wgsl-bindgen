@@ -18,7 +18,7 @@ pub(crate) fn quote_shader_stages(shader_stages: wgpu::ShaderStages) -> TokenStr
     wgpu::ShaderStages::MESH => quote!(wgpu::ShaderStages::MESH),
     _ if shader_stages == wgpu::ShaderStages::all() => {
       quote!(wgpu::ShaderStages::all())
-    },
+    }
     _ => {
       let mut stage_tokens = vec![];
       if shader_stages.contains(wgpu::ShaderStages::VERTEX) {

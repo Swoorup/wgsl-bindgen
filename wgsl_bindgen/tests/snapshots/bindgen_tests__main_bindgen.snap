@@ -5,348 +5,327 @@ expression: actual
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
-    Main,
+  Main,
 }
 impl ShaderEntry {
-    pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
-        match self {
-            Self::Main => main::create_pipeline_layout(device),
-        }
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::Main => main::create_pipeline_layout(device),
     }
-    pub fn create_shader_module_embed_source(
-        &self,
-        device: &wgpu::Device,
-    ) -> wgpu::ShaderModule {
-        match self {
-            Self::Main => main::create_shader_module_embed_source(device),
-        }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::Main => main::create_shader_module_embed_source(device),
     }
-    pub fn create_shader_module_from_path(
-        &self,
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        match self {
-            Self::Main => main::create_shader_module_from_path(device, shader_defs),
-        }
+  }
+  pub fn create_shader_module_from_path(
+    &self,
+    device: &wgpu::Device,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    match self {
+      Self::Main => main::create_shader_module_from_path(device, shader_defs),
     }
-    pub fn load_shader_module_from_path(
-        &self,
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        match self {
-            Self::Main => main::load_shader_module_from_path(composer, shader_defs),
-        }
+  }
+  pub fn load_shader_module_from_path(
+    &self,
+    composer: &mut naga_oil::compose::Composer,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+  ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
+    match self {
+      Self::Main => main::load_shader_module_from_path(composer, shader_defs),
     }
-    pub fn shader_entry_filename(&self) -> &'static str {
-        match self {
-            Self::Main => "main.wgsl",
-        }
+  }
+  pub fn shader_entry_filename(&self) -> &'static str {
+    match self {
+      Self::Main => "main.wgsl",
     }
-    pub fn shader_paths(&self) -> &[&str] {
-        match self {
-            Self::Main => main::SHADER_PATHS,
-        }
+  }
+  pub fn shader_paths(&self) -> &[&str] {
+    match self {
+      Self::Main => main::SHADER_PATHS,
     }
+  }
 }
 mod _root {
-    pub use super::*;
-    pub trait SetBindGroup {
-        fn set_bind_group(
-            &mut self,
-            index: u32,
-            bind_group: &wgpu::BindGroup,
-            offsets: &[wgpu::DynamicOffset],
-        );
+  pub use super::*;
+  pub trait SetBindGroup {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    );
+  }
+  impl SetBindGroup for wgpu::ComputePass<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
     }
-    impl SetBindGroup for wgpu::ComputePass<'_> {
-        fn set_bind_group(
-            &mut self,
-            index: u32,
-            bind_group: &wgpu::BindGroup,
-            offsets: &[wgpu::DynamicOffset],
-        ) {
-            self.set_bind_group(index, bind_group, offsets);
-        }
-    }
+  }
 }
 pub mod layout_asserts {
-    use super::{_root, _root::*};
-    const WGSL_BASE_TYPE_ASSERTS: () = {
-        assert!(std::mem::size_of:: < glam::Vec3A > () == 16);
-        assert!(std::mem::align_of:: < glam::Vec3A > () == 16);
-        assert!(std::mem::size_of:: < glam::Vec4 > () == 16);
-        assert!(std::mem::align_of:: < glam::Vec4 > () == 16);
-        assert!(std::mem::size_of:: < glam::Mat3A > () == 48);
-        assert!(std::mem::align_of:: < glam::Mat3A > () == 16);
-        assert!(std::mem::size_of:: < glam::Mat4 > () == 64);
-        assert!(std::mem::align_of:: < glam::Mat4 > () == 16);
-    };
-    const MAIN_STYLE_ASSERTS: () = {
-        assert!(std::mem::offset_of!(main::Style, color) == 0);
-        assert!(std::mem::offset_of!(main::Style, width) == 16);
-        assert!(std::mem::size_of:: < main::Style > () == 256);
-    };
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+  const MAIN_STYLE_ASSERTS: () = {
+    assert!(std::mem::offset_of!(main::Style, color) == 0);
+    assert!(std::mem::offset_of!(main::Style, width) == 16);
+    assert!(std::mem::size_of::<main::Style>() == 256);
+  };
 }
 pub mod main {
-    use super::{_root, _root::*};
-    #[repr(C, align(256))]
-    #[derive(Debug, PartialEq, Clone, Copy)]
-    pub struct Style {
-        /// size: 16, offset: 0x0, type: `vec4<f32>`
-        pub color: glam::Vec4,
-        /// size: 4, offset: 0x10, type: `f32`
-        pub width: f32,
-        pub _pad_width: [u8; 0x10 - ::core::mem::size_of::<f32>()],
+  use super::{_root, _root::*};
+  #[repr(C, align(256))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct Style {
+    #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+    pub color: glam::Vec4,
+    #[doc = " size: 4, offset: 0x10, type: `f32`"]
+    pub width: f32,
+    pub _pad_width: [u8; 0x10 - ::core::mem::size_of::<f32>()],
+  }
+  impl Style {
+    pub const fn new(color: glam::Vec4, width: f32) -> Self {
+      Self {
+        color,
+        width,
+        _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
+      }
     }
-    impl Style {
-        pub const fn new(color: glam::Vec4, width: f32) -> Self {
-            Self {
-                color,
-                width,
-                _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
-            }
-        }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct StyleInit {
+    pub color: glam::Vec4,
+    pub width: f32,
+  }
+  impl StyleInit {
+    pub const fn build(&self) -> Style {
+      Style {
+        color: self.color,
+        width: self.width,
+        _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
+      }
     }
-    #[repr(C)]
-    #[derive(Debug, PartialEq, Clone, Copy)]
-    pub struct StyleInit {
-        pub color: glam::Vec4,
-        pub width: f32,
+  }
+  impl From<StyleInit> for Style {
+    fn from(data: StyleInit) -> Self {
+      data.build()
     }
-    impl StyleInit {
-        pub const fn build(&self) -> Style {
-            Style {
-                color: self.color,
-                width: self.width,
-                _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
-            }
-        }
+  }
+  pub mod compute {
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+    pub fn create_main_pipeline_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_embed_source(device);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
     }
-    impl From<StyleInit> for Style {
-        fn from(data: StyleInit) -> Self {
-            data.build()
-        }
+    pub fn create_main_pipeline_from_path(
+      device: &wgpu::Device,
+      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_from_path(device, shader_defs);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
     }
-    pub mod compute {
-        pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
-        pub fn create_main_pipeline_embed_source(
-            device: &wgpu::Device,
-        ) -> wgpu::ComputePipeline {
-            let module = super::create_shader_module_embed_source(device);
-            let layout = super::create_pipeline_layout(device);
-            device
-                .create_compute_pipeline(
-                    &wgpu::ComputePipelineDescriptor {
-                        label: Some("Compute Pipeline main"),
-                        layout: Some(&layout),
-                        module: &module,
-                        entry_point: Some("main"),
-                        compilation_options: Default::default(),
-                        cache: None,
-                    },
-                )
-        }
-        pub fn create_main_pipeline_from_path(
-            device: &wgpu::Device,
-            shader_defs: std::collections::HashMap<
-                String,
-                naga_oil::compose::ShaderDefValue,
-            >,
-        ) -> wgpu::ComputePipeline {
-            let module = super::create_shader_module_from_path(device, shader_defs);
-            let layout = super::create_pipeline_layout(device);
-            device
-                .create_compute_pipeline(
-                    &wgpu::ComputePipelineDescriptor {
-                        label: Some("Compute Pipeline main"),
-                        layout: Some(&layout),
-                        module: &module,
-                        entry_point: Some("main"),
-                        compilation_options: Default::default(),
-                        cache: None,
-                    },
-                )
-        }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub buffer: wgpu::BufferBinding<'a>,
+    pub texture_float: &'a wgpu::TextureView,
+    pub texture_sint: &'a wgpu::TextureView,
+    pub texture_uint: &'a wgpu::TextureView,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub buffer: wgpu::BindGroupEntry<'a>,
+    pub texture_float: wgpu::BindGroupEntry<'a>,
+    pub texture_sint: wgpu::BindGroupEntry<'a>,
+    pub texture_uint: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        buffer: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.buffer),
+        },
+        texture_float: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::TextureView(params.texture_float),
+        },
+        texture_sint: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::TextureView(params.texture_sint),
+        },
+        texture_uint: wgpu::BindGroupEntry {
+          binding: 3,
+          resource: wgpu::BindingResource::TextureView(params.texture_uint),
+        },
+      }
     }
-    pub const ENTRY_MAIN: &str = "main";
-    #[derive(Debug)]
-    pub struct WgpuBindGroup0EntriesParams<'a> {
-        pub buffer: wgpu::BufferBinding<'a>,
-        pub texture_float: &'a wgpu::TextureView,
-        pub texture_sint: &'a wgpu::TextureView,
-        pub texture_uint: &'a wgpu::TextureView,
+    pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 4] {
+      [
+        self.buffer.clone(),
+        self.texture_float.clone(),
+        self.texture_sint.clone(),
+        self.texture_uint.clone(),
+      ]
     }
-    #[derive(Clone, Debug)]
-    pub struct WgpuBindGroup0Entries<'a> {
-        pub buffer: wgpu::BindGroupEntry<'a>,
-        pub texture_float: wgpu::BindGroupEntry<'a>,
-        pub texture_sint: wgpu::BindGroupEntry<'a>,
-        pub texture_uint: wgpu::BindGroupEntry<'a>,
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.as_array().into_iter().collect()
     }
-    impl<'a> WgpuBindGroup0Entries<'a> {
-        pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-            Self {
-                buffer: wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(params.buffer),
-                },
-                texture_float: wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(params.texture_float),
-                },
-                texture_sint: wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(params.texture_sint),
-                },
-                texture_uint: wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(params.texture_uint),
-                },
-            }
-        }
-        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
-            [self.buffer, self.texture_float, self.texture_sint, self.texture_uint]
-        }
-        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-            self.as_array().into_iter().collect()
-        }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("Main::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"buffer\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"texture_float\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Float { filterable: true },
+              view_dimension: wgpu::TextureViewDimension::D2,
+              multisampled: false,
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"texture_sint\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Sint,
+              view_dimension: wgpu::TextureViewDimension::D2,
+              multisampled: false,
+            },
+            count: None,
+          },
+          #[doc = " @binding(3): \"texture_uint\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 3,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Uint,
+              view_dimension: wgpu::TextureViewDimension::D2,
+              multisampled: false,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
     }
-    #[derive(Debug)]
-    pub struct WgpuBindGroup0(wgpu::BindGroup);
-    impl WgpuBindGroup0 {
-        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-            label: Some("Main::BindGroup0::LayoutDescriptor"),
-            entries: &[
-                /// @binding(0): "buffer"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage {
-                            read_only: false,
-                        },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                /// @binding(1): "texture_float"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float {
-                            filterable: true,
-                        },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                /// @binding(2): "texture_sint"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Sint,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                /// @binding(3): "texture_uint"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Uint,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-            ],
-        };
-        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-        }
-        pub fn from_bindings(
-            device: &wgpu::Device,
-            bindings: WgpuBindGroup0Entries,
-        ) -> Self {
-            let bind_group_layout = Self::get_bind_group_layout(&device);
-            let entries = bindings.as_array();
-            let bind_group = device
-                .create_bind_group(
-                    &wgpu::BindGroupDescriptor {
-                        label: Some("Main::BindGroup0"),
-                        layout: &bind_group_layout,
-                        entries: &entries,
-                    },
-                );
-            Self(bind_group)
-        }
-        pub fn set(&self, pass: &mut impl SetBindGroup) {
-            pass.set_bind_group(0, &self.0, &[]);
-        }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.as_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Main::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
     }
-    /// Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`.
-    /// For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:
-    ///   - Bind group 0: Least frequent updates (e.g. per frame resources)
-    ///   - Bind group 1: More frequent updates
-    ///   - Bind group 2: More frequent updates
-    ///   - Bind group 3: Most frequent updates (e.g. per draw resources)
-    #[derive(Debug, Copy, Clone)]
-    pub struct WgpuBindGroups<'a> {
-        pub bind_group0: &'a WgpuBindGroup0,
-        pub bind_group1: &'a bindings::WgpuBindGroup1,
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
     }
-    impl<'a> WgpuBindGroups<'a> {
-        pub fn set(&self, pass: &mut impl SetBindGroup) {
-            self.bind_group0.set(pass);
-            self.bind_group1.set(pass);
-        }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a WgpuBindGroup0,
+    pub bind_group1: &'a bindings::WgpuBindGroup1,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+      self.bind_group1.set(pass);
     }
-    #[derive(Debug)]
-    pub struct WgpuPipelineLayout;
-    impl WgpuPipelineLayout {
-        pub fn bind_group_layout_entries(
-            entries: [wgpu::BindGroupLayout; 2],
-        ) -> [wgpu::BindGroupLayout; 2] {
-            entries
-        }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 2],
+    ) -> [wgpu::BindGroupLayout; 2] {
+      entries
     }
-    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-        device
-            .create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("Main::PipelineLayout"),
-                    bind_group_layouts: &[
-                        &WgpuBindGroup0::get_bind_group_layout(device),
-                        &bindings::WgpuBindGroup1::get_bind_group_layout(device),
-                    ],
-                    push_constant_ranges: &[
-                        wgpu::PushConstantRange {
-                            stages: wgpu::ShaderStages::COMPUTE,
-                            range: 0..32,
-                        },
-                    ],
-                },
-            )
-    }
-    pub fn create_shader_module_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-        device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("main.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            })
-    }
-    pub const SHADER_STRING: &'static str = r#"
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("Main::PipelineLayout"),
+      bind_group_layouts: &[
+        &WgpuBindGroup0::get_bind_group_layout(device),
+        &bindings::WgpuBindGroup1::get_bind_group_layout(device),
+      ],
+      push_constant_ranges: &[wgpu::PushConstantRange {
+        stages: wgpu::ShaderStages::COMPUTE,
+        range: 0..32,
+      }],
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("main.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
 struct Style {
     color: vec4<f32>,
     width: f32,
@@ -374,147 +353,133 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     return;
 }
 "#;
-    pub const SHADER_ENTRY_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/basic/main.wgsl"
-    );
-    pub const BINDINGS_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/basic/bindings.wgsl"
-    );
-    pub const TYPES_PATH: &str = include_absolute_path::include_absolute_path!(
-        "../shaders/additional/types.wgsl"
-    );
-    pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, BINDINGS_PATH, TYPES_PATH];
-    pub fn load_shader_module_from_path(
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-        composer
-            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &std::fs::read_to_string(BINDINGS_PATH).unwrap(),
-                file_path: "../shaders/basic/bindings.wgsl",
-                language: naga_oil::compose::ShaderLanguage::Wgsl,
-                shader_defs: shader_defs.clone(),
-                as_name: Some("bindings".into()),
-                ..Default::default()
-            })?;
-        composer
-            .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-                source: &std::fs::read_to_string(TYPES_PATH).unwrap(),
-                file_path: "../shaders/additional/types.wgsl",
-                language: naga_oil::compose::ShaderLanguage::Wgsl,
-                shader_defs: shader_defs.clone(),
-                as_name: Some("types".into()),
-                ..Default::default()
-            })?;
-        composer
-            .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-                source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
-                file_path: "../shaders/basic/main.wgsl",
-                shader_defs,
-                ..Default::default()
-            })
-    }
-    pub fn create_shader_module_from_path(
-        device: &wgpu::Device,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-        let mut composer = naga_oil::compose::Composer::default()
-            .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
-        let module = load_shader_module_from_path(&mut composer, shader_defs)?;
-        let info = wgpu::naga::valid::Validator::new(
-                wgpu::naga::valid::ValidationFlags::empty(),
-                wgpu::naga::valid::Capabilities::all(),
-            )
-            .validate(&module)
-            .unwrap();
-        let shader_string = wgpu::naga::back::wgsl::write_string(
-                &module,
-                &info,
-                wgpu::naga::back::wgsl::WriterFlags::empty(),
-            )
-            .expect("failed to convert naga module to source");
-        let source = std::borrow::Cow::Owned(shader_string);
-        let shader_module = device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("main.wgsl"),
-                source: wgpu::ShaderSource::Wgsl(source),
-            });
-        Ok(shader_module)
-    }
+  pub const SHADER_ENTRY_PATH: &str =
+    include_absolute_path::include_absolute_path!("../shaders/basic/main.wgsl");
+  pub const BINDINGS_PATH: &str =
+    include_absolute_path::include_absolute_path!("../shaders/basic/bindings.wgsl");
+  pub const TYPES_PATH: &str =
+    include_absolute_path::include_absolute_path!("../shaders/additional/types.wgsl");
+  pub const SHADER_PATHS: &[&str] = &[SHADER_ENTRY_PATH, BINDINGS_PATH, TYPES_PATH];
+  pub fn load_shader_module_from_path(
+    composer: &mut naga_oil::compose::Composer,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+  ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
+    composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+      source: &std::fs::read_to_string(BINDINGS_PATH).unwrap(),
+      file_path: "../shaders/basic/bindings.wgsl",
+      language: naga_oil::compose::ShaderLanguage::Wgsl,
+      shader_defs: shader_defs.clone(),
+      as_name: Some("bindings".into()),
+      ..Default::default()
+    })?;
+    composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+      source: &std::fs::read_to_string(TYPES_PATH).unwrap(),
+      file_path: "../shaders/additional/types.wgsl",
+      language: naga_oil::compose::ShaderLanguage::Wgsl,
+      shader_defs: shader_defs.clone(),
+      as_name: Some("types".into()),
+      ..Default::default()
+    })?;
+    composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+      source: &std::fs::read_to_string(SHADER_ENTRY_PATH).unwrap(),
+      file_path: "../shaders/basic/main.wgsl",
+      shader_defs,
+      ..Default::default()
+    })
+  }
+  pub fn create_shader_module_from_path(
+    device: &wgpu::Device,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+    let module = load_shader_module_from_path(&mut composer, shader_defs)?;
+    let info = wgpu::naga::valid::Validator::new(
+      wgpu::naga::valid::ValidationFlags::empty(),
+      wgpu::naga::valid::Capabilities::all(),
+    )
+    .validate(&module)
+    .unwrap();
+    let shader_string = wgpu::naga::back::wgsl::write_string(
+      &module,
+      &info,
+      wgpu::naga::back::wgsl::WriterFlags::empty(),
+    )
+    .expect("failed to convert naga module to source");
+    let source = std::borrow::Cow::Owned(shader_string);
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("main.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    });
+    Ok(shader_module)
+  }
 }
 pub mod bytemuck_impls {
-    use super::{_root, _root::*};
-    unsafe impl bytemuck::Zeroable for main::Style {}
-    unsafe impl bytemuck::Pod for main::Style {}
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for main::Style {}
+  unsafe impl bytemuck::Pod for main::Style {}
 }
 pub mod bindings {
-    use super::{_root, _root::*};
-    #[derive(Debug)]
-    pub struct WgpuBindGroup1EntriesParams<'a> {
-        pub ONE: wgpu::BufferBinding<'a>,
+  use super::{_root, _root::*};
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1EntriesParams<'a> {
+    pub ONE: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup1Entries<'a> {
+    pub ONE: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup1Entries<'a> {
+    pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+      Self {
+        ONE: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.ONE),
+        },
+      }
     }
-    #[derive(Clone, Debug)]
-    pub struct WgpuBindGroup1Entries<'a> {
-        pub ONE: wgpu::BindGroupEntry<'a>,
+    pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.ONE.clone()]
     }
-    impl<'a> WgpuBindGroup1Entries<'a> {
-        pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
-            Self {
-                ONE: wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(params.ONE),
-                },
-            }
-        }
-        pub fn as_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-            [self.ONE]
-        }
-        pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-            self.as_array().into_iter().collect()
-        }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.as_array().into_iter().collect()
     }
-    #[derive(Debug)]
-    pub struct WgpuBindGroup1(wgpu::BindGroup);
-    impl WgpuBindGroup1 {
-        pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> = wgpu::BindGroupLayoutDescriptor {
-            label: Some("Bindings::BindGroup1::LayoutDescriptor"),
-            entries: &[
-                /// @binding(0): "_root::bindings::ONE"
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: std::num::NonZeroU64::new(
-                            std::mem::size_of::<f32>() as _,
-                        ),
-                    },
-                    count: None,
-                },
-            ],
-        };
-        pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-            device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-        }
-        pub fn from_bindings(
-            device: &wgpu::Device,
-            bindings: WgpuBindGroup1Entries,
-        ) -> Self {
-            let bind_group_layout = Self::get_bind_group_layout(&device);
-            let entries = bindings.as_array();
-            let bind_group = device
-                .create_bind_group(
-                    &wgpu::BindGroupDescriptor {
-                        label: Some("Bindings::BindGroup1"),
-                        layout: &bind_group_layout,
-                        entries: &entries,
-                    },
-                );
-            Self(bind_group)
-        }
-        pub fn set(&self, pass: &mut impl SetBindGroup) {
-            pass.set_bind_group(1, &self.0, &[]);
-        }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1(wgpu::BindGroup);
+  impl WgpuBindGroup1 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("Bindings::BindGroup1::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"_root::bindings::ONE\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<f32>() as _),
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
     }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.as_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Bindings::BindGroup1"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(1, &self.0, &[]);
+    }
+  }
 }

@@ -2,40 +2,34 @@
 source: wgsl_bindgen/src/generate/shader_module.rs
 ---
 pub mod compute {
-    pub const MAIN1_WORKGROUP_SIZE: [u32; 3] = [1, 2, 3];
-    pub fn create_main1_pipeline_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ComputePipeline {
-        let module = super::create_shader_module_embed_source(device);
-        let layout = super::create_pipeline_layout(device);
-        device
-            .create_compute_pipeline(
-                &wgpu::ComputePipelineDescriptor {
-                    label: Some("Compute Pipeline main1"),
-                    layout: Some(&layout),
-                    module: &module,
-                    entry_point: Some("main1"),
-                    compilation_options: Default::default(),
-                    cache: None,
-                },
-            )
-    }
-    pub const MAIN2_WORKGROUP_SIZE: [u32; 3] = [256, 1, 1];
-    pub fn create_main2_pipeline_embed_source(
-        device: &wgpu::Device,
-    ) -> wgpu::ComputePipeline {
-        let module = super::create_shader_module_embed_source(device);
-        let layout = super::create_pipeline_layout(device);
-        device
-            .create_compute_pipeline(
-                &wgpu::ComputePipelineDescriptor {
-                    label: Some("Compute Pipeline main2"),
-                    layout: Some(&layout),
-                    module: &module,
-                    entry_point: Some("main2"),
-                    compilation_options: Default::default(),
-                    cache: None,
-                },
-            )
-    }
+  pub const MAIN1_WORKGROUP_SIZE: [u32; 3] = [1, 2, 3];
+  pub fn create_main1_pipeline_embed_source(
+    device: &wgpu::Device,
+  ) -> wgpu::ComputePipeline {
+    let module = super::create_shader_module_embed_source(device);
+    let layout = super::create_pipeline_layout(device);
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+      label: Some("Compute Pipeline main1"),
+      layout: Some(&layout),
+      module: &module,
+      entry_point: Some("main1"),
+      compilation_options: Default::default(),
+      cache: None,
+    })
+  }
+  pub const MAIN2_WORKGROUP_SIZE: [u32; 3] = [256, 1, 1];
+  pub fn create_main2_pipeline_embed_source(
+    device: &wgpu::Device,
+  ) -> wgpu::ComputePipeline {
+    let module = super::create_shader_module_embed_source(device);
+    let layout = super::create_pipeline_layout(device);
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+      label: Some("Compute Pipeline main2"),
+      layout: Some(&layout),
+      module: &module,
+      entry_point: Some("main2"),
+      compilation_options: Default::default(),
+      cache: None,
+    })
+  }
 }

@@ -1,5 +1,3 @@
-use std::usize;
-
 use derive_more::IsVariant;
 use naga::common::wgsl::TypeContext;
 use naga::StructMember;
@@ -91,7 +89,7 @@ impl<'a> NagaToRustStructState<'a> {
       let name_ident = Ident::new(member_name, Span::call_site());
       let naga_type = &naga_module.types[naga_member.ty];
 
-      let rust_type = rust_type(None, naga_module, naga_type, &options);
+      let rust_type = rust_type(None, naga_module, naga_type, options);
       let is_rsa = rust_type.size.is_none();
 
       if is_rsa && state.index != naga_members.len() - 1 {
@@ -110,13 +108,13 @@ impl<'a> NagaToRustStructState<'a> {
         };
         let rust_type = &rust_type;
 
-        let pad_name = format!("_pad_{}", member_name);
+        let pad_name = format!("_pad_{member_name}");
         let required_member_size = next_offset - current_offset;
 
         match rust_type.aligned_size() {
           Some(rust_type_size) if required_member_size == rust_type_size => None,
           _ => {
-            let required_member_size = format!("0x{:X}", required_member_size);
+            let required_member_size = format!("0x{required_member_size:X}");
             let member_size =
               syn::parse_str::<TokenStream>(&required_member_size).unwrap();
 
@@ -137,7 +135,7 @@ impl<'a> NagaToRustStructState<'a> {
       let is_current_field_padding = options
         .custom_padding_field_regexps
         .iter()
-        .any(|pad_expr| pad_expr.is_match(&member_name));
+        .any(|pad_expr| pad_expr.is_match(member_name));
 
       // both padding field and built-in fields are handled in the same way
       // skip builtins like @builtin(vertex_index)
@@ -145,7 +143,7 @@ impl<'a> NagaToRustStructState<'a> {
         || matches!(naga_member.binding, Some(naga::Binding::BuiltIn(_)))
       {
         let size = naga_type.inner.size(gctx);
-        let size = format!("0x{:X}", size);
+        let size = format!("0x{size:X}");
         let pad_size_tokens = syn::parse_str::<TokenStream>(&size).unwrap();
 
         RustStructMemberEntry::Padding(Padding {
@@ -253,7 +251,7 @@ pub struct RustStructBuilder<'a> {
 
 impl<'a> RustStructBuilder<'a> {
   fn name_ident(&self) -> Ident {
-    Ident::new(&self.item_path.name.as_ref(), Span::call_site())
+    Ident::new(self.item_path.name.as_ref(), Span::call_site())
   }
 
   fn is_directly_shareable(&self) -> bool {
@@ -438,13 +436,13 @@ impl<'a> RustStructBuilder<'a> {
             is_rsa: is_rts,
             naga_member: member,
             naga_type,
-            naga_ty_handle
+            naga_ty_handle,
           } = field;
 
           let doc_comment = if self.is_directly_shareable() {
             let offset = member.offset;
             let size = naga_type.inner.size(gctx);
-            let ty_name = gctx.type_to_string(naga_ty_handle.clone());
+            let ty_name = gctx.type_to_string(*naga_ty_handle);
             let ty_name = demangle_str(&ty_name);
             let doc = format!(" size: {size}, offset: 0x{offset:X}, type: `{ty_name}`");
 
@@ -598,8 +596,7 @@ impl<'a> RustStructBuilder<'a> {
           .is_match(fully_qualified_name)
           .then_some(struct_align.alignment as u32)
       })
-      .map(|align| naga::proc::Alignment::new(align))
-      .flatten();
+      .and_then(naga::proc::Alignment::new);
 
     let alignment = custom_alignment.unwrap_or(self.layout.alignment) * 1u32;
     let alignment = Index::from(alignment as usize);
@@ -676,7 +673,7 @@ impl<'a> RustStructBuilder<'a> {
       members,
       is_host_sharable,
       naga_module,
-      options: &options,
+      options,
       has_rts_array,
       layout,
     }
