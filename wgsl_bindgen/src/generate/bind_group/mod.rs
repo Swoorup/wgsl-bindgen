@@ -565,4 +565,41 @@ mod tests {
 
     assert_tokens_snapshot!(actual);
   }
+
+  #[test]
+  fn bind_groups_module_array_bindings() {
+    // Test texture and sampler array bindings.
+    let source = indoc! {r#"
+            struct Transforms {};
+
+            @group(0) @binding(0) var<uniform> transforms: Transforms;
+            @group(0) @binding(1) var texture_array: binding_array<texture_2d<f32>, 4>;
+            @group(0) @binding(2) var sampler_array: binding_array<sampler, 3>;
+
+            @vertex
+            fn vs_main() {}
+
+            @fragment
+            fn fs_main() {}
+        "#};
+
+    let module = naga::front::wgsl::parse_str(source).unwrap();
+    let options = WgslBindgenOption::default();
+    let bind_group_data = get_bind_group_data_for_entry(
+      &module,
+      wgpu::ShaderStages::VERTEX_FRAGMENT,
+      &options,
+      "test",
+    )
+    .unwrap()
+    .bind_group_data;
+
+    let actual = generate_test_bind_groups_module(
+      &bind_group_data,
+      wgpu::ShaderStages::VERTEX_FRAGMENT,
+      &options,
+    );
+
+    assert_tokens_snapshot!(actual);
+  }
 }

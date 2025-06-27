@@ -10,6 +10,9 @@ pub enum BindResourceType {
   Sampler,
   Texture,
   AccelerationStructure,
+  BufferArray,
+  SamplerArray,
+  TextureArray,
 }
 
 #[derive(Clone)]
@@ -98,6 +101,9 @@ impl WgpuGetBindingsGeneratorConfig {
       (BindResourceType::Sampler, quote! { &'a wgpu::Sampler }),
       (BindResourceType::Texture, quote! { &'a wgpu::TextureView }),
       (BindResourceType::AccelerationStructure, quote! { &'a wgpu::Tlas }),
+      (BindResourceType::BufferArray, quote! { &'a [wgpu::BufferBinding<'a>] }),
+      (BindResourceType::SamplerArray, quote! { &'a [&'a wgpu::Sampler] }),
+      (BindResourceType::TextureArray, quote! { &'a [&'a wgpu::TextureView] }),
     ]
     .into_iter()
     .collect::<FastIndexMap<_, _>>();
@@ -119,6 +125,15 @@ impl WgpuGetBindingsGeneratorConfig {
         }
         BindResourceType::AccelerationStructure => {
           quote!(wgpu::BindingResource::AccelerationStructure(#binding_var))
+        }
+        BindResourceType::BufferArray => {
+          quote!(wgpu::BindingResource::BufferArray(#binding_var))
+        }
+        BindResourceType::SamplerArray => {
+          quote!(wgpu::BindingResource::SamplerArray(#binding_var))
+        }
+        BindResourceType::TextureArray => {
+          quote!(wgpu::BindingResource::TextureViewArray(#binding_var))
         }
       };
 

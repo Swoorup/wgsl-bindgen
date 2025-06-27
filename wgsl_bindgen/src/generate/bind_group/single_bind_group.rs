@@ -13,6 +13,19 @@ struct BindGroupEntriesStructBuilder<'a> {
 }
 
 impl<'a> BindGroupEntriesStructBuilder<'a> {
+  /// Determines the array resource type based on the base type of a BindingArray
+  fn get_array_resource_type(base_type: &naga::TypeInner) -> BindResourceType {
+    match base_type {
+      naga::TypeInner::Struct { .. }
+      | naga::TypeInner::Array { .. }
+      | naga::TypeInner::Scalar(_)
+      | naga::TypeInner::Vector { .. }
+      | naga::TypeInner::Matrix { .. } => BindResourceType::BufferArray,
+      naga::TypeInner::Image { .. } => BindResourceType::TextureArray,
+      naga::TypeInner::Sampler { .. } => BindResourceType::SamplerArray,
+      _ => panic!("Unsupported array base type: {:?}", base_type),
+    }
+  }
   /// Generates a binding entry from a parameter variable and a group binding.
   fn create_entry_from_parameter(
     &self,
@@ -42,6 +55,11 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       }
       naga::TypeInner::AccelerationStructure { .. } => {
         entry_cons(binding_index, binding_var, BindResourceType::AccelerationStructure)
+      }
+      naga::TypeInner::BindingArray { base, .. } => {
+        let base_type = &self.data.naga_module.types[base].inner;
+        let array_resource_type = Self::get_array_resource_type(base_type);
+        entry_cons(binding_index, binding_var, array_resource_type)
       }
       // TODO: Better error handling.
       _ => panic!("Failed to generate BindingType."),
@@ -88,6 +106,10 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       naga::TypeInner::Array { .. } => BindResourceType::Buffer,
       naga::TypeInner::Scalar(_) => BindResourceType::Buffer,
       naga::TypeInner::AccelerationStructure { .. } => BindResourceType::AccelerationStructure,
+      naga::TypeInner::BindingArray { base, .. } => {
+        let base_type = &self.data.naga_module.types[base].inner;
+        Self::get_array_resource_type(base_type)
+      }
       _ => panic!("Unsupported type for binding fields."),
     };
 
@@ -334,31 +356,24 @@ impl<'a> SingleBindGroupBuilder<'a> {
   }
 }
 
-fn bind_group_layout_entry(
+/// Generates the wgpu BindingType for a given naga Type
+fn generate_binding_type_for_type(
+  binding_type: &naga::Type,
   invoking_entry_module: &str,
   naga_module: &naga::Module,
   options: &WgslBindgenOption,
-  shader_stages: wgpu::ShaderStages,
-  binding_index: u32,
-  binding_type: &naga::Type,
-  name: Option<String>,
   address_space: naga::AddressSpace,
 ) -> TokenStream {
-  // TODO: Assume storage is only used for compute?
-  // TODO: Support just vertex or fragment?
-  // TODO: Visible from all stages?
-  let stages = quote_shader_stages(shader_stages);
-
   // TODO: Support more types.
-  let binding_type = match &binding_type.inner {
+  match &binding_type.inner {
     naga::TypeInner::Scalar(_)
     | naga::TypeInner::Struct { .. }
-    | naga::TypeInner::Array { .. } => {
+    | naga::TypeInner::Array { .. }
+    | naga::TypeInner::Vector { .. }
+    | naga::TypeInner::Matrix { .. } => {
       let buffer_binding_type = buffer_binding_type(address_space);
-
-      let rust_type =
-        rust_type(Some(invoking_entry_module), naga_module, &binding_type, options);
-
+      
+      let rust_type = rust_type(Some(invoking_entry_module), naga_module, binding_type, options);
       let min_binding_size = rust_type.quote_min_binding_size();
 
       quote!(wgpu::BindingType::Buffer {
@@ -425,9 +440,44 @@ fn bind_group_layout_entry(
     naga::TypeInner::AccelerationStructure { vertex_return } => {
       quote!(wgpu::BindingType::AccelerationStructure { vertex_return: #vertex_return })
     }
+    naga::TypeInner::BindingArray { base, .. } => {
+      let base_type = &naga_module.types[*base];
+      // Recursively generate the binding type for the base type
+      generate_binding_type_for_type(
+        base_type,
+        invoking_entry_module,
+        naga_module,
+        options,
+        address_space,
+      )
+    }
     // TODO: Better error handling.
-    unknown => panic!("Failed to generate BindingType for {:?}.", &unknown),
-  };
+    unknown => panic!("Failed to generate BindingType for {unknown:?}."),
+  }
+}
+
+fn bind_group_layout_entry(
+  invoking_entry_module: &str,
+  naga_module: &naga::Module,
+  options: &WgslBindgenOption,
+  shader_stages: wgpu::ShaderStages,
+  binding_index: u32,
+  binding_type: &naga::Type,
+  name: Option<String>,
+  address_space: naga::AddressSpace,
+) -> TokenStream {
+  // TODO: Assume storage is only used for compute?
+  // TODO: Support just vertex or fragment?
+  // TODO: Visible from all stages?
+  let stages = quote_shader_stages(shader_stages);
+
+  let wgpu_binding_type = generate_binding_type_for_type(
+    binding_type,
+    invoking_entry_module,
+    naga_module,
+    options,
+    address_space,
+  );
 
   let doc = format!(
     " @binding({}): \"{}\"",
@@ -436,14 +486,27 @@ fn bind_group_layout_entry(
   );
 
   let binding_index = Index::from(binding_index as usize);
+  
+  // Handle count for BindingArray
+  let count = match &binding_type.inner {
+    naga::TypeInner::BindingArray { size, .. } => match size {
+      naga::ArraySize::Constant(count) => {
+        let count_literal = count.get();
+        quote!(Some(std::num::NonZeroU32::new(#count_literal).unwrap()))
+      }
+      naga::ArraySize::Dynamic => quote!(None),
+      naga::ArraySize::Pending(_) => quote!(None),
+    },
+    _ => quote!(None),
+  };
 
   quote! {
       #[doc = #doc]
       wgpu::BindGroupLayoutEntry {
           binding: #binding_index,
           visibility: #stages,
-          ty: #binding_type,
-          count: None,
+          ty: #wgpu_binding_type,
+          count: #count,
       }
   }
 }
@@ -462,6 +525,7 @@ fn storage_access(access: naga::StorageAccess) -> TokenStream {
 #[derive(Clone)]
 pub struct SingleBindGroupData<'a> {
   pub bindings: Vec<SingleBindGroupEntry<'a>>,
+  pub naga_module: &'a naga::Module,
 }
 
 impl SingleBindGroupData<'_> {
