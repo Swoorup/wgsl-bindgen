@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.18.2...wgsl_bindgen-v0.19.0) - 2025-06-27
+
+### Other
+
+- Fix cargo clippy failures blocking CI release
+- Added support for BufferArray, SamplerArray, TextureArray bindings
+- Added more testing for f16
+- Add support for Acceleration structure.
+- Replace inline rust source testing with insta snapshot
+- Update to use insta for snapshot testing instead.
+- Update to use wgpu 25
+
 ## [0.18.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.18.1...wgsl_bindgen-v0.18.2) - 2025-05-28
 
 ### Other
