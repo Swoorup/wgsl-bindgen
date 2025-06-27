@@ -1,0 +1,36 @@
+---
+source: wgsl_bindgen/src/generate/entry.rs
+---
+impl VertexInput0 {
+    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 4] = [
+        wgpu::VertexAttribute {
+            format: wgpu::VertexFormat::Float32,
+            offset: std::mem::offset_of!(Self, a) as u64,
+            shader_location: 0,
+        },
+        wgpu::VertexAttribute {
+            format: wgpu::VertexFormat::Float32x2,
+            offset: std::mem::offset_of!(Self, b) as u64,
+            shader_location: 1,
+        },
+        wgpu::VertexAttribute {
+            format: wgpu::VertexFormat::Float32x3,
+            offset: std::mem::offset_of!(Self, c) as u64,
+            shader_location: 2,
+        },
+        wgpu::VertexAttribute {
+            format: wgpu::VertexFormat::Float32x4,
+            offset: std::mem::offset_of!(Self, d) as u64,
+            shader_location: 3,
+        },
+    ];
+    pub const fn vertex_buffer_layout(
+        step_mode: wgpu::VertexStepMode,
+    ) -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as u64,
+            step_mode,
+            attributes: &Self::VERTEX_ATTRIBUTES,
+        }
+    }
+}

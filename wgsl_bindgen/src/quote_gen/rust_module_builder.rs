@@ -287,7 +287,7 @@ mod tests {
   use quote::quote;
 
   use super::{RustModBuilder, RustModuleBuilderError};
-  use crate::assert_tokens_eq;
+  use crate::assert_tokens_snapshot;
 
   #[test]
   fn test_module_generation_works() {
@@ -298,22 +298,7 @@ mod tests {
 
     let actual = mod_builder.generate();
 
-    assert_tokens_eq!(
-      actual,
-      quote! {
-        pub mod a {
-          pub mod b {
-            pub mod c {
-              struct B ;
-              struct C ;
-              pub mod d {
-                struct A ;
-              }
-            }
-          }
-        }
-      }
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -329,24 +314,7 @@ mod tests {
 
     let actual = mod_builder.generate();
 
-    assert_tokens_eq!(
-      actual,
-      quote! {
-        mod _root {
-          pub use super::*;
-        }
-        pub mod a {
-          use super::{_root, _root::*};
-          struct B {
-              a: a::b::A,
-          }
-          pub mod b {
-              use super::{_root, _root::*};
-              struct A;
-          }
-        }
-      }
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -362,21 +330,7 @@ mod tests {
 
     let actual = mod_builder.generate();
 
-    assert_tokens_eq!(
-      actual,
-      quote! {
-        pub mod a {
-          use super::{_root, _root::*};
-          struct B {
-              a: a::b::A,
-          }
-          pub mod b {
-              use super::{_root, _root::*};
-              struct A;
-          }
-        }
-      }
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -388,17 +342,7 @@ mod tests {
 
     let tokens = mod_builder.generate();
 
-    assert_tokens_eq!(
-      tokens,
-      quote! {
-        pub mod a {
-          struct B;
-          pub mod b {
-            struct A ;
-          }
-        }
-      }
-    );
+    assert_tokens_snapshot!(tokens);
     Ok(())
   }
 
@@ -426,24 +370,6 @@ mod tests {
 
     let actual = builder1.merge(builder2).generate();
 
-    assert_tokens_eq!(
-      actual,
-      quote! {
-        pub mod a {
-          pub mod b {
-            pub mod c {
-              struct A;
-              struct C;
-            }
-            pub mod d {
-              struct B;
-            }
-            pub mod e {
-              struct D;
-            }
-          }
-        }
-      }
-    );
+    assert_tokens_snapshot!(actual);
   }
 }

@@ -1,0 +1,20 @@
+---
+source: wgsl_bindgen/src/structs.rs
+---
+#[repr(C, align(16))]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct UniformsData {
+    /// size: 48, offset: 0x0, type: `mat3x3<f32>`
+    pub a: [[f32; 4]; 3],
+}
+impl UniformsData {
+    pub const fn new(a: [[f32; 4]; 3]) -> Self {
+        Self { a }
+    }
+}
+const UNIFORMS_DATA_ASSERTS: () = {
+    assert!(std::mem::offset_of!(UniformsData, a) == 0);
+    assert!(std::mem::size_of:: < UniformsData > () == 48);
+};
+unsafe impl bytemuck::Zeroable for UniformsData {}
+unsafe impl bytemuck::Pod for UniformsData {}

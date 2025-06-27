@@ -1,0 +1,5 @@
+---
+source: wgsl_bindgen/src/structs.rs
+expression: actual.to_string()
+---
+# [repr (C)] # [derive (Debug , PartialEq , Clone , Copy)] pub struct Input0 { pub a : u32 , pub b : i32 , pub c : f32 } impl Input0 { pub const fn new (a : u32 , b : i32 , c : f32) -> Self { Self { a , b , c } } } unsafe impl bytemuck :: Zeroable for Input0 { } unsafe impl bytemuck :: Pod for Input0 { }

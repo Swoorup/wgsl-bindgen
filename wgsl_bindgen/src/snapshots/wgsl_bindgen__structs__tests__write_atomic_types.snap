@@ -1,0 +1,5 @@
+---
+source: wgsl_bindgen/src/structs.rs
+expression: actual.to_string()
+---
+# [repr (C)] # [derive (Debug , PartialEq , Clone , Copy , encase :: ShaderType)] pub struct Atomics { pub num : u32 , pub numi : i32 } impl Atomics { pub const fn new (num : u32 , numi : i32) -> Self { Self { num , numi } } }

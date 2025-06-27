@@ -1,0 +1,37 @@
+---
+source: wgsl_bindgen/src/generate/entry.rs
+---
+#[derive(Debug)]
+pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+}
+pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+        module,
+        entry_point: Some(entry.entry_point),
+        buffers: &entry.buffers,
+        compilation_options: wgpu::PipelineCompilationOptions {
+            constants: &entry.constants,
+            ..Default::default()
+        },
+    }
+}
+pub fn vs_main_entry(
+    input0: wgpu::VertexStepMode,
+    input1: wgpu::VertexStepMode,
+    overrides: &OverrideConstants,
+) -> VertexEntry<2> {
+    VertexEntry {
+        entry_point: ENTRY_VS_MAIN,
+        buffers: [
+            Input0::vertex_buffer_layout(input0),
+            Input1::vertex_buffer_layout(input1),
+        ],
+        constants: overrides.constants(),
+    }
+}

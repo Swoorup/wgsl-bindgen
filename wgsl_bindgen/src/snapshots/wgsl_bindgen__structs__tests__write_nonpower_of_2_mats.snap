@@ -1,0 +1,5 @@
+---
+source: wgsl_bindgen/src/structs.rs
+expression: actual.to_string()
+---
+# [repr (C , align (16))] # [derive (Debug , PartialEq , Clone , Copy)] pub struct MatricesF32 { # [doc = " size: 64, offset: 0x0, type: `mat4x4<f32>`"] pub a : [[f32 ; 4] ; 4] , # [doc = " size: 64, offset: 0x40, type: `mat4x3<f32>`"] pub b : [[f32 ; 4] ; 4] , # [doc = " size: 32, offset: 0x80, type: `mat4x2<f32>`"] pub c : [[f32 ; 2] ; 4] , # [doc = " size: 48, offset: 0xA0, type: `mat3x4<f32>`"] pub d : [[f32 ; 4] ; 3] } impl MatricesF32 { pub const fn new (a : [[f32 ; 4] ; 4] , b : [[f32 ; 4] ; 4] , c : [[f32 ; 2] ; 4] , d : [[f32 ; 4] ; 3]) -> Self { Self { a , b , c , d } } } const MATRICES_F32_ASSERTS : () = { assert ! (std :: mem :: offset_of ! (MatricesF32 , a) == 0) ; assert ! (std :: mem :: offset_of ! (MatricesF32 , b) == 64) ; assert ! (std :: mem :: offset_of ! (MatricesF32 , c) == 128) ; assert ! (std :: mem :: offset_of ! (MatricesF32 , d) == 160) ; assert ! (std :: mem :: size_of :: < MatricesF32 > () == 208) ; } ; unsafe impl bytemuck :: Zeroable for MatricesF32 { } unsafe impl bytemuck :: Pod for MatricesF32 { }

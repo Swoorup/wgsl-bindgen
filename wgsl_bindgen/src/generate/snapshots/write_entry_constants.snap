@@ -1,0 +1,7 @@
+---
+source: wgsl_bindgen/src/generate/entry.rs
+---
+pub const ENTRY_VS_MAIN: &str = "vs_main";
+pub const ENTRY_ANOTHER_VS: &str = "another_vs";
+pub const ENTRY_FS_MAIN: &str = "fs_main";
+pub const ENTRY_ANOTHER_FS: &str = "another_fs";

@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use naga::{Handle, Type};
-
 use crate::quote_gen::{RustSourceItem, RustSourceItemPath, RustStructBuilder};
 use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 
@@ -149,9 +148,10 @@ fn struct_has_rts_array_member(
 mod tests {
   use indoc::indoc;
   use quote::quote;
+  use proc_macro2::TokenStream;
 
   use super::*;
-  use crate::*;
+  use crate::{WgslBindgenOption, WgslTypeSerializeStrategy, WgslTypeVisibility, WgslTypeMapBuild, GlamWgslTypeMap, NalgebraWgslTypeMap, RustWgslTypeMap, assert_tokens_snapshot};
 
   pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
     structs_items("", module, options)
@@ -246,150 +246,7 @@ mod tests {
     let structs = structs(&module, &WgslBindgenOption::default());
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Scalars {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Scalars {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsU32 {
-              pub a: [u32; 2],
-              pub b: [u32; 4],
-              pub c: [u32; 4],
-          }
-          impl VectorsU32 {
-            pub const fn new(a: [u32; 2], b: [u32; 4], c: [u32; 4]) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsI32 {
-              pub a: [i32; 2],
-              pub b: [i32; 4],
-              pub c: [i32; 4],
-          }
-          impl VectorsI32 {
-            pub const fn new(a: [i32; 2], b: [i32; 4], c: [i32; 4]) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsF32 {
-              pub a: [f32; 2],
-              pub b: [f32; 4],
-              pub c: [f32; 4],
-          }
-          impl VectorsF32 {
-            pub const fn new(a: [f32; 2], b: [f32; 4], c: [f32; 4]) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsF64 {
-              pub a: [f64; 2],
-              pub b: [f64; 4],
-              pub c: [f64; 4],
-          }
-          impl VectorsF64 {
-            pub const fn new(a: [f64; 2], b: [f64; 4], c: [f64; 4]) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct MatricesF32 {
-              pub a: [[f32; 4]; 4],
-              pub b: [[f32; 4]; 4],
-              pub c: [[f32; 2]; 4],
-              pub d: [[f32; 4]; 3],
-              pub e: [[f32; 4]; 3],
-              pub f: [[f32; 2]; 3],
-              pub g: [[f32; 4]; 2],
-              pub h: [[f32; 4]; 2],
-              pub i: [[f32; 2]; 2],
-          }
-          impl MatricesF32 {
-            pub const fn new(
-                a: [[f32; 4]; 4],
-                b: [[f32; 4]; 4],
-                c: [[f32; 2]; 4],
-                d: [[f32; 4]; 3],
-                e: [[f32; 4]; 3],
-                f: [[f32; 2]; 3],
-                g: [[f32; 4]; 2],
-                h: [[f32; 4]; 2],
-                i: [[f32; 2]; 2],
-            ) -> Self {
-                Self { a, b, c, d, e, f, g, h, i }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct MatricesF64 {
-              pub a: [[f64; 4]; 4],
-              pub b: [[f64; 4]; 4],
-              pub c: [[f64; 2]; 4],
-              pub d: [[f64; 4]; 3],
-              pub e: [[f64; 4]; 3],
-              pub f: [[f64; 2]; 3],
-              pub g: [[f64; 4]; 2],
-              pub h: [[f64; 4]; 2],
-              pub i: [[f64; 2]; 2],
-          }
-          impl MatricesF64 {
-            pub const fn new(
-                a: [[f64; 4]; 4],
-                b: [[f64; 4]; 4],
-                c: [[f64; 2]; 4],
-                d: [[f64; 4]; 3],
-                e: [[f64; 4]; 3],
-                f: [[f64; 2]; 3],
-                g: [[f64; 4]; 2],
-                h: [[f64; 4]; 2],
-                i: [[f64; 2]; 2],
-            ) -> Self {
-                Self { a, b, c, d, e, f, g, h, i }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct StaticArrays {
-              pub a: [u32; 5],
-              pub b: [f32; 3],
-              pub c: [[[f32; 4]; 4]; 512],
-          }
-          impl StaticArrays {
-            pub const fn new(a: [u32; 5], b: [f32; 3], c: [[[f32; 4]; 4]; 512]) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Nested {
-              pub a: MatricesF32,
-              pub b: MatricesF64,
-          }
-          impl Nested {
-            pub const fn new(a: MatricesF32, b: MatricesF64) -> Self {
-                Self { a, b }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -464,110 +321,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct Scalars {
-            pub a: u32,
-            pub b: i32,
-            pub c: f32,
-        }
-        impl Scalars {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct VectorsU32 {
-            pub a: glam::UVec2,
-            pub b: glam::UVec3,
-            pub c: glam::UVec4,
-        }
-        impl VectorsU32 {
-            pub const fn new(a: glam::UVec2, b: glam::UVec3, c: glam::UVec4) -> Self {
-                Self { a, b, c }
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct VectorsI32 {
-            pub a: glam::IVec2,
-            pub b: glam::IVec3,
-            pub c: glam::IVec4,
-        }
-        impl VectorsI32 {
-            pub const fn new(a: glam::IVec2, b: glam::IVec3, c: glam::IVec4) -> Self {
-                Self { a, b, c }
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct VectorsF32 {
-            pub a: glam::Vec2,
-            pub b: glam::Vec3A,
-            pub c: glam::Vec4,
-        }
-        impl VectorsF32 {
-            pub const fn new(a: glam::Vec2, b: glam::Vec3A, c: glam::Vec4) -> Self {
-                Self { a, b, c }
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct MatricesF32 {
-            pub a: glam::Mat4,
-            pub b: [[f32; 4]; 4],
-            pub c: [[f32; 2]; 4],
-            pub d: [[f32; 4]; 3],
-            pub e: glam::Mat3A,
-            pub f: [[f32; 2]; 3],
-            pub g: [[f32; 4]; 2],
-            pub h: [[f32; 4]; 2],
-            pub i: glam::Mat2,
-        }
-        impl MatricesF32 {
-            pub const fn new(
-                a: glam::Mat4,
-                b: [[f32; 4]; 4],
-                c: [[f32; 2]; 4],
-                d: [[f32; 4]; 3],
-                e: glam::Mat3A,
-                f: [[f32; 2]; 3],
-                g: [[f32; 4]; 2],
-                h: [[f32; 4]; 2],
-                i: glam::Mat2,
-            ) -> Self {
-                Self { a, b, c, d, e, f, g, h, i }
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct StaticArrays {
-            pub a: [u32; 5],
-            pub b: [f32; 3],
-            pub c: [glam::Mat4; 512],
-        }
-        impl StaticArrays {
-            pub const fn new(a: [u32; 5], b: [f32; 3], c: [glam::Mat4; 512]) -> Self {
-                Self { a, b, c }
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-        pub struct Nested {
-            pub a: MatricesF32,
-            pub b: VectorsF32,
-        }
-        impl Nested {
-            pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
-                Self { a, b }
-            }
-        }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -642,126 +396,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Scalars {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Scalars {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsU32 {
-              pub a: nalgebra::SVector<u32, 2>,
-              pub b: nalgebra::SVector<u32, 3>,
-              pub c: nalgebra::SVector<u32, 4>,
-          }
-          impl VectorsU32 {
-            pub const fn new(
-              a: nalgebra::SVector<u32, 2>,
-              b: nalgebra::SVector<u32, 3>,
-              c: nalgebra::SVector<u32, 4>,
-            ) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsI32 {
-              pub a: nalgebra::SVector<i32, 2>,
-              pub b: nalgebra::SVector<i32, 3>,
-              pub c: nalgebra::SVector<i32, 4>,
-          }
-          impl VectorsI32 {
-            pub const fn new(
-              a: nalgebra::SVector<i32, 2>,
-              b: nalgebra::SVector<i32, 3>,
-              c: nalgebra::SVector<i32, 4>,
-            ) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct VectorsF32 {
-              pub a: nalgebra::SVector<f32, 2>,
-              pub b: nalgebra::SVector<f32, 3>,
-              pub c: nalgebra::SVector<f32, 4>,
-          }
-          impl VectorsF32 {
-            pub const fn new(
-              a: nalgebra::SVector<f32, 2>,
-              b: nalgebra::SVector<f32, 3>,
-              c: nalgebra::SVector<f32, 4>,
-            ) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct MatricesF32 {
-              pub a: nalgebra::SMatrix<f32, 4, 4>,
-              pub b: nalgebra::SMatrix<f32, 3, 4>,
-              pub c: nalgebra::SMatrix<f32, 2, 4>,
-              pub d: nalgebra::SMatrix<f32, 4, 3>,
-              pub e: nalgebra::SMatrix<f32, 3, 3>,
-              pub f: nalgebra::SMatrix<f32, 2, 3>,
-              pub g: nalgebra::SMatrix<f32, 4, 2>,
-              pub h: nalgebra::SMatrix<f32, 3, 2>,
-              pub i: nalgebra::SMatrix<f32, 2, 2>,
-          }
-          impl MatricesF32 {
-            pub const fn new(
-                a: nalgebra::SMatrix<f32, 4, 4>,
-                b: nalgebra::SMatrix<f32, 3, 4>,
-                c: nalgebra::SMatrix<f32, 2, 4>,
-                d: nalgebra::SMatrix<f32, 4, 3>,
-                e: nalgebra::SMatrix<f32, 3, 3>,
-                f: nalgebra::SMatrix<f32, 2, 3>,
-                g: nalgebra::SMatrix<f32, 4, 2>,
-                h: nalgebra::SMatrix<f32, 3, 2>,
-                i: nalgebra::SMatrix<f32, 2, 2>,
-            ) -> Self {
-                Self { a, b, c, d, e, f, g, h, i }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct StaticArrays {
-              pub a: [u32; 5],
-              pub b: [f32; 3],
-              pub c: [nalgebra::SMatrix<f32, 4, 4>; 512],
-          }
-          impl StaticArrays {
-            pub const fn new(
-              a: [u32; 5],
-              b: [f32; 3],
-              c: [nalgebra::SMatrix<f32, 4, 4>; 512],
-            ) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Nested {
-              pub a: MatricesF32,
-              pub b: VectorsF32,
-          }
-          impl Nested {
-            pub const fn new(a: MatricesF32, b: VectorsF32) -> Self {
-                Self { a, b }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -798,34 +433,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Input0 {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Input0 {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Nested {
-              pub a: Input0,
-              pub b: f32,
-          }
-          impl Nested {
-            pub const fn new(a: Input0, b: f32) -> Self {
-                Self { a, b }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -863,50 +471,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(
-              Debug,
-              PartialEq,
-              Clone,
-              Copy,
-              encase::ShaderType,
-              serde::Serialize,
-              serde::Deserialize
-          )]
-          pub struct Input0 {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Input0 {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-          }
-          #[repr(C)]
-          #[derive(
-              Debug,
-              PartialEq,
-              Clone,
-              Copy,
-              encase::ShaderType,
-              serde::Serialize,
-              serde::Deserialize
-          )]
-          pub struct Nested {
-              pub a: Input0,
-              pub b: f32,
-          }
-          impl Nested {
-            pub const fn new(a: Input0, b: f32) -> Self {
-                Self { a, b }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -946,25 +511,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy)]
-          pub struct Input0 {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Input0 {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-          }
-          unsafe impl bytemuck::Zeroable for Input0 {}
-          unsafe impl bytemuck::Pod for Input0 {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -997,25 +544,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy)]
-          pub struct Input0 {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Input0 {
-              pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                  Self { a, b, c }
-              }
-          }
-          unsafe impl bytemuck::Zeroable for Input0 {}
-          unsafe impl bytemuck::Pod for Input0 {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1061,107 +590,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[repr(C, align(4))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct Input0 {
-            /// size: 4, offset: 0x0, type: `u32`
-            pub a: u32,
-            pub _pad_a: [u8; 0x8 - ::core::mem::size_of::<u32>()],
-            /// size: 4, offset: 0x8, type: `i32`
-            pub b: i32,
-            pub _pad_b: [u8; 0x18 - ::core::mem::size_of::<i32>()],
-            /// size: 4, offset: 0x20, type: `f32`
-            pub c: f32,
-            pub d: [u8; 0x4],
-            pub _pad_d: [u8; 0x1C - ::core::mem::size_of::<u32>()],
-        }
-        impl Input0 {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self {
-                    a,
-                    _pad_a: [0; 0x8 - ::core::mem::size_of::<u32>()],
-                    b,
-                    _pad_b: [0; 0x18 - ::core::mem::size_of::<i32>()],
-                    c,
-                    d: [0; 0x4],
-                    _pad_d: [0; 0x1C - ::core::mem::size_of::<u32>()],
-                }
-            }
-        }
-
-        #[repr(C)]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct Input0Init {
-            pub a: u32,
-            pub b: i32,
-            pub c: f32,
-        }
-        impl Input0Init {
-            pub const fn build(&self) -> Input0 {
-                Input0 {
-                    a: self.a,
-                    _pad_a: [0; 0x8 - ::core::mem::size_of::<u32>()],
-                    b: self.b,
-                    _pad_b: [0; 0x18 - ::core::mem::size_of::<i32>()],
-                    c: self.c,
-                    d: [0; 0x4],
-                    _pad_d: [0; 0x1C - ::core::mem::size_of::<u32>()],
-                }
-            }
-        }
-        impl From<Input0Init> for Input0 {
-            fn from(data: Input0Init) -> Self {
-                data.build()
-            }
-        }
-        const INPUT0_ASSERTS: () = {
-          assert!(std::mem::offset_of!(Input0, a) == 0);
-          assert!(std::mem::offset_of!(Input0, b) == 8);
-          assert!(std::mem::offset_of!(Input0, c) == 32);
-          assert!(std::mem::size_of::<Input0>() == 64);
-        };
-        unsafe impl bytemuck::Zeroable for Input0 {}
-        unsafe impl bytemuck::Pod for Input0 {}
-
-        #[repr(C, align(4))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct Inner {
-            /// size: 4, offset: 0x0, type: `f32`
-            pub a: f32,
-        }
-        impl Inner {
-            pub const fn new(a: f32) -> Self {
-                Self { a }
-            }
-        }
-        const INNER_ASSERTS: () = {
-          assert!(std::mem::offset_of!(Inner, a) == 0);
-          assert!(std::mem::size_of:: < Inner > () == 4);
-        };
-        unsafe impl bytemuck::Zeroable for Inner {}
-        unsafe impl bytemuck::Pod for Inner {}
-        #[repr(C, align(4))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct Outer {
-            /// size: 4, offset: 0x0, type: `Inner`
-            pub inner: Inner,
-        }
-        impl Outer {
-            pub const fn new(inner: Inner) -> Self {
-                Self { inner }
-            }
-        }
-        const OUTER_ASSERTS: () = {
-          assert!(std::mem::offset_of!(Outer, inner) == 0);
-          assert!(std::mem::size_of:: < Outer > () == 4);
-        };
-        unsafe impl bytemuck::Zeroable for Outer {}
-        unsafe impl bytemuck::Pod for Outer {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1187,22 +616,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub struct Atomics {
-              pub num: u32,
-              pub numi: i32,
-          }
-          impl Atomics {
-            pub const fn new(num: u32, numi: i32) -> Self {
-                Self { num, numi }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   fn runtime_sized_array_module() -> naga::Module {
@@ -1231,22 +645,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[derive(Debug, PartialEq, Clone, encase::ShaderType)]
-          pub struct RtsStruct {
-              pub other_data: i32,
-              #[size(runtime)]
-              pub the_array: Vec<u32>,
-          }
-          impl RtsStruct {
-            pub const fn new(other_data: i32, the_array: Vec<u32>) -> Self {
-                Self { other_data, the_array }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1263,30 +662,7 @@ mod tests {
 
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct RtsStruct<const N: usize> {
-            /// size: 4, offset: 0x0, type: `i32`
-            pub other_data: i32,
-            /// size: 4, offset: 0x4, type: `array<u32>`
-            pub the_array: [u32; N]
-        }
-        impl<const N:usize> RtsStruct<N> {
-            pub const fn new(other_data: i32, the_array: [u32; N]) -> Self {
-                Self { other_data, the_array }
-            }
-        }
-        const RTS_STRUCT_ASSERTS: () = {
-            assert!(std::mem::offset_of!(RtsStruct<1>, other_data) == 0);
-            assert!(std::mem::offset_of!(RtsStruct<1>, the_array) == 4);
-            assert!(std::mem::size_of::<RtsStruct<1> >() == 8);
-        };
-        unsafe impl<const N: usize> bytemuck::Zeroable for RtsStruct<N> {}
-        unsafe impl<const N: usize> bytemuck::Pod for RtsStruct<N> {}
-      },
-      actual
-    )
+    assert_tokens_snapshot!(actual)
   }
 
   #[test]
@@ -1335,28 +711,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[repr(C, align(16))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct UniformsData {
-            /// size: 48, offset: 0x0, type: `mat3x3<f32>`
-            pub a: [[f32; 4]; 3],
-        }
-        impl UniformsData {
-            pub const fn new(a: [[f32; 4]; 3]) -> Self {
-                Self { a }
-            }
-        }
-        const UNIFORMS_DATA_ASSERTS: () = {
-             assert!(std::mem::offset_of!(UniformsData, a) == 0);
-             assert!(std::mem::size_of::<UniformsData> () == 48);
-        };
-        unsafe impl bytemuck::Zeroable for UniformsData {}
-        unsafe impl bytemuck::Pod for UniformsData {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1382,28 +737,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[repr(C, align(16))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct UniformsData {
-            /// size: 48, offset: 0x0, type: `mat3x3<f32>`
-            pub centered_mvp: glam::Mat3A,
-        }
-        impl UniformsData {
-            pub const fn new(centered_mvp: glam::Mat3A) -> Self {
-                Self { centered_mvp }
-            }
-        }
-        const UNIFORMS_DATA_ASSERTS: () = {
-            assert!(std::mem::offset_of!(UniformsData, centered_mvp) == 0);
-            assert!(std::mem::size_of:: <UniformsData>() == 48);
-        };
-        unsafe impl bytemuck::Zeroable for UniformsData {}
-        unsafe impl bytemuck::Pod for UniformsData {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1431,42 +765,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[repr(C, align(16))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct MatricesF32 {
-            /// size: 64, offset: 0x0, type: `mat4x4<f32>`
-            pub a: [[f32; 4]; 4],
-            /// size: 64, offset: 0x40, type: `mat4x3<f32>`
-            pub b: [[f32; 4]; 4],
-            /// size: 32, offset: 0x80, type: `mat4x2<f32>`
-            pub c: [[f32; 2]; 4],
-            /// size: 48, offset: 0xA0, type: `mat3x4<f32>`
-            pub d: [[f32; 4]; 3],
-        }
-        impl MatricesF32 {
-            pub const fn new(
-                a: [[f32; 4]; 4],
-                b: [[f32; 4]; 4],
-                c: [[f32; 2]; 4],
-                d: [[f32; 4]; 3],
-            ) -> Self {
-                Self { a, b, c, d }
-            }
-        }
-        const MATRICES_F32_ASSERTS: () = {
-            assert!(std::mem::offset_of!(MatricesF32, a) == 0);
-            assert!(std::mem::offset_of!(MatricesF32, b) == 64);
-            assert!(std::mem::offset_of!(MatricesF32, c) == 128);
-            assert!(std::mem::offset_of!(MatricesF32, d) == 160);
-            assert!(std::mem::size_of::<MatricesF32>() == 208);
-        };
-        unsafe impl bytemuck::Zeroable for MatricesF32 {}
-        unsafe impl bytemuck::Pod for MatricesF32 {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1491,27 +790,7 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-        #[repr(C, align(8))]
-        #[derive(Debug, PartialEq, Clone, Copy)]
-        pub struct Uniform {
-            /// size: 8, offset: 0x0, type: `vec2<f32>`
-            pub position_data: [f32; 2],
-        }
-
-        pub const fn Uniform(position_data: [f32; 2]) -> Uniform {
-            Uniform { position_data }
-        }
-        const UNIFORM_ASSERTS: () = {
-            assert!(std::mem::offset_of!(Uniform, position_data) == 0);
-            assert!(std::mem::size_of:: < Uniform > () == 8);
-        };
-        unsafe impl bytemuck::Zeroable for Uniform {}
-        unsafe impl bytemuck::Pod for Uniform {}
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 
   #[test]
@@ -1536,22 +815,6 @@ mod tests {
     );
     let actual = quote!(#(#structs)*);
 
-    assert_tokens_eq!(
-      quote! {
-          #[repr(C)]
-          #[derive(Debug, PartialEq, Clone, Copy, encase::ShaderType)]
-          pub(crate) struct Scalars {
-              pub a: u32,
-              pub b: i32,
-              pub c: f32,
-          }
-          impl Scalars {
-            pub const fn new(a: u32, b: i32, c: f32) -> Self {
-                Self { a, b, c }
-            }
-          }
-      },
-      actual
-    );
+    assert_tokens_snapshot!(actual);
   }
 }
