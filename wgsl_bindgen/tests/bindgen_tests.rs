@@ -1,7 +1,6 @@
 use std::fs::read_to_string;
 
 use miette::{IntoDiagnostic, Result};
-use pretty_assertions::assert_eq;
 use wgsl_bindgen::*;
 
 #[test]
@@ -20,9 +19,7 @@ fn test_bevy_bindgen() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_bevy.actual.rs").unwrap();
-  let expected = read_to_string("tests/output/bindgen_bevy.expected.rs").unwrap();
-
-  assert_eq!(expected, actual);
+  insta::assert_snapshot!("bevy_bindgen", actual);
   Ok(())
 }
 
@@ -48,9 +45,7 @@ fn test_main_bindgen() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_main.actual.rs").unwrap();
-  let expected = read_to_string("tests/output/bindgen_main.expected.rs").unwrap();
-
-  assert_eq!(expected, actual);
+  insta::assert_snapshot!("main_bindgen", actual);
   Ok(())
 }
 
@@ -70,9 +65,7 @@ fn test_struct_alignment_minimal() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_minimal.actual.rs").unwrap();
-  let expected = read_to_string("tests/output/bindgen_minimal.expected.rs").unwrap();
-
-  assert_eq!(expected, actual);
+  insta::assert_snapshot!("struct_alignment_minimal", actual);
   Ok(())
 }
 
@@ -92,9 +85,7 @@ fn test_struct_alignment_padding() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_padding.actual.rs").unwrap();
-  let expected = read_to_string("tests/output/bindgen_padding.expected.rs").unwrap();
-
-  assert_eq!(expected, actual);
+  insta::assert_snapshot!("struct_alignment_padding", actual);
   Ok(())
 }
 
@@ -116,9 +107,7 @@ fn test_struct_layouts() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_layouts.actual.rs").unwrap();
-  let expected = read_to_string("tests/output/bindgen_layouts.expected.rs").unwrap();
-
-  assert_eq!(expected, actual);
+  insta::assert_snapshot!("struct_layouts", actual);
   Ok(())
 }
 
