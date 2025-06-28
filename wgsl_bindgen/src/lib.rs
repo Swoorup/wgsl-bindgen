@@ -225,16 +225,24 @@ pub(crate) struct WgslEntryResult<'a> {
   source_including_deps: SourceWithFullDependenciesResult<'a>,
 }
 
+/// Creates Rust bindings from WGSL shader entries
+///
+/// This function orchestrates the entire code generation process in three main phases:
+/// 1. Generate basic components (structs, constants, entry points) for each shader
+/// 2. Create and merge bind groups to identify reusable patterns
+/// 3. Generate pipeline layouts and final shader modules
 fn create_rust_bindings(
   entries: Vec<WgslEntryResult<'_>>,
   options: &WgslBindgenOption,
 ) -> Result<String, CreateModuleError> {
   let mut mod_builder = RustModBuilder::new(true, true);
 
+  // Setup base type assertions if custom vector/matrix types are configured
   if let Some(custom_wgsl_type_asserts) = custom_vector_matrix_assertions(options) {
     mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
   }
 
+  // === PHASE 1: Generate basic components for each shader ===
   let mut all_shader_bind_groups = RawShadersBindGroups::new(options);
   for entry in entries.iter() {
     let WgslEntryResult {
@@ -242,24 +250,28 @@ fn create_rust_bindings(
       naga_module,
       ..
     } = entry;
-    // Write all the structs, including uniforms and entry function inputs.
+
+    // Generate core Rust types and constants from WGSL
     mod_builder.add_items(structs::structs_items(mod_name, naga_module, options))?;
     mod_builder.add_items(consts::consts_items(mod_name, naga_module))?;
-
     mod_builder
       .add(mod_name, consts::pipeline_overridable_constants(naga_module, options));
 
+    // Generate vertex buffer layouts and implementations
     mod_builder.add_items(vertex_struct_impls(mod_name, naga_module))?;
 
+    // Generate shader module creation functions
     mod_builder.add(
       mod_name,
       shader_module::compute_module(naga_module, options.shader_source_type),
     );
     mod_builder.add(mod_name, entry_point_constants(naga_module));
 
+    // Generate vertex and fragment state builders
     mod_builder.add(mod_name, entry::vertex_states(mod_name, naga_module));
     mod_builder.add(mod_name, entry::fragment_states(naga_module));
 
+    // Collect bind group information for this shader
     let shader_stages = wgsl::shader_stages(naga_module);
     let shader_bind_groups = bind_group::get_bind_group_data_for_entry(
       naga_module,
@@ -270,12 +282,12 @@ fn create_rust_bindings(
     all_shader_bind_groups.add(shader_bind_groups);
   }
 
-  // merge the bind groups together, so we can extract common bind groups, and shader specific bind groups
+  // === PHASE 2: Analyze and generate reusable bind groups ===
   let reusable_bind_groups = all_shader_bind_groups.create_reusable_shader_bind_groups();
   let bind_groups = reusable_bind_groups.generate_bind_groups(options);
   mod_builder.add_items(bind_groups)?;
 
-  // run a second pass to generate the pipeline layouts and final shader modules
+  // === PHASE 3: Generate pipeline layouts and final shader modules ===
   for entry in entries.iter() {
     let WgslEntryResult {
       mod_name,
@@ -283,6 +295,8 @@ fn create_rust_bindings(
       ..
     } = entry;
     let entry_name = sanitize_and_pascal_case(mod_name);
+
+    // Generate pipeline layout if this shader has bind groups
     if let Some(shader_bind_groups) = reusable_bind_groups
       .entrypoint_bindgroups
       .get(mod_name.as_str())
@@ -296,9 +310,11 @@ fn create_rust_bindings(
       mod_builder.add(mod_name, create_pipeline_layout);
     }
 
+    // Generate the final shader module with all components
     mod_builder.add(mod_name, shader_module::shader_module(entry, options));
   }
 
+  // === FINAL: Combine everything into the output module ===
   let mod_token_stream = mod_builder.generate();
   let shader_registry =
     shader_registry::build_shader_registry(&entries, options.shader_source_type);

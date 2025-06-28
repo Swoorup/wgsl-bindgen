@@ -9,7 +9,9 @@ use syn::{Ident, Index};
 use super::{rust_type, RustSourceItem, RustSourceItemPath, RustTypeInfo};
 use crate::bevy_util::demangle_str;
 use crate::quote_gen::{
-  RustSourceItemCategory, MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS,
+  generate_derive_attributes, generate_doc_comment, generate_impl_block,
+  generate_struct_definition, generate_struct_field, RustSourceItemCategory,
+  MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS,
 };
 use crate::{
   sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy,
@@ -72,32 +74,34 @@ impl<'a> NagaToRustStructState<'a> {
       .unwrap_or(rust_type.tokens)
   }
 
+  /// Creates a fold function for processing struct members into Rust equivalents
   fn create_fold(
     options: &'a WgslBindgenOption,
     fully_qualified_name: SmolStr,
     naga_members: &'a [StructMember],
     naga_module: &'a naga::Module,
-    gctx: naga::proc::GlobalCtx<'a>,
+    naga_context: naga::proc::GlobalCtx<'a>,
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> impl FnMut(NagaToRustStructState<'a>, &'a StructMember) -> NagaToRustStructState<'a>
   {
-    let fold = move |mut state: NagaToRustStructState<'a>,
-                     naga_member: &'a StructMember|
+    let member_processor = move |mut state: NagaToRustStructState<'a>,
+                                 naga_member: &'a StructMember|
           -> NagaToRustStructState<'a> {
       let member_name = naga_member.name.as_ref().unwrap();
       let name_ident = Ident::new(member_name, Span::call_site());
-      let naga_type = &naga_module.types[naga_member.ty];
+      let member_naga_type = &naga_module.types[naga_member.ty];
 
-      let rust_type = rust_type(None, naga_module, naga_type, options);
-      let is_rsa = rust_type.size.is_none();
+      let rust_type_info = rust_type(None, naga_module, member_naga_type, options);
+      let is_runtime_sized_array = rust_type_info.size.is_none();
 
-      if is_rsa && state.index != naga_members.len() - 1 {
+      // Runtime-sized arrays can only be the last field in a struct
+      if is_runtime_sized_array && state.index != naga_members.len() - 1 {
         panic!("Only the last field of a struct can be a runtime-sized array");
       }
 
-      // check if we need padding bytes
-      let padding = if is_rsa || !is_directly_sharable {
+      // Calculate padding needed between this field and the next
+      let padding = if is_runtime_sized_array || !is_directly_sharable {
         None
       } else {
         let current_offset = naga_member.offset as usize;
@@ -106,7 +110,7 @@ impl<'a> NagaToRustStructState<'a> {
         } else {
           layout_size
         };
-        let rust_type = &rust_type;
+        let rust_type = &rust_type_info;
 
         let pad_name = format!("_pad_{member_name}");
         let required_member_size = next_offset - current_offset;
@@ -137,12 +141,20 @@ impl<'a> NagaToRustStructState<'a> {
         .iter()
         .any(|pad_expr| pad_expr.is_match(member_name));
 
-      // both padding field and built-in fields are handled in the same way
-      // skip builtins like @builtin(vertex_index)
-      let entry = if is_current_field_padding
-        || matches!(naga_member.binding, Some(naga::Binding::BuiltIn(_)))
-      {
-        let size = naga_type.inner.size(gctx);
+      // Handle builtin and padding fields
+      let is_builtin_field =
+        matches!(naga_member.binding, Some(naga::Binding::BuiltIn(_)));
+
+      // Skip builtin fields entirely for all serialization strategies
+      // Builtin fields are GPU-provided values that are never part of user vertex buffer data
+      if is_builtin_field {
+        // Skip this member entirely - don't add to state.members
+        state.index += 1;
+        return state;
+      }
+
+      let entry = if is_current_field_padding {
+        let size = member_naga_type.inner.size(naga_context);
         let size = format!("0x{size:X}");
         let pad_size_tokens = syn::parse_str::<TokenStream>(&size).unwrap();
 
@@ -151,16 +163,20 @@ impl<'a> NagaToRustStructState<'a> {
           pad_size_tokens,
         })
       } else {
-        let rust_type =
-          Self::get_rust_type(options, &fully_qualified_name, rust_type, member_name);
+        let rust_type = Self::get_rust_type(
+          options,
+          &fully_qualified_name,
+          rust_type_info,
+          member_name,
+        );
 
         RustStructMemberEntry::Field(Field {
           name_ident: name_ident.clone(),
           naga_member,
-          naga_type,
+          naga_type: member_naga_type,
           naga_ty_handle: naga_member.ty,
           rust_type: syn::Type::Verbatim(rust_type),
-          is_rsa,
+          is_rsa: is_runtime_sized_array,
         })
       };
 
@@ -173,7 +189,7 @@ impl<'a> NagaToRustStructState<'a> {
       state
     };
 
-    fold
+    member_processor
   }
 }
 
@@ -220,7 +236,7 @@ impl<'a> RustStructMemberEntry<'a> {
     layout_size: usize,
     is_directly_sharable: bool,
   ) -> Vec<Self> {
-    let gctx = naga_module.to_ctx();
+    let naga_context = naga_module.to_ctx();
     let fully_qualified_name = item_path.get_fully_qualified_name();
 
     let state = naga_members.iter().fold(
@@ -230,7 +246,7 @@ impl<'a> RustStructMemberEntry<'a> {
         fully_qualified_name,
         naga_members,
         naga_module,
-        gctx,
+        naga_context,
         layout_size,
         is_directly_sharable,
       ),
@@ -354,26 +370,35 @@ impl<'a> RustStructBuilder<'a> {
       }
     }
 
-    quote! {
-      #[repr(C)]
-      #[derive(Debug, PartialEq, Clone, Copy)]
-      #visibility struct #init_struct_name_def {
-        #(#init_struct_members),*
-      }
-
-      #impl_fragment #init_struct_name_in_usage {
-        pub const fn build(&self) -> #struct_name_in_usage {
-          #struct_name {
-            #(#mem_assignments),*
-          }
+    let init_derives =
+      generate_derive_attributes(&["Debug", "PartialEq", "Clone", "Copy"]);
+    let build_method = quote! {
+      pub const fn build(&self) -> #struct_name_in_usage {
+        #struct_name {
+          #(#mem_assignments),*
         }
       }
-
+    };
+    let from_impl = quote! {
       #impl_fragment From<#init_struct_name_in_usage> for #struct_name_in_usage {
         fn from(data: #init_struct_name_in_usage) -> Self {
           data.build()
         }
       }
+    };
+
+    quote! {
+      #[repr(C)]
+      #init_derives
+      #visibility struct #init_struct_name_def {
+        #(#init_struct_members),*
+      }
+
+      #impl_fragment #init_struct_name_in_usage {
+        #build_method
+      }
+
+      #from_impl
     }
   }
 
@@ -424,7 +449,7 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn build_fields(&self) -> Vec<TokenStream> {
-    let gctx = self.naga_module.to_ctx();
+    let naga_context = self.naga_module.to_ctx();
     let members = self
       .members
       .iter()
@@ -441,12 +466,12 @@ impl<'a> RustStructBuilder<'a> {
 
           let doc_comment = if self.is_directly_shareable() {
             let offset = member.offset;
-            let size = naga_type.inner.size(gctx);
-            let ty_name = gctx.type_to_string(*naga_ty_handle);
+            let size = naga_type.inner.size(naga_context);
+            let ty_name = naga_context.type_to_string(*naga_ty_handle);
             let ty_name = demangle_str(&ty_name);
             let doc = format!(" size: {size}, offset: 0x{offset:X}, type: `{ty_name}`");
 
-            quote!(#[doc = #doc])
+            generate_doc_comment(&doc)
           } else {
             quote!()
           };
@@ -474,26 +499,23 @@ impl<'a> RustStructBuilder<'a> {
     members
   }
 
-  fn build_derives(&self) -> Vec<TokenStream> {
-    let mut derives = Vec::new();
-    derives.push(quote!(Debug));
-    derives.push(quote!(PartialEq));
-    derives.push(quote!(Clone));
+  fn build_derives(&self) -> Vec<&str> {
+    let mut derives = vec!["Debug", "PartialEq", "Clone"];
 
     match self.options.serialization_strategy {
       WgslTypeSerializeStrategy::Bytemuck => {
-        derives.push(quote!(Copy));
+        derives.push("Copy");
       }
       WgslTypeSerializeStrategy::Encase => {
         if !self.has_rts_array {
-          derives.push(quote!(Copy));
+          derives.push("Copy");
         }
-        derives.push(quote!(encase::ShaderType));
+        derives.push("encase::ShaderType");
       }
     }
     if self.options.derive_serde {
-      derives.push(quote!(serde::Serialize));
-      derives.push(quote!(serde::Deserialize));
+      derives.push("serde::Serialize");
+      derives.push("serde::Deserialize");
     }
     derives
   }
@@ -602,12 +624,12 @@ impl<'a> RustStructBuilder<'a> {
     let alignment = Index::from(alignment as usize);
     let repr_c = if !has_rts_array {
       if should_generate_padding {
-        quote!(#[repr(C, align(#alignment))])
+        Some(quote!(#[repr(C, align(#alignment))]))
       } else {
-        quote!(#[repr(C)])
+        Some(quote!(#[repr(C)]))
       }
     } else {
-      quote!()
+      None
     };
 
     let fields = self.build_fields();
@@ -618,16 +640,23 @@ impl<'a> RustStructBuilder<'a> {
     let fully_qualified_name = self.item_path.get_fully_qualified_name();
     let visibility = self.options.type_visibility.generate_quote();
 
+    // For now, keep the original complex struct definition due to generics handling
+    let struct_name_def = self.struct_name_in_definition_fragment();
+    let derive_attrs = generate_derive_attributes(&derives);
+    let struct_definition = quote! {
+      #repr_c
+      #derive_attrs
+      #visibility struct #struct_name_def {
+          #(#fields),*
+      }
+    };
+
     vec![
       RustSourceItem::new(
         RustSourceItemCategory::TypeDefs | RustSourceItemCategory::TypeImpls,
         self.item_path.clone(),
         quote! {
-          #repr_c
-          #[derive(#(#derives),*)]
-          #visibility struct #struct_name_def {
-              #(#fields),*
-          }
+          #struct_definition
 
           #struct_new_fn
           #init_struct

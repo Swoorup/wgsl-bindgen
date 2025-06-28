@@ -4,9 +4,11 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 
 pub mod texture_array_demo;
 pub mod triangle_demo;
+pub mod vec3_vertex_demo;
 
 pub use texture_array_demo::TextureArrayDemo;
 pub use triangle_demo::TriangleDemo;
+pub use vec3_vertex_demo::Vec3VertexDemo;
 
 /// Trait for shader demos that can be rendered and controlled
 pub trait Demo {
@@ -61,6 +63,7 @@ impl DemoManager {
     let demos: Vec<Box<dyn Demo>> = vec![
       Box::new(TriangleDemo::new(device, queue, surface_format)),
       Box::new(TextureArrayDemo::new(device, queue, surface_format)),
+      Box::new(Vec3VertexDemo::new(device, queue, surface_format)),
     ];
 
     Self {

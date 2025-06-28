@@ -131,38 +131,10 @@ pub mod layouts {
     pub b: i32,
     #[doc = " size: 4, offset: 0x8, type: `f32`"]
     pub c: f32,
-    pub d: [u8; 0x4],
   }
   impl Scalars {
     pub const fn new(a: u32, b: i32, c: f32) -> Self {
-      Self {
-        a,
-        b,
-        c,
-        d: [0; 0x4],
-      }
-    }
-  }
-  #[repr(C)]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct ScalarsInit {
-    pub a: u32,
-    pub b: i32,
-    pub c: f32,
-  }
-  impl ScalarsInit {
-    pub const fn build(&self) -> Scalars {
-      Scalars {
-        a: self.a,
-        b: self.b,
-        c: self.c,
-        d: [0; 0x4],
-      }
-    }
-  }
-  impl From<ScalarsInit> for Scalars {
-    fn from(data: ScalarsInit) -> Self {
-      data.build()
+      Self { a, b, c }
     }
   }
   #[repr(C, align(16))]

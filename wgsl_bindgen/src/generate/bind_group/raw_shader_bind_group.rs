@@ -166,33 +166,67 @@ impl<'a> RawShadersBindGroups<'a> {
   }
 }
 
+/// Context for bind group data generation
+pub struct BindGroupGenerationContext<'a> {
+  pub module: &'a naga::Module,
+  pub shader_stages: wgpu::ShaderStages,
+  pub options: &'a WgslBindgenOption,
+  pub module_name: &'a str,
+}
+
+impl<'a> BindGroupGenerationContext<'a> {
+  pub fn new(
+    module: &'a naga::Module,
+    shader_stages: wgpu::ShaderStages,
+    options: &'a WgslBindgenOption,
+    module_name: &'a str,
+  ) -> Self {
+    Self {
+      module,
+      shader_stages,
+      options,
+      module_name,
+    }
+  }
+}
+
 pub fn get_bind_group_data_for_entry<'a>(
   module: &'a naga::Module,
   shader_stages: wgpu::ShaderStages,
-  options: &WgslBindgenOption,
+  options: &'a WgslBindgenOption,
   module_name: &'a str,
+) -> Result<RawShaderEntryBindGroups<'a>, CreateModuleError> {
+  let context =
+    BindGroupGenerationContext::new(module, shader_stages, options, module_name);
+  get_bind_group_data_for_entry_with_context(&context)
+}
+
+/// Generate bind group data using a context struct for better organization
+fn get_bind_group_data_for_entry_with_context<'a>(
+  context: &BindGroupGenerationContext<'a>,
 ) -> Result<RawShaderEntryBindGroups<'a>, CreateModuleError> {
   // Use a BTree to sort type and field names by group index.
   // This isn't strictly necessary but makes the generated code cleaner.
   let mut bind_group_data = BTreeMap::new();
 
-  for global_handle in module.global_variables.iter() {
-    let global = &module.global_variables[global_handle.0];
+  for global_handle in context.module.global_variables.iter() {
+    let global = &context.module.global_variables[global_handle.0];
     if let Some(binding) = &global.binding {
       let group = bind_group_data
         .entry(binding.group)
         .or_insert(SingleBindGroupData {
           bindings: Vec::new(),
-          naga_module: module,
+          naga_module: context.module,
         });
-      let binding_type = &module.types[module.global_variables[global_handle.0].ty];
+      let binding_type =
+        &context.module.types[context.module.global_variables[global_handle.0].ty];
 
       let group_binding = SingleBindGroupEntry::new(
         global.name.clone(),
-        module_name,
-        options,
-        module,
-        shader_stages,
+        context.module_name,
+        context.options,
+        context.module,
+        context.shader_stages,
         binding.binding,
         binding_type,
         global.space,
@@ -220,8 +254,8 @@ pub fn get_bind_group_data_for_entry<'a>(
     .eq(0..bind_group_data.len())
   {
     Ok(RawShaderEntryBindGroups {
-      containing_module: module_name.into(),
-      shader_stages,
+      containing_module: context.module_name.into(),
+      shader_stages: context.shader_stages,
       bind_group_data: bind_group_data.clone(),
     })
   } else {
