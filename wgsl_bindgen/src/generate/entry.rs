@@ -55,25 +55,30 @@ pub fn entry_point_constants(module: &naga::Module) -> TokenStream {
 }
 
 pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> TokenStream {
-  let vertex_input_structs =
-    wgsl::get_vertex_input_structs(invoking_entry_module, module);
-
-  let mut step_mode_params = vec![];
-  let layout_expressions: Vec<TokenStream> = vertex_input_structs
-    .iter()
-    .map(|input| {
-      let struct_ref = input.item_path.short_token_stream(invoking_entry_module);
-      let step_mode = Ident::new(&input.item_path.name.to_snake(), Span::call_site());
-      step_mode_params.push(quote!(#step_mode: wgpu::VertexStepMode));
-      quote!(#struct_ref::vertex_buffer_layout(#step_mode))
-    })
-    .collect();
-
   let vertex_entries: Vec<TokenStream> = module
     .entry_points
     .iter()
     .filter_map(|entry_point| match &entry_point.stage {
       ShaderStage::Vertex => {
+        // Get vertex input structs specific to this entry point
+        let vertex_input_structs = wgsl::get_vertex_input_structs_for_entry_point(
+          invoking_entry_module,
+          module,
+          entry_point,
+        );
+
+        let mut step_mode_params = vec![];
+        let layout_expressions: Vec<TokenStream> = vertex_input_structs
+          .iter()
+          .map(|input| {
+            let struct_ref = input.item_path.short_token_stream(invoking_entry_module);
+            let step_mode =
+              Ident::new(&input.item_path.name.to_snake(), Span::call_site());
+            step_mode_params.push(quote!(#step_mode: wgpu::VertexStepMode));
+            quote!(#struct_ref::vertex_buffer_layout(#step_mode))
+          })
+          .collect();
+
         let fn_name =
           Ident::new(&format!("{}_entry", &entry_point.name), Span::call_site());
 
@@ -162,7 +167,7 @@ fn vertex_input_structs_impls(
   invoking_entry_module: &str,
   module: &naga::Module,
 ) -> Vec<RustSourceItem> {
-  let vertex_inputs = wgsl::get_vertex_input_structs(invoking_entry_module, module);
+  let vertex_inputs = wgsl::get_all_vertex_input_structs(invoking_entry_module, module);
   vertex_inputs.iter().map(|input|  {
     let name = Ident::new(&input.item_path.name, Span::call_site());
 

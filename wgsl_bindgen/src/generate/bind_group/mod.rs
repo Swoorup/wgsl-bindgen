@@ -6,7 +6,9 @@ use std::collections::BTreeMap;
 use generate::quote_shader_stages;
 use quote::{format_ident, quote};
 use quote_gen::{demangle_and_fully_qualify_str, rust_type};
-pub use raw_shader_bind_group::{get_bind_group_data_for_entry, RawShadersBindGroups};
+pub use raw_shader_bind_group::{
+  get_bind_group_data_for_entry, RawShaderEntryBindGroups, RawShadersBindGroups,
+};
 use single_bind_group::SingleBindGroupBuilder;
 pub use single_bind_group::SingleBindGroupData;
 use smol_str::{SmolStr, ToSmolStr};

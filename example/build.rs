@@ -11,6 +11,7 @@ fn main() -> Result<()> {
     .add_entry_point("shaders/triangle.wgsl")
     .add_entry_point("shaders/simple_array_demo.wgsl")
     .add_entry_point("shaders/overlay.wgsl")
+    .add_entry_point("shaders/vec3_vertex_demo.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)

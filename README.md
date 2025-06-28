@@ -81,10 +81,10 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 
 ```toml
 [build-dependencies]
-wgsl_bindgen = "0.18"
+wgsl_bindgen = "0.19"
 
 [dependencies]
-wgpu = "22"
+wgpu = "25"
 bytemuck = { version = "1.0", features = ["derive"] }
 # Optional: for additional features
 # encase = "0.8"
@@ -372,17 +372,6 @@ We welcome contributions! Please see our [contribution guidelines](CONTRIBUTING.
 - Setting up the development environment
 - Running tests and adding new test cases
 - Code style and documentation standards
-
-## 📊 Comparison with Alternatives
-
-| Feature | wgsl_bindgen | Manual wgpu | wgsl_to_wgpu |
-|---------|--------------|-------------|--------------|
-| **Type Safety** | ✅ Compile-time | ❌ Runtime errors | ✅ Compile-time |
-| **WGSL Import Support** | ✅ Full naga-oil | ❌ Manual includes | ❌ Limited |
-| **Binding Arrays** | ✅ Full support | ⚠️ Manual setup | ❌ Not supported |
-| **Custom Types** | ✅ Flexible mapping | ❌ Manual work | ⚠️ Limited |
-| **Memory Layout** | ✅ Validated | ❌ Error-prone | ⚠️ Basic validation |
-| **Maintenance** | ✅ Auto-updates | ❌ Manual sync | ⚠️ Manual sync |
 
 ## 📄 License
 

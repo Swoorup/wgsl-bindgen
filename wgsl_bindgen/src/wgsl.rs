@@ -139,6 +139,78 @@ pub fn get_vertex_input_structs(
     .unwrap_or_default()
 }
 
+/// Get vertex input structs for a specific vertex entry point
+pub fn get_vertex_input_structs_for_entry_point(
+  invoking_entry_module: &str,
+  module: &naga::Module,
+  entry_point: &naga::EntryPoint,
+) -> Vec<VertexInput> {
+  entry_point
+    .function
+    .arguments
+    .iter()
+    .filter(|a| a.binding.is_none())
+    .filter_map(|argument| {
+      let arg_type = &module.types[argument.ty];
+      match &arg_type.inner {
+        naga::TypeInner::Struct { members, span: _ } => {
+          let item_path = RustSourceItemPath::from_mangled(
+            arg_type.name.as_ref().unwrap(),
+            invoking_entry_module,
+          );
+
+          let input = VertexInput {
+            item_path,
+            fields: members
+              .iter()
+              .filter_map(|member| {
+                // Skip builtins since they have no location binding.
+                let location = match member.binding.as_ref().unwrap() {
+                  naga::Binding::BuiltIn(_) => None,
+                  naga::Binding::Location { location, .. } => Some(*location),
+                }?;
+
+                Some((location, member.clone()))
+              })
+              .collect(),
+          };
+
+          Some(input)
+        }
+        // An argument has to have a binding unless it is a structure.
+        _ => None,
+      }
+    })
+    .collect()
+}
+
+/// Get all unique vertex input structs from all vertex entry points
+pub fn get_all_vertex_input_structs(
+  invoking_entry_module: &str,
+  module: &naga::Module,
+) -> Vec<VertexInput> {
+  let mut all_inputs = Vec::new();
+  let mut seen_types = std::collections::HashSet::new();
+
+  for entry_point in module.entry_points.iter() {
+    if entry_point.stage == naga::ShaderStage::Vertex {
+      let inputs = get_vertex_input_structs_for_entry_point(
+        invoking_entry_module,
+        module,
+        entry_point,
+      );
+      for input in inputs {
+        let type_name = input.item_path.name.clone();
+        if seen_types.insert(type_name) {
+          all_inputs.push(input);
+        }
+      }
+    }
+  }
+
+  all_inputs
+}
+
 #[cfg(test)]
 mod tests {
   use indoc::indoc;
