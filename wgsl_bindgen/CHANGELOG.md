@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.19.0...wgsl_bindgen-v0.19.1) - 2025-06-28
+
+### Fixed
+
+- improve vertex input handling with builtin field support
+
 ## [0.19.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.18.2...wgsl_bindgen-v0.19.0) - 2025-06-27
 
 ### Other
