@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.19.1
 // Changes made to this file will not be saved.
-// SourceHash: 21e5c5df122a06be83f98410be0bb55586f0e715c7487d099a807165dd2b7276
+// SourceHash: c038af36a5b51ded87c76bd7453d368303d3798f4bb9f6f93a50d4fc56757816
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -21,26 +21,157 @@ impl ShaderEntry {
       Self::GradientTriangle => gradient_triangle::create_pipeline_layout(device),
     }
   }
-  pub fn create_shader_module_embed_source(
+  pub fn create_shader_module_relative_path(
     &self,
     device: &wgpu::Device,
-  ) -> wgpu::ShaderModule {
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
     match self {
-      Self::FullscreenEffects => {
-        fullscreen_effects::create_shader_module_embed_source(device)
-      }
-      Self::SimpleArrayDemo => {
-        simple_array_demo::create_shader_module_embed_source(device)
-      }
-      Self::Overlay => overlay::create_shader_module_embed_source(device),
-      Self::GradientTriangle => {
-        gradient_triangle::create_shader_module_embed_source(device)
-      }
+      Self::FullscreenEffects => fullscreen_effects::create_shader_module_relative_path(
+        device,
+        base_dir,
+        *self,
+        shader_defs,
+        load_file,
+      ),
+      Self::SimpleArrayDemo => simple_array_demo::create_shader_module_relative_path(
+        device,
+        base_dir,
+        *self,
+        shader_defs,
+        load_file,
+      ),
+      Self::Overlay => overlay::create_shader_module_relative_path(
+        device,
+        base_dir,
+        *self,
+        shader_defs,
+        load_file,
+      ),
+      Self::GradientTriangle => gradient_triangle::create_shader_module_relative_path(
+        device,
+        base_dir,
+        *self,
+        shader_defs,
+        load_file,
+      ),
+    }
+  }
+  pub fn relative_path(&self) -> &'static str {
+    match self {
+      Self::FullscreenEffects => fullscreen_effects::SHADER_ENTRY_PATH,
+      Self::SimpleArrayDemo => simple_array_demo::SHADER_ENTRY_PATH,
+      Self::Overlay => overlay::SHADER_ENTRY_PATH,
+      Self::GradientTriangle => gradient_triangle::SHADER_ENTRY_PATH,
     }
   }
 }
 mod _root {
   pub use super::*;
+  pub fn load_naga_module_from_path(
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    composer: &mut naga_oil::compose::Composer,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::naga::Module, String> {
+    fn load_dependencies_recursive(
+      base_dir: &str,
+      source: &str,
+      current_path: &str,
+      composer: &mut naga_oil::compose::Composer,
+      shader_defs: &std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+      load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
+      visited: &mut std::collections::HashSet<String>,
+    ) -> Result<(), String> {
+      let (_, imports, _) = naga_oil::compose::get_preprocessor_data(source);
+      for import in imports {
+        let import_path = if import.import.starts_with('\"') {
+          import
+            .import
+            .chars()
+            .skip(1)
+            .take_while(|c| *c != '\"')
+            .collect::<String>()
+        } else {
+          let module_path = if let Some(double_colon_pos) = import.import.find("::") {
+            &import.import[..double_colon_pos]
+          } else {
+            &import.import
+          };
+          format!("{module_path}.wgsl")
+        };
+        let full_import_path = if import_path.starts_with('/') {
+          format!("{base_dir}{import_path}")
+        } else {
+          let current_dir = std::path::Path::new(current_path)
+            .parent()
+            .and_then(|p| p.to_str())
+            .unwrap_or("");
+          if current_dir.is_empty() {
+            format!("{base_dir}/{import_path}")
+          } else {
+            format!("{base_dir}/{current_dir}/{import_path}")
+          }
+        };
+        if visited.contains(&full_import_path) {
+          continue;
+        }
+        visited.insert(full_import_path.clone());
+        let import_source = load_file(&full_import_path)
+          .map_err(|e| format!("Failed to load {full_import_path}: {e}"))?;
+        load_dependencies_recursive(
+          base_dir,
+          &import_source,
+          full_import_path.trim_start_matches(&format!("{base_dir}/")),
+          composer,
+          shader_defs,
+          load_file,
+          visited,
+        )?;
+        let relative_path = full_import_path.trim_start_matches(&format!("{base_dir}/"));
+        let as_name = std::path::Path::new(relative_path)
+          .file_stem()
+          .and_then(|s| s.to_str())
+          .map(|s| s.to_string());
+        composer
+          .add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+            source: &import_source,
+            file_path: relative_path,
+            language: naga_oil::compose::ShaderLanguage::Wgsl,
+            shader_defs: shader_defs.clone(),
+            as_name,
+            ..Default::default()
+          })
+          .map_err(|e| format!("Failed to add composable module: {e}"))?;
+      }
+      Ok(())
+    }
+    let entry_path = format!("{}/{}", base_dir, entry_point.relative_path());
+    let entry_source = load_file(&entry_path)
+      .map_err(|e| format!("Failed to load entry point {entry_path}: {e}"))?;
+    let mut visited = std::collections::HashSet::new();
+    load_dependencies_recursive(
+      base_dir,
+      &entry_source,
+      entry_point.relative_path(),
+      composer,
+      &shader_defs,
+      &load_file,
+      &mut visited,
+    )?;
+    composer
+      .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+        source: &entry_source,
+        file_path: entry_point.relative_path(),
+        shader_defs,
+        ..Default::default()
+      })
+      .map_err(|e| format!("Failed to create final module: {e}"))
+  }
   pub trait SetBindGroup {
     fn set_bind_group(
       &mut self,
@@ -389,69 +520,37 @@ pub mod fullscreen_effects {
       }],
     })
   }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+  pub const SHADER_ENTRY_PATH: &str = "fullscreen_effects.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+    let module = load_naga_module_from_path(
+      base_dir,
+      entry_point,
+      &mut composer,
+      shader_defs,
+      load_file,
+    )
+    .map_err(|e| naga_oil::compose::ComposerError {
+      inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+      source: naga_oil::compose::ErrSource::Constructing {
+        path: "load_naga_module_from_path".to_string(),
+        source: "Generated code".to_string(),
+        offset: 0,
+      },
+    })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("fullscreen_effects.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
   }
-  pub const SHADER_STRING: &str = r#"
-struct Uniforms {
-    color_rgb: vec4<f32>,
-}
-
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-}
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
-}
-
-struct PushConstants {
-    color_matrix: mat4x4<f32>,
-}
-
-@group(0) @binding(0) 
-var<uniform> timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: f32;
-@group(1) @binding(0) 
-var main_texture: texture_2d<f32>;
-@group(1) @binding(1) 
-var main_sampler: sampler;
-@group(2) @binding(0) 
-var<uniform> uniforms: Uniforms;
-var<push_constant> constants: PushConstants;
-
-@vertex 
-fn vs_main(in: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-
-    out.clip_position = vec4<f32>(in.position.xyz, 1f);
-    out.tex_coords = ((in.position.xy * 0.5f) + vec2(0.5f));
-    let _e15 = out;
-    return _e15;
-}
-
-@fragment 
-fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
-    let uv = in_1.tex_coords;
-    let _e4 = textureSample(main_texture, main_sampler, uv);
-    let color = _e4.xyz;
-    let _e7 = timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-    let t = (_e7 * 0.5f);
-    let center = vec2<f32>(0.5f, 0.5f);
-    let dist = distance(uv, center);
-    let ripple = ((sin(((dist * 12f) - (t * 1.8f))) * 0.4f) + 0.6f);
-    let color_shift = vec3<f32>((0.5f + (0.5f * sin(t))), (0.5f + (0.5f * sin((t + 2f)))), (0.5f + (0.5f * sin((t + 4f)))));
-    let vignette = smoothstep(0f, 0.8f, (1f - (dist * 1.2f)));
-    let _e53 = uniforms.color_rgb;
-    let final_color = ((((color * _e53.xyz) * color_shift) * (0.7f + (0.3f * ripple))) * vignette);
-    let _e65 = constants.color_matrix;
-    return (_e65 * vec4<f32>(final_color, 1f));
-}
-"#;
 }
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
@@ -751,75 +850,37 @@ pub mod simple_array_demo {
       }],
     })
   }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+  pub const SHADER_ENTRY_PATH: &str = "simple_array_demo.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+    let module = load_naga_module_from_path(
+      base_dir,
+      entry_point,
+      &mut composer,
+      shader_defs,
+      load_file,
+    )
+    .map_err(|e| naga_oil::compose::ComposerError {
+      inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+      source: naga_oil::compose::ErrSource::Constructing {
+        path: "load_naga_module_from_path".to_string(),
+        source: "Generated code".to_string(),
+        offset: 0,
+      },
+    })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("simple_array_demo.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
   }
-  pub const SHADER_STRING: &str = r#"
-struct Uniforms {
-    color_rgb: vec4<f32>,
-}
-
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-}
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
-}
-
-struct PushConstants {
-    color_matrix: mat4x4<f32>,
-}
-
-@group(0) @binding(0) 
-var<uniform> timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: f32;
-@group(1) @binding(0) 
-var texture_array: binding_array<texture_2d<f32>, 2>;
-@group(1) @binding(1) 
-var sampler_array: binding_array<sampler, 2>;
-@group(2) @binding(0) 
-var<uniform> uniforms: Uniforms;
-var<push_constant> constants: PushConstants;
-
-@vertex 
-fn vs_main(in: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-
-    out.clip_position = vec4<f32>(in.position.xyz, 1f);
-    out.tex_coords = ((in.position.xy * 0.5f) + vec2(0.5f));
-    let _e15 = out;
-    return _e15;
-}
-
-@fragment 
-fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
-    let base_uv = in_1.tex_coords;
-    let _e3 = timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-    let t = (_e3 * 0.5f);
-    let uv1_ = (base_uv + vec2<f32>((sin(t) * 0.1f), (cos((t * 1.3f)) * 0.1f)));
-    let uv2_ = ((base_uv * (1f + (0.2f * sin((t * 0.7f))))) + vec2<f32>((cos((t * 0.8f)) * 0.05f), (sin((t * 1.1f)) * 0.05f)));
-    let _e40 = textureSample(texture_array[0], sampler_array[0], uv1_);
-    let color1_ = _e40.xyz;
-    let _e46 = textureSample(texture_array[1], sampler_array[1], uv2_);
-    let color2_ = _e46.xyz;
-    let center = vec2<f32>(0.5f, 0.5f);
-    let dist = distance(base_uv, center);
-    let blend_factor = (0.5f + (0.5f * sin((t + (dist * 8f)))));
-    let blended_color = mix(color1_, color2_, blend_factor);
-    let color_mod = vec3<f32>((0.8f + (0.2f * sin(t))), (0.8f + (0.2f * sin((t + 2f)))), (0.8f + (0.2f * sin((t + 4f)))));
-    let ripple = ((sin(((dist * 10f) - (t * 2.5f))) * 0.25f) + 0.75f);
-    let _e93 = uniforms.color_rgb;
-    let final_color = (((blended_color * _e93.xyz) * color_mod) * ripple);
-    let vignette = smoothstep(0f, 0.9f, (1f - (dist * 1.3f)));
-    let _e107 = constants.color_matrix;
-    return (_e107 * vec4<f32>((final_color * vignette), 1f));
-}
-"#;
 }
 pub mod overlay {
   use super::{_root, _root::*};
@@ -1046,71 +1107,37 @@ pub mod overlay {
       push_constant_ranges: &[],
     })
   }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+  pub const SHADER_ENTRY_PATH: &str = "overlay.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+    let module = load_naga_module_from_path(
+      base_dir,
+      entry_point,
+      &mut composer,
+      shader_defs,
+      load_file,
+    )
+    .map_err(|e| naga_oil::compose::ComposerError {
+      inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+      source: naga_oil::compose::ErrSource::Constructing {
+        path: "load_naga_module_from_path".to_string(),
+        source: "Generated code".to_string(),
+        offset: 0,
+      },
+    })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("overlay.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
   }
-  pub const SHADER_STRING: &str = r#"
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
-}
-
-struct InfoData {
-    demo_index: f32,
-    total_demos: f32,
-    time: f32,
-    scale_factor: f32,
-    window_width: f32,
-    window_height: f32,
-    padding1_: f32,
-    padding2_: f32,
-}
-
-@group(0) @binding(0) 
-var<uniform> info: InfoData;
-@group(0) @binding(1) 
-var text_texture: texture_2d<f32>;
-@group(0) @binding(2) 
-var text_sampler: sampler;
-
-@vertex 
-fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
-    var out: VertexOutput;
-
-    let x = f32(((vertex_index & 1u) * 2u));
-    let y = f32(((vertex_index >> 1u) * 2u));
-    let dpi_scale = info.scale_factor;
-    let dpi_adjusted_scale = mix(1.2f, 0.9f, clamp(((dpi_scale - 1f) / 2f), 0f, 1f));
-    let _e26 = info.window_width;
-    let _e29 = info.window_height;
-    let min_dimension = min(_e26, _e29);
-    let size_boost = max(1f, (min_dimension / 1200f));
-    let effective_scale = (dpi_adjusted_scale * size_boost);
-    let overlay_height = min(0.8f, (0.5f * effective_scale));
-    out.clip_position = vec4<f32>(((x * 2f) - 1f), (1f - (y * overlay_height)), 0f, 1f);
-    let text_scale_y = min(1f, (0.8f / effective_scale));
-    out.tex_coords = vec2<f32>((x * 1f), (y * text_scale_y));
-    let _e61 = out;
-    return _e61;
-}
-
-@fragment 
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let text_color = textureSample(text_texture, text_sampler, in.tex_coords);
-    let bg_color = vec4<f32>(0.05f, 0.05f, 0.08f, 0.9f);
-    let gradient = (1f - (in.tex_coords.y * 0.5f));
-    let _e18 = info.time;
-    let _e23 = info.demo_index;
-    let color_shift = (0.1f * sin(((_e18 * 0.5f) + (_e23 * 3.14159f))));
-    let tinted_bg = (bg_color + vec4<f32>((color_shift * 0.2f), (color_shift * 0.1f), (color_shift * 0.3f), 0f));
-    let final_color = mix((tinted_bg * gradient), vec4<f32>(1f, 1f, 1f, 1f), text_color.w);
-    return final_color;
-}
-"#;
 }
 pub mod gradient_triangle {
   use super::{_root, _root::*};
@@ -1221,44 +1248,37 @@ pub mod gradient_triangle {
       push_constant_ranges: &[],
     })
   }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+  pub const SHADER_ENTRY_PATH: &str = "gradient_triangle.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+    let module = load_naga_module_from_path(
+      base_dir,
+      entry_point,
+      &mut composer,
+      shader_defs,
+      load_file,
+    )
+    .map_err(|e| naga_oil::compose::ComposerError {
+      inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+      source: naga_oil::compose::ErrSource::Constructing {
+        path: "load_naga_module_from_path".to_string(),
+        source: "Generated code".to_string(),
+        offset: 0,
+      },
+    })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("gradient_triangle.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
   }
-  pub const SHADER_STRING: &str = r#"
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) @interpolate(flat) texture_id: u32,
-    @builtin(vertex_index) vertex_index: u32,
-}
-
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) texture_id: f32,
-}
-
-@vertex 
-fn vs_main(input: VertexInput) -> VertexOutput {
-    var output: VertexOutput;
-
-    output.position = vec4<f32>(input.position, 1f);
-    output.texture_id = f32(input.texture_id);
-    let _e9 = output;
-    return _e9;
-}
-
-@fragment 
-fn fs_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
-    let id = input_1.texture_id;
-    let r = clamp((2f - id), 0f, 1f);
-    let g = clamp((1f - abs((id - 2f))), 0f, 1f);
-    let b = clamp((id - 2f), 0f, 1f);
-    return vec4<f32>(r, g, b, 1f);
-}
-"#;
 }
 pub mod global_bindings {
   use super::{_root, _root::*};

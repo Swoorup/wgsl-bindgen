@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 winit.workspace = true
-wgpu.workspace = true
+wgpu = { workspace = true, features = ["naga-ir"] }
 futures.workspace = true
 bytemuck = { workspace = true, features = ["derive"] }
 encase = { workspace = true, features = ["glam"] }
