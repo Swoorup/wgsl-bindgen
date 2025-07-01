@@ -1,38 +1,43 @@
 use super::Demo;
 use crate::shader_bindings;
+use crate::shader_bindings::global_bindings::{
+  WgpuBindGroup0Entries, WgpuBindGroup0EntriesParams,
+};
 use wgpu::util::DeviceExt;
 
-pub struct TriangleDemo {
+pub struct FullscreenEffectsDemo {
   pipeline: wgpu::RenderPipeline,
-  bind_group0: shader_bindings::triangle::WgpuBindGroup0,
-  bind_group1: shader_bindings::triangle::WgpuBindGroup1,
+  bind_group1: shader_bindings::fullscreen_effects::WgpuBindGroup1,
+  bind_group2: shader_bindings::fullscreen_effects::WgpuBindGroup2,
   vertex_buffer: wgpu::Buffer,
-  time_buffer: wgpu::Buffer,
   render_bundle: Option<wgpu::RenderBundle>,
   surface_format: wgpu::TextureFormat,
+  time_buffer: wgpu::Buffer,
+  global_bind_group: shader_bindings::global_bindings::WgpuBindGroup0,
 }
 
-impl Demo for TriangleDemo {
+impl Demo for FullscreenEffectsDemo {
   fn new(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     surface_format: wgpu::TextureFormat,
   ) -> Self {
     // Create shader and pipeline layout
-    let shader = shader_bindings::triangle::create_shader_module_embed_source(device);
+    let shader =
+      shader_bindings::fullscreen_effects::create_shader_module_embed_source(device);
     let render_pipeline_layout =
-      shader_bindings::triangle::create_pipeline_layout(device);
+      shader_bindings::fullscreen_effects::create_pipeline_layout(device);
 
     let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-      label: Some("Triangle Render Pipeline"),
+      label: Some("Fullscreen Effects Render Pipeline"),
       layout: Some(&render_pipeline_layout),
-      vertex: shader_bindings::triangle::vertex_state(
+      vertex: shader_bindings::fullscreen_effects::vertex_state(
         &shader,
-        &shader_bindings::triangle::vs_main_entry(wgpu::VertexStepMode::Vertex),
+        &shader_bindings::fullscreen_effects::vs_main_entry(wgpu::VertexStepMode::Vertex),
       ),
       fragment: Some(wgpu::FragmentState {
         module: &shader,
-        entry_point: Some(shader_bindings::triangle::ENTRY_FS_MAIN),
+        entry_point: Some(shader_bindings::fullscreen_effects::ENTRY_FS_MAIN),
         targets: &[Some(surface_format.into())],
         compilation_options: Default::default(),
       }),
@@ -53,72 +58,89 @@ impl Demo for TriangleDemo {
       ..Default::default()
     });
 
-    let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-      label: Some("time buffer"),
-      contents: bytemuck::cast_slice(&[0.0f32]),
-      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    });
-
-    let bind_group0 = shader_bindings::triangle::WgpuBindGroup0::from_bindings(
+    let bind_group1 = shader_bindings::fullscreen_effects::WgpuBindGroup1::from_bindings(
       device,
-      shader_bindings::triangle::WgpuBindGroup0Entries::new(
-        shader_bindings::triangle::WgpuBindGroup0EntriesParams {
+      shader_bindings::fullscreen_effects::WgpuBindGroup1Entries::new(
+        shader_bindings::fullscreen_effects::WgpuBindGroup1EntriesParams {
           main_texture: &texture,
           main_sampler: &sampler,
-          time: time_buffer.as_entire_buffer_binding(),
         },
       ),
     );
 
     let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("uniforms"),
-      contents: bytemuck::cast_slice(&[shader_bindings::triangle::Uniforms(glam::vec4(
-        0.8, 1.0, 0.6, 1.0,
-      ))]),
+      contents: bytemuck::cast_slice(&[shader_bindings::fullscreen_effects::Uniforms(
+        glam::vec4(0.8, 1.0, 0.6, 1.0),
+      )]),
       usage: wgpu::BufferUsages::UNIFORM,
     });
 
-    let bind_group1 = shader_bindings::triangle::WgpuBindGroup1::from_bindings(
+    let bind_group2 = shader_bindings::fullscreen_effects::WgpuBindGroup2::from_bindings(
       device,
-      shader_bindings::triangle::WgpuBindGroup1Entries::new(
-        shader_bindings::triangle::WgpuBindGroup1EntriesParams {
+      shader_bindings::fullscreen_effects::WgpuBindGroup2Entries::new(
+        shader_bindings::fullscreen_effects::WgpuBindGroup2EntriesParams {
           uniforms: uniforms_buffer.as_entire_buffer_binding(),
         },
       ),
     );
 
+    // Create local time buffer and global bind group for this demo
+    // This allows us to include the global bind group in the cached render bundle
+    let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: Some("Fullscreen Effects Time Buffer"),
+      contents: bytemuck::cast_slice(&[0.0f32]),
+      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let global_bind_group =
+      shader_bindings::global_bindings::WgpuBindGroup0::from_bindings(
+        device,
+        WgpuBindGroup0Entries::new(WgpuBindGroup0EntriesParams {
+          time: time_buffer.as_entire_buffer_binding(),
+        }),
+      );
+
     // Create vertex buffer for fullscreen triangle
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("vertex buffer"),
       contents: bytemuck::cast_slice(&[
-        shader_bindings::triangle::VertexInput(glam::vec3a(-1.0, -1.0, 0.0)),
-        shader_bindings::triangle::VertexInput(glam::vec3a(3.0, -1.0, 0.0)),
-        shader_bindings::triangle::VertexInput(glam::vec3a(-1.0, 3.0, 0.0)),
+        shader_bindings::fullscreen_effects::VertexInput(
+          glam::vec3(-1.0, -1.0, 0.0).into(),
+        ),
+        shader_bindings::fullscreen_effects::VertexInput(
+          glam::vec3(3.0, -1.0, 0.0).into(),
+        ),
+        shader_bindings::fullscreen_effects::VertexInput(
+          glam::vec3(-1.0, 3.0, 0.0).into(),
+        ),
       ]),
       usage: wgpu::BufferUsages::VERTEX,
     });
 
     Self {
       pipeline,
-      bind_group0,
       bind_group1,
+      bind_group2,
       vertex_buffer,
-      time_buffer,
       render_bundle: None,
       surface_format,
+      time_buffer,
+      global_bind_group,
     }
   }
 
   fn name(&self) -> &'static str {
-    "Classic Triangle"
+    "Fullscreen Effects"
   }
 
   fn description(&self) -> &'static str {
-    "A classic animated triangle with texture mapping and color effects"
+    "Fullscreen shader with ripple effects, color shifting, and vignette"
   }
 
   fn update(&mut self, _device: &wgpu::Device, queue: &wgpu::Queue, elapsed_time: f32) {
-    // Update time buffer
+    // Update our local time buffer with the current time
+    // The render bundle contains a static reference to this buffer
     queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[elapsed_time]));
   }
 
@@ -127,7 +149,8 @@ impl Demo for TriangleDemo {
     device: &wgpu::Device,
     render_pass: &mut wgpu::RenderPass<'a>,
   ) {
-    // Use render bundle for better performance
+    // Use cached render bundle that includes our local global bind group
+    // The time buffer is updated in update() but the binding stays the same
     render_pass.execute_bundles(std::iter::once(self.get_render_bundle(device)));
   }
 
@@ -136,12 +159,12 @@ impl Demo for TriangleDemo {
   }
 }
 
-impl TriangleDemo {
+impl FullscreenEffectsDemo {
   fn get_render_bundle(&mut self, device: &wgpu::Device) -> &wgpu::RenderBundle {
     self.render_bundle.get_or_insert_with(|| {
       let mut bundle_encoder =
         device.create_render_bundle_encoder(&wgpu::RenderBundleEncoderDescriptor {
-          label: Some("Triangle Render Bundle"),
+          label: Some("Fullscreen Effects Render Bundle"),
           color_formats: &[Some(self.surface_format)],
           sample_count: 1,
           depth_stencil: None,
@@ -151,7 +174,7 @@ impl TriangleDemo {
       bundle_encoder.set_pipeline(&self.pipeline);
 
       // Set push constants
-      let push_constant = shader_bindings::triangle::PushConstants {
+      let push_constant = shader_bindings::fullscreen_effects::PushConstants {
         color_matrix: glam::Mat4::IDENTITY,
       };
       bundle_encoder.set_push_constants(
@@ -160,13 +183,18 @@ impl TriangleDemo {
         bytemuck::cast_slice(&[push_constant]),
       );
 
-      self.bind_group0.set(&mut bundle_encoder);
+      // Include global bind group in the render bundle for fullscreen effects
+      // The bind group reference stays the same, we just update the buffer contents
+      // Setting the global bind group outside the render bundle doesn't work
+      // because the render bundle needs to capture the state at creation time
+      self.global_bind_group.set(&mut bundle_encoder);
       self.bind_group1.set(&mut bundle_encoder);
+      self.bind_group2.set(&mut bundle_encoder);
       bundle_encoder.set_vertex_buffer(0, self.vertex_buffer.slice(..));
       bundle_encoder.draw(0..3, 0..1);
 
       bundle_encoder.finish(&wgpu::RenderBundleDescriptor {
-        label: Some("Triangle Render Bundle"),
+        label: Some("Fullscreen Effects Render Bundle"),
       })
     })
   }

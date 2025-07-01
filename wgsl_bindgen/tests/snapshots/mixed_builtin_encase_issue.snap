@@ -1,16 +1,15 @@
 ---
 source: wgsl_bindgen/tests/issues_tests.rs
-expression: actual
 ---
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
-  BuiltinVertexIssue,
+  MixedBuiltinIssue,
 }
 impl ShaderEntry {
   pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
     match self {
-      Self::BuiltinVertexIssue => builtin_vertex_issue::create_pipeline_layout(device),
+      Self::MixedBuiltinIssue => mixed_builtin_issue::create_pipeline_layout(device),
     }
   }
   pub fn create_shader_module_embed_source(
@@ -18,8 +17,8 @@ impl ShaderEntry {
     device: &wgpu::Device,
   ) -> wgpu::ShaderModule {
     match self {
-      Self::BuiltinVertexIssue => {
-        builtin_vertex_issue::create_shader_module_embed_source(device)
+      Self::MixedBuiltinIssue => {
+        mixed_builtin_issue::create_shader_module_embed_source(device)
       }
     }
   }
@@ -27,18 +26,24 @@ impl ShaderEntry {
 mod _root {
   pub use super::*;
 }
-pub mod builtin_vertex_issue {
+pub mod mixed_builtin_issue {
   use super::{_root, _root::*};
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
-  pub struct VertexInput {}
+  pub struct VertexInput {
+    pub position: glam::Vec3A,
+  }
   impl VertexInput {
-    pub const fn new() -> Self {
-      Self {}
+    pub const fn new(position: glam::Vec3A) -> Self {
+      Self { position }
     }
   }
   impl VertexInput {
-    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 0] = [];
+    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [wgpu::VertexAttribute {
+      format: wgpu::VertexFormat::Float32x3,
+      offset: std::mem::offset_of!(Self, position) as u64,
+      shader_location: 0,
+    }];
     pub const fn vertex_buffer_layout(
       step_mode: wgpu::VertexStepMode,
     ) -> wgpu::VertexBufferLayout<'static> {
@@ -88,7 +93,7 @@ pub mod builtin_vertex_issue {
   }
   pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: Some("BuiltinVertexIssue::PipelineLayout"),
+      label: Some("MixedBuiltinIssue::PipelineLayout"),
       bind_group_layouts: &[],
       push_constant_ranges: &[],
     })
@@ -96,18 +101,23 @@ pub mod builtin_vertex_issue {
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
     let source = std::borrow::Cow::Borrowed(SHADER_STRING);
     device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("builtin_vertex_issue.wgsl"),
+      label: Some("mixed_builtin_issue.wgsl"),
       source: wgpu::ShaderSource::Wgsl(source),
     })
   }
   pub const SHADER_STRING: &str = r#"
 struct VertexInput {
+    @location(0) position: vec3<f32>,
     @builtin(vertex_index) vertex_index: u32,
+}
+
+struct RegularStruct {
+    @location(1) color: vec4<f32>,
 }
 
 @vertex 
 fn vs_main(input: VertexInput) -> @builtin(position) vec4<f32> {
-    return vec4<f32>(0f, 0f, 0f, 1f);
+    return vec4<f32>(input.position, 1f);
 }
 "#;
 }

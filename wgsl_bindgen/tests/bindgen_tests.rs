@@ -1,7 +1,8 @@
 use std::fs::read_to_string;
 
 use miette::{IntoDiagnostic, Result};
-use wgsl_bindgen::*;
+use syn::parse_str;
+use wgsl_bindgen::{assert_tokens_snapshot, *};
 
 #[test]
 fn test_bevy_bindgen() -> Result<()> {
@@ -19,7 +20,9 @@ fn test_bevy_bindgen() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_bevy.actual.rs").unwrap();
-  insta::assert_snapshot!("bevy_bindgen", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -45,7 +48,9 @@ fn test_main_bindgen() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_main.actual.rs").unwrap();
-  insta::assert_snapshot!("main_bindgen", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -65,7 +70,9 @@ fn test_struct_alignment_minimal() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_minimal.actual.rs").unwrap();
-  insta::assert_snapshot!("struct_alignment_minimal", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -85,7 +92,9 @@ fn test_struct_alignment_padding() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_padding.actual.rs").unwrap();
-  insta::assert_snapshot!("struct_alignment_padding", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -107,7 +116,9 @@ fn test_struct_layouts() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/bindgen_layouts.actual.rs").unwrap();
-  insta::assert_snapshot!("struct_layouts", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 

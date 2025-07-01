@@ -1,13 +1,14 @@
-// Classic triangle demo
-@group(0) @binding(0) var main_texture: texture_2d<f32>;
-@group(0) @binding(1) var main_sampler: sampler;
-@group(0) @binding(2) var<uniform> time: f32;
+// Fullscreen effects shader with ripple and color effects
+#import global_bindings::time
+
+@group(1) @binding(0) var main_texture: texture_2d<f32>;
+@group(1) @binding(1) var main_sampler: sampler;
 
 struct Uniforms {
   color_rgb: vec4<f32>,
 }
 
-@group(1) @binding(0)
+@group(2) @binding(0)
 var<uniform> uniforms: Uniforms;
 
 struct VertexInput {
@@ -47,7 +48,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let uv = in.tex_coords;
   let color = textureSample(main_texture, main_sampler, uv).rgb;
   
-  // Simple time variable
+  // Simple time variable from global bindings
   let t = time * 0.5;
   
   // Create a simple ripple effect from the center - adjusted for low res

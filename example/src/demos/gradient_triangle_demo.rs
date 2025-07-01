@@ -1,15 +1,15 @@
 use crate::demos::Demo;
-use crate::shader_bindings::vec3_vertex_demo::{self, VertexInput};
-use glam::Vec3A;
+use crate::shader_bindings::gradient_triangle::{self, VertexInput};
+use glam::Vec3;
 use wgpu::util::DeviceExt;
 use winit::event::KeyEvent;
 
-pub struct Vec3VertexDemo {
+pub struct GradientTriangleDemo {
   vertex_buffer: wgpu::Buffer,
   render_pipeline: wgpu::RenderPipeline,
 }
 
-impl Demo for Vec3VertexDemo {
+impl Demo for GradientTriangleDemo {
   fn new(
     device: &wgpu::Device,
     _queue: &wgpu::Queue,
@@ -17,31 +17,31 @@ impl Demo for Vec3VertexDemo {
   ) -> Self {
     // Create vertex data - classic RGB triangle gradient
     let vertices = &[
-      VertexInput(Vec3A::new(-0.5, -0.5, 0.0), 1), // Bottom left - Red
-      VertexInput(Vec3A::new(0.5, -0.5, 0.0), 2),  // Bottom right - Green
-      VertexInput(Vec3A::new(0.0, 0.5, 0.0), 3),   // Top - Blue
+      VertexInput(Vec3::new(-0.5, -0.5, 0.0).into(), 1), // Bottom left - Red
+      VertexInput(Vec3::new(0.5, -0.5, 0.0).into(), 2),  // Bottom right - Green
+      VertexInput(Vec3::new(0.0, 0.5, 0.0).into(), 3),   // Top - Blue
     ];
 
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-      label: Some("Vec3 Vertex Demo Vertex Buffer"),
+      label: Some("Gradient Triangle Vertex Buffer"),
       contents: bytemuck::cast_slice(vertices),
       usage: wgpu::BufferUsages::VERTEX,
     });
 
-    let pipeline_layout = vec3_vertex_demo::create_pipeline_layout(device);
-    let shader_module = vec3_vertex_demo::create_shader_module_embed_source(device);
+    let pipeline_layout = gradient_triangle::create_pipeline_layout(device);
+    let shader_module = gradient_triangle::create_shader_module_embed_source(device);
 
     let render_pipeline =
       device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Vec3 Vertex Demo Render Pipeline"),
+        label: Some("Gradient Triangle Render Pipeline"),
         layout: Some(&pipeline_layout),
-        vertex: vec3_vertex_demo::vertex_state(
+        vertex: gradient_triangle::vertex_state(
           &shader_module,
-          &vec3_vertex_demo::vs_main_entry(wgpu::VertexStepMode::Vertex),
+          &gradient_triangle::vs_main_entry(wgpu::VertexStepMode::Vertex),
         ),
-        fragment: Some(vec3_vertex_demo::fragment_state(
+        fragment: Some(gradient_triangle::fragment_state(
           &shader_module,
-          &vec3_vertex_demo::fs_main_entry([Some(wgpu::ColorTargetState {
+          &gradient_triangle::fs_main_entry([Some(wgpu::ColorTargetState {
             format: surface_format,
             blend: Some(wgpu::BlendState::REPLACE),
             write_mask: wgpu::ColorWrites::ALL,
@@ -73,11 +73,11 @@ impl Demo for Vec3VertexDemo {
   }
 
   fn name(&self) -> &'static str {
-    "Vec3 Vertex Demo"
+    "Gradient Triangle"
   }
 
   fn description(&self) -> &'static str {
-    "Demonstrates vec3<f32> vertex input with glam::Vec3A and proper Float32x3 format.\nShows gradient effect from linear interpolation of texture_id values.\nBuiltin vertex_index field correctly skipped in generated struct."
+    "Classic RGB gradient triangle demonstrating vertex attribute interpolation.\nEach vertex has a texture_id (1=Red, 2=Green, 3=Blue) that gets\ninterpolated across the triangle to create a smooth color gradient."
   }
 
   fn update(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _elapsed_time: f32) {

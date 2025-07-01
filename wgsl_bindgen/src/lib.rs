@@ -156,6 +156,8 @@
 #![allow(dead_code, unused)]
 extern crate wgpu_types as wgpu;
 
+use crate::quote_gen::{custom_vector_matrix_assertions, MOD_STRUCT_ASSERTIONS};
+use crate::test_helper::pretty_print;
 use bevy_util::SourceWithFullDependenciesResult;
 use case::CaseExt;
 use derive_more::IsVariant;
@@ -165,7 +167,7 @@ use generate::{bind_group, consts, pipeline, shader_module, shader_registry};
 use heck::ToPascalCase;
 use proc_macro2::{Span, TokenStream};
 use qs::{format_ident, quote, Ident, Index};
-use quote_gen::{custom_vector_matrix_assertions, RustModBuilder, MOD_STRUCT_ASSERTIONS};
+use quote_gen::RustModBuilder;
 use thiserror::Error;
 
 pub mod bevy_util;
@@ -174,6 +176,7 @@ mod generate;
 mod naga_util;
 mod quote_gen;
 mod structs;
+pub mod test_helper;
 mod types;
 mod wgsl;
 mod wgsl_type;
@@ -327,65 +330,6 @@ fn create_rust_bindings(
   };
 
   Ok(pretty_print(&output))
-}
-
-fn pretty_print(tokens: &TokenStream) -> String {
-  let code = tokens.to_string();
-
-  // Try rustfmt first to use the project's formatting configuration
-  match format_with_rustfmt(&code) {
-    Ok(formatted) => formatted,
-    Err(error) => {
-      // Log the rustfmt failure and fall back to prettyplease
-      eprintln!(
-        "Warning: rustfmt formatting failed ({error}), falling back to prettyplease",
-      );
-      let file = syn::parse_file(&code).unwrap();
-      prettyplease::unparse(&file)
-    }
-  }
-}
-
-fn format_with_rustfmt(code: &str) -> Result<String, Box<dyn std::error::Error>> {
-  use std::io::Write;
-  use std::process::{Command, Stdio};
-
-  let mut child = Command::new("rustfmt")
-    .arg("--emit")
-    .arg("stdout")
-    .arg("--quiet")
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped())
-    .spawn()?;
-
-  if let Some(stdin) = child.stdin.as_mut() {
-    stdin.write_all(code.as_bytes())?;
-  } else {
-    return Err("Failed to open stdin".into());
-  }
-
-  let output = child.wait_with_output()?;
-
-  if output.status.success() {
-    Ok(String::from_utf8(output.stdout)?)
-  } else {
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    Err(format!("rustfmt failed: {stderr}").into())
-  }
-}
-
-#[cfg(test)]
-#[macro_export]
-macro_rules! assert_tokens_snapshot {
-  ($output:expr) => {{
-    let mut settings = insta::Settings::new();
-    settings.set_prepend_module_to_snapshot(false);
-    settings.set_omit_expression(true);
-    settings.bind(|| {
-      insta::assert_snapshot!($crate::pretty_print(&$output));
-    });
-  }};
 }
 
 fn indexed_name_ident(name: &str, index: u32) -> Ident {

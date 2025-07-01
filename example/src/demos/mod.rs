@@ -2,13 +2,15 @@ use std::time::Instant;
 use winit::event::KeyEvent;
 use winit::keyboard::{KeyCode, PhysicalKey};
 
+pub mod fullscreen_effects_demo;
+pub mod gradient_triangle_demo;
+// pub mod particle_compute_demo; // TODO: Fix (#47)
 pub mod texture_array_demo;
-pub mod triangle_demo;
-pub mod vec3_vertex_demo;
 
+pub use fullscreen_effects_demo::FullscreenEffectsDemo;
+pub use gradient_triangle_demo::GradientTriangleDemo;
+// pub use particle_compute_demo::ParticleComputeDemo;
 pub use texture_array_demo::TextureArrayDemo;
-pub use triangle_demo::TriangleDemo;
-pub use vec3_vertex_demo::Vec3VertexDemo;
 
 /// Trait for shader demos that can be rendered and controlled
 pub trait Demo {
@@ -61,9 +63,10 @@ impl DemoManager {
   ) -> Self {
     // Add all available demos
     let demos: Vec<Box<dyn Demo>> = vec![
-      Box::new(TriangleDemo::new(device, queue, surface_format)),
+      Box::new(FullscreenEffectsDemo::new(device, queue, surface_format)),
       Box::new(TextureArrayDemo::new(device, queue, surface_format)),
-      Box::new(Vec3VertexDemo::new(device, queue, surface_format)),
+      Box::new(GradientTriangleDemo::new(device, queue, surface_format)),
+      // Box::new(ParticleComputeDemo::new(device, queue, surface_format)),
     ];
 
     Self {
@@ -120,10 +123,6 @@ impl DemoManager {
         }
         KeyCode::Digit4 => {
           self.switch_to_demo(3);
-          return true;
-        }
-        KeyCode::Digit5 => {
-          self.switch_to_demo(4);
           return true;
         }
         _ => {}

@@ -1,7 +1,8 @@
 use std::fs::read_to_string;
 
 use miette::{IntoDiagnostic, Result};
-use wgsl_bindgen::*;
+use syn::parse_str;
+use wgsl_bindgen::{assert_tokens_snapshot, *};
 
 #[test]
 fn test_issue_35() -> Result<()> {
@@ -22,7 +23,9 @@ fn test_issue_35() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/issue_35.actual.rs").unwrap();
-  insta::assert_snapshot!("issue_35", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -43,7 +46,9 @@ fn test_builtin_vertex_encase_issue() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/builtin_vertex_issue.actual.rs").unwrap();
-  insta::assert_snapshot!("builtin_vertex_encase_issue", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -64,7 +69,9 @@ fn test_mixed_builtin_encase_issue() -> Result<()> {
     .into_diagnostic()?;
 
   let actual = read_to_string("tests/output/mixed_builtin_issue.actual.rs").unwrap();
-  insta::assert_snapshot!("mixed_builtin_encase_issue", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -89,7 +96,9 @@ fn test_builtin_vertex_bytemuck_issue() -> Result<()> {
   // Verify the struct is empty and doesn't have problematic padding bytes
   assert!(actual.contains("pub struct VertexInput {}"));
 
-  insta::assert_snapshot!("builtin_vertex_bytemuck_issue", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -127,6 +136,31 @@ fn test_multiple_vertex_shaders_issue() -> Result<()> {
                                    actual.contains("fn dummy_instanced_vertex_shader_entry(vertex_input: wgpu::VertexStepMode, instance_input: wgpu::VertexStepMode) -> VertexEntry<2>");
   assert!(has_correct_instanced_entry);
 
-  insta::assert_snapshot!("multiple_vertex_shaders_issue", actual);
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_vec3a_padding_overflow_issue() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders")
+    .add_entry_point("tests/shaders/vec3a_padding_issue.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/vec3a_padding_issue.actual.rs")
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/vec3a_padding_issue.actual.rs").unwrap();
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }

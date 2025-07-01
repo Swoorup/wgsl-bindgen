@@ -153,6 +153,8 @@ mod tests {
   use super::*;
   use crate::{
     assert_tokens_snapshot, GlamWgslTypeMap, NalgebraWgslTypeMap, RustWgslTypeMap,
+  };
+  use crate::{
     WgslBindgenOption, WgslTypeMapBuild, WgslTypeSerializeStrategy, WgslTypeVisibility,
   };
 

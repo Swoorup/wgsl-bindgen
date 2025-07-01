@@ -5,11 +5,9 @@ use wgpu::util::DeviceExt;
 
 pub struct TextureArrayDemo {
   pipeline: wgpu::RenderPipeline,
-  bind_group0: shader_bindings::simple_array_demo::WgpuBindGroup0,
   bind_group1: shader_bindings::simple_array_demo::WgpuBindGroup1,
   bind_group2: shader_bindings::simple_array_demo::WgpuBindGroup2,
   vertex_buffer: wgpu::Buffer,
-  time_buffer: wgpu::Buffer,
   textures: Vec<wgpu::TextureView>,
   samplers: Vec<wgpu::Sampler>,
   start_time: Instant,
@@ -52,32 +50,17 @@ impl Demo for TextureArrayDemo {
     let textures = Self::create_texture_array(device, queue);
     let samplers = Self::create_sampler_array(device);
 
-    let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-      label: Some("time buffer"),
-      contents: bytemuck::cast_slice(&[0.0f32]),
-      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    });
-
     // Create texture and sampler arrays for the bind group
     let texture_views: Vec<&wgpu::TextureView> = textures.iter().collect();
     let sampler_refs: Vec<&wgpu::Sampler> = samplers.iter().collect();
 
     // Use the generated types with texture arrays
-    let bind_group0 = shader_bindings::simple_array_demo::WgpuBindGroup0::from_bindings(
+    let bind_group1 = shader_bindings::simple_array_demo::WgpuBindGroup1::from_bindings(
       device,
-      shader_bindings::simple_array_demo::WgpuBindGroup0Entries::new(
-        shader_bindings::simple_array_demo::WgpuBindGroup0EntriesParams {
+      shader_bindings::simple_array_demo::WgpuBindGroup1Entries::new(
+        shader_bindings::simple_array_demo::WgpuBindGroup1EntriesParams {
           texture_array: &texture_views[..],
           sampler_array: &sampler_refs[..],
-        },
-      ),
-    );
-
-    let bind_group2 = shader_bindings::simple_array_demo::WgpuBindGroup2::from_bindings(
-      device,
-      shader_bindings::simple_array_demo::WgpuBindGroup2Entries::new(
-        shader_bindings::simple_array_demo::WgpuBindGroup2EntriesParams {
-          time: time_buffer.as_entire_buffer_binding(),
         },
       ),
     );
@@ -90,10 +73,10 @@ impl Demo for TextureArrayDemo {
       usage: wgpu::BufferUsages::UNIFORM,
     });
 
-    let bind_group1 = shader_bindings::simple_array_demo::WgpuBindGroup1::from_bindings(
+    let bind_group2 = shader_bindings::simple_array_demo::WgpuBindGroup2::from_bindings(
       device,
-      shader_bindings::simple_array_demo::WgpuBindGroup1Entries::new(
-        shader_bindings::simple_array_demo::WgpuBindGroup1EntriesParams {
+      shader_bindings::simple_array_demo::WgpuBindGroup2Entries::new(
+        shader_bindings::simple_array_demo::WgpuBindGroup2EntriesParams {
           uniforms: uniforms_buffer.as_entire_buffer_binding(),
         },
       ),
@@ -103,20 +86,24 @@ impl Demo for TextureArrayDemo {
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("vertex buffer"),
       contents: bytemuck::cast_slice(&[
-        shader_bindings::simple_array_demo::VertexInput(glam::vec3a(-1.0, -1.0, 0.0)),
-        shader_bindings::simple_array_demo::VertexInput(glam::vec3a(3.0, -1.0, 0.0)),
-        shader_bindings::simple_array_demo::VertexInput(glam::vec3a(-1.0, 3.0, 0.0)),
+        shader_bindings::simple_array_demo::VertexInput(
+          glam::vec3(-1.0, -1.0, 0.0).into(),
+        ),
+        shader_bindings::simple_array_demo::VertexInput(
+          glam::vec3(3.0, -1.0, 0.0).into(),
+        ),
+        shader_bindings::simple_array_demo::VertexInput(
+          glam::vec3(-1.0, 3.0, 0.0).into(),
+        ),
       ]),
       usage: wgpu::BufferUsages::VERTEX,
     });
 
     Self {
       pipeline,
-      bind_group0,
       bind_group1,
       bind_group2,
       vertex_buffer,
-      time_buffer,
       textures,
       samplers,
       start_time: Instant::now(),
@@ -132,9 +119,8 @@ impl Demo for TextureArrayDemo {
     "Advanced demo showcasing texture arrays with animated blending and effects"
   }
 
-  fn update(&mut self, _device: &wgpu::Device, queue: &wgpu::Queue, elapsed_time: f32) {
-    // Update the time buffer
-    queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[elapsed_time]));
+  fn update(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _elapsed_time: f32) {
+    // Time is now managed globally in main.rs
   }
 
   fn render<'a>(
@@ -155,8 +141,7 @@ impl Demo for TextureArrayDemo {
       bytemuck::cast_slice(&[push_constant]),
     );
 
-    // Use this function to ensure all bind groups are set.
-    self.bind_group0.set(render_pass);
+    // Global bind group is already set by main.rs, only set shader-specific bind groups
     self.bind_group1.set(render_pass);
     self.bind_group2.set(render_pass);
 
