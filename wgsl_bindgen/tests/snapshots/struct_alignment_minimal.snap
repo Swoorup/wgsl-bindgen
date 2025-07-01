@@ -1,16 +1,15 @@
 ---
 source: wgsl_bindgen/tests/bindgen_tests.rs
-expression: actual
 ---
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
-  Padding,
+  Minimal,
 }
 impl ShaderEntry {
   pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
     match self {
-      Self::Padding => padding::create_pipeline_layout(device),
+      Self::Minimal => minimal::create_pipeline_layout(device),
     }
   }
   pub fn create_shader_module_embed_source(
@@ -18,7 +17,7 @@ impl ShaderEntry {
     device: &wgpu::Device,
   ) -> wgpu::ShaderModule {
     match self {
-      Self::Padding => padding::create_shader_module_embed_source(device),
+      Self::Minimal => minimal::create_shader_module_embed_source(device),
     }
   }
 }
@@ -55,52 +54,49 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
-  const PADDING_STYLE_ASSERTS: () = {
-    assert!(std::mem::offset_of!(padding::Style, color) == 0);
-    assert!(std::mem::offset_of!(padding::Style, width) == 16);
-    assert!(std::mem::size_of::<padding::Style>() == 32);
+  const MINIMAL_UNIFORMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(minimal::Uniforms, color) == 0);
+    assert!(std::mem::offset_of!(minimal::Uniforms, width) == 16);
+    assert!(std::mem::size_of::<minimal::Uniforms>() == 256);
   };
 }
-pub mod padding {
+pub mod minimal {
   use super::{_root, _root::*};
-  #[repr(C, align(16))]
+  #[repr(C, align(256))]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct Style {
+  pub struct Uniforms {
     #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
     pub color: glam::Vec4,
     #[doc = " size: 4, offset: 0x10, type: `f32`"]
     pub width: f32,
-    pub _pad_width: [u8; 0x8 - ::core::mem::size_of::<f32>()],
-    pub _padding: [u8; 0x8],
+    pub _pad_width: [u8; 0x10 - ::core::mem::size_of::<f32>()],
   }
-  impl Style {
+  impl Uniforms {
     pub const fn new(color: glam::Vec4, width: f32) -> Self {
       Self {
         color,
         width,
-        _pad_width: [0; 0x8 - ::core::mem::size_of::<f32>()],
-        _padding: [0; 0x8],
+        _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
       }
     }
   }
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct StyleInit {
+  pub struct UniformsInit {
     pub color: glam::Vec4,
     pub width: f32,
   }
-  impl StyleInit {
-    pub const fn build(&self) -> Style {
-      Style {
+  impl UniformsInit {
+    pub const fn build(&self) -> Uniforms {
+      Uniforms {
         color: self.color,
         width: self.width,
-        _pad_width: [0; 0x8 - ::core::mem::size_of::<f32>()],
-        _padding: [0; 0x8],
+        _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
       }
     }
   }
-  impl From<StyleInit> for Style {
-    fn from(data: StyleInit) -> Self {
+  impl From<UniformsInit> for Uniforms {
+    fn from(data: UniformsInit) -> Self {
       data.build()
     }
   }
@@ -124,23 +120,23 @@ pub mod padding {
   pub const ENTRY_MAIN: &str = "main";
   #[derive(Debug)]
   pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub frame: wgpu::BufferBinding<'a>,
+    pub uniform_buf: wgpu::BufferBinding<'a>,
   }
   #[derive(Clone, Debug)]
   pub struct WgpuBindGroup0Entries<'a> {
-    pub frame: wgpu::BindGroupEntry<'a>,
+    pub uniform_buf: wgpu::BindGroupEntry<'a>,
   }
   impl<'a> WgpuBindGroup0Entries<'a> {
     pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
       Self {
-        frame: wgpu::BindGroupEntry {
+        uniform_buf: wgpu::BindGroupEntry {
           binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.frame),
+          resource: wgpu::BindingResource::Buffer(params.uniform_buf),
         },
       }
     }
     pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
-      [self.frame.clone()]
+      [self.uniform_buf.clone()]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
       self.as_array().into_iter().collect()
@@ -151,17 +147,17 @@ pub mod padding {
   impl WgpuBindGroup0 {
     pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
       wgpu::BindGroupLayoutDescriptor {
-        label: Some("Padding::BindGroup0::LayoutDescriptor"),
+        label: Some("Minimal::BindGroup0::LayoutDescriptor"),
         entries: &[
-          #[doc = " @binding(0): \"frame\""]
+          #[doc = " @binding(0): \"uniform_buf\""]
           wgpu::BindGroupLayoutEntry {
             binding: 0,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              ty: wgpu::BufferBindingType::Uniform,
               has_dynamic_offset: false,
               min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::padding::Style,
+                _root::minimal::Uniforms,
               >() as _),
             },
             count: None,
@@ -175,7 +171,7 @@ pub mod padding {
       let bind_group_layout = Self::get_bind_group_layout(device);
       let entries = bindings.as_array();
       let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Padding::BindGroup0"),
+        label: Some("Minimal::BindGroup0"),
         layout: &bind_group_layout,
         entries: &entries,
       });
@@ -211,7 +207,7 @@ pub mod padding {
   }
   pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: Some("Padding::PipelineLayout"),
+      label: Some("Minimal::PipelineLayout"),
       bind_group_layouts: &[&WgpuBindGroup0::get_bind_group_layout(device)],
       push_constant_ranges: &[],
     })
@@ -219,19 +215,18 @@ pub mod padding {
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
     let source = std::borrow::Cow::Borrowed(SHADER_STRING);
     device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("padding.wgsl"),
+      label: Some("minimal.wgsl"),
       source: wgpu::ShaderSource::Wgsl(source),
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct Style {
+struct Uniforms {
     color: vec4<f32>,
     width: f32,
-    _padding: vec2<f32>,
 }
 
 @group(0) @binding(0) 
-var<storage> frame: Style;
+var<uniform> uniform_buf: Uniforms;
 
 @compute @workgroup_size(1, 1, 1) 
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -241,6 +236,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 }
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for padding::Style {}
-  unsafe impl bytemuck::Pod for padding::Style {}
+  unsafe impl bytemuck::Zeroable for minimal::Uniforms {}
+  unsafe impl bytemuck::Pod for minimal::Uniforms {}
 }

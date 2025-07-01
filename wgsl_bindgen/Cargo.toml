@@ -51,4 +51,5 @@ minify = []
 indoc.workspace = true
 pretty_assertions.workspace = true
 miette = { workspace = true, features = ["fancy"] }
-insta = { version = "1.43", features = ["yaml"] }
+insta.workspace = true
+stdext.workspace = true

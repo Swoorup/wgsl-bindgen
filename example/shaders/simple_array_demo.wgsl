@@ -1,14 +1,14 @@
 // Texture array demo shader
-@group(0) @binding(0) var texture_array: binding_array<texture_2d<f32>, 2>;
-@group(0) @binding(1) var sampler_array: binding_array<sampler, 2>;
+#import global_bindings::time
 
-@group(2) @binding(0) var<uniform> time: f32;
+@group(1) @binding(0) var texture_array: binding_array<texture_2d<f32>, 2>;
+@group(1) @binding(1) var sampler_array: binding_array<sampler, 2>;
 
 struct Uniforms {
   color_rgb: vec4<f32>,
 }
 
-@group(1) @binding(0)
+@group(2) @binding(0)
 var<uniform> uniforms: Uniforms;
 
 struct VertexInput {
@@ -22,6 +22,7 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
+  //A fullscreen triangle.
   var out: VertexOutput;
   out.clip_position = vec4(in.position.xyz, 1.0);
   out.tex_coords = in.position.xy * 0.5 + 0.5;

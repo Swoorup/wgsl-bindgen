@@ -28,6 +28,7 @@ mod simple_text;
 
 use demos::DemoManager;
 use overlay::OverlayRenderer;
+use wgpu::util::DeviceExt;
 
 struct State {
   window: Arc<Window>,
@@ -41,6 +42,8 @@ struct State {
   show_info: bool,
   info_display_time: Option<Instant>,
   start_time: Instant,
+  global_time_buffer: wgpu::Buffer,
+  global_bind_group: shader_bindings::global_bindings::WgpuBindGroup0,
 }
 
 impl State {
@@ -98,6 +101,24 @@ impl State {
       .unwrap();
     surface.configure(&device, &config);
 
+    // Create global time buffer and bind group
+    let global_time_buffer =
+      device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("global time buffer"),
+        contents: bytemuck::cast_slice(&[0.0f32]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+      });
+
+    let global_bind_group =
+      shader_bindings::global_bindings::WgpuBindGroup0::from_bindings(
+        &device,
+        shader_bindings::global_bindings::WgpuBindGroup0Entries::new(
+          shader_bindings::global_bindings::WgpuBindGroup0EntriesParams {
+            time: global_time_buffer.as_entire_buffer_binding(),
+          },
+        ),
+      );
+
     // Initialize the demo manager with all available demos
     let demo_manager = DemoManager::new(&device, &queue, surface_format);
 
@@ -125,6 +146,8 @@ impl State {
       show_info: true, // Show info on startup
       info_display_time: Some(Instant::now()),
       start_time: Instant::now(),
+      global_time_buffer,
+      global_bind_group,
     }
   }
 
@@ -145,6 +168,13 @@ impl State {
 
     // Calculate elapsed time in seconds
     let elapsed = self.start_time.elapsed().as_secs_f32();
+
+    // Update global time buffer
+    self.queue.write_buffer(
+      &self.global_time_buffer,
+      0,
+      bytemuck::cast_slice(&[elapsed]),
+    );
 
     // Update current demo
     self.demo_manager.update(&self.device, &self.queue, elapsed);
@@ -174,6 +204,9 @@ impl State {
     // Get info before borrowing for render
     let demo_index = self.demo_manager.current_demo_index() as u32;
     let demo_count = self.demo_manager.demo_count() as u32;
+
+    // Set global bind group before rendering demos
+    self.global_bind_group.set(&mut render_pass);
 
     // Render current demo
     self.demo_manager.render(&self.device, &mut render_pass);
