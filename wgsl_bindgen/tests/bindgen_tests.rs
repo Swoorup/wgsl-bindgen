@@ -2,7 +2,11 @@ use std::fs::read_to_string;
 
 use miette::{IntoDiagnostic, Result};
 use syn::parse_str;
-use wgsl_bindgen::{assert_tokens_snapshot, *};
+use wgsl_bindgen::{
+  assert_rust_compilation, assert_rust_compilation_working, assert_tokens_snapshot,
+  GlamWgslTypeMap, Regex, WgslBindgenOptionBuilder, WgslShaderSourceType,
+  WgslTypeSerializeStrategy,
+};
 
 #[test]
 fn test_bevy_bindgen() -> Result<()> {
@@ -119,6 +123,30 @@ fn test_struct_layouts() -> Result<()> {
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
   assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_relative_path_bindgen() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/shaders/basic/main.wgsl")
+    .workspace_root("tests/shaders/additional")
+    .additional_scan_dir((None, "tests/shaders/additional"))
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .ir_capabilities(naga::valid::Capabilities::PUSH_CONSTANT)
+    .shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)
+    .output("tests/output/bindgen_relative_path.actual.rs".to_string())
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/bindgen_relative_path.actual.rs").unwrap();
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation_working!(parsed_output);
   Ok(())
 }
 

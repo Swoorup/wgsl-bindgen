@@ -332,11 +332,11 @@ pub mod bevy_pbr {
             },
           }
         }
-        pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
-          [self.material.clone()]
+        pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+          [self.material]
         }
         pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-          self.as_array().into_iter().collect()
+          self.into_array().into_iter().collect()
         }
       }
       #[derive(Debug)]
@@ -369,7 +369,7 @@ pub mod bevy_pbr {
           bindings: WgpuBindGroup1Entries,
         ) -> Self {
           let bind_group_layout = Self::get_bind_group_layout(device);
-          let entries = bindings.as_array();
+          let entries = bindings.into_array();
           let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("BevyPbrpbrbindings::BindGroup1"),
             layout: &bind_group_layout,
@@ -805,21 +805,21 @@ pub mod bevy_pbr {
           },
         }
       }
-      pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 9] {
+      pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 9] {
         [
-          self.view.clone(),
-          self.lights.clone(),
-          self.point_lights.clone(),
-          self.cluster_light_index_lists.clone(),
-          self.cluster_offsets_and_counts.clone(),
-          self.point_shadow_textures.clone(),
-          self.point_shadow_textures_sampler.clone(),
-          self.directional_shadow_textures.clone(),
-          self.directional_shadow_textures_sampler.clone(),
+          self.view,
+          self.lights,
+          self.point_lights,
+          self.cluster_light_index_lists,
+          self.cluster_offsets_and_counts,
+          self.point_shadow_textures,
+          self.point_shadow_textures_sampler,
+          self.directional_shadow_textures,
+          self.directional_shadow_textures_sampler,
         ]
       }
       pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-        self.as_array().into_iter().collect()
+        self.into_array().into_iter().collect()
       }
     }
     #[derive(Debug)]
@@ -934,7 +934,7 @@ pub mod bevy_pbr {
         bindings: WgpuBindGroup0Entries,
       ) -> Self {
         let bind_group_layout = Self::get_bind_group_layout(device);
-        let entries = bindings.as_array();
+        let entries = bindings.into_array();
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
           label: Some("BevyPbrmeshViewBindings::BindGroup0"),
           layout: &bind_group_layout,
@@ -966,11 +966,11 @@ pub mod bevy_pbr {
           },
         }
       }
-      pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
-        [self.mesh.clone()]
+      pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+        [self.mesh]
       }
       pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-        self.as_array().into_iter().collect()
+        self.into_array().into_iter().collect()
       }
     }
     #[derive(Debug)]
@@ -1003,7 +1003,7 @@ pub mod bevy_pbr {
         bindings: WgpuBindGroup2Entries,
       ) -> Self {
         let bind_group_layout = Self::get_bind_group_layout(device);
-        let entries = bindings.as_array();
+        let entries = bindings.into_array();
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
           label: Some("BevyPbrmeshBindings::BindGroup2"),
           layout: &bind_group_layout,

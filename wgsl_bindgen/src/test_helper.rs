@@ -9,50 +9,8 @@ use proc_macro2::{Ident, TokenStream};
 use regex::Regex;
 use std::io::Write;
 
-pub fn pretty_print(tokens: &TokenStream) -> String {
-  let code = tokens.to_string();
-
-  // Try rustfmt first to use the project's formatting configuration
-  match format_with_rustfmt(&code) {
-    Ok(formatted) => formatted,
-    Err(error) => {
-      // Log the rustfmt failure and fall back to prettyplease
-      eprintln!(
-        "Warning: rustfmt formatting failed ({error}), falling back to prettyplease",
-      );
-      let file = syn::parse_file(&code).unwrap();
-      prettyplease::unparse(&file)
-    }
-  }
-}
-
-fn format_with_rustfmt(code: &str) -> Result<String, Box<dyn std::error::Error>> {
-  use std::process::Stdio;
-
-  let mut child = Command::new("rustfmt")
-    .arg("--emit")
-    .arg("stdout")
-    .arg("--quiet")
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped())
-    .spawn()?;
-
-  if let Some(stdin) = child.stdin.as_mut() {
-    stdin.write_all(code.as_bytes())?;
-  } else {
-    return Err("Failed to open stdin".into());
-  }
-
-  let output = child.wait_with_output()?;
-
-  if output.status.success() {
-    Ok(String::from_utf8(output.stdout)?)
-  } else {
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    Err(format!("rustfmt failed: {stderr}").into())
-  }
-}
+#[cfg(test)]
+use toml;
 
 #[macro_export]
 macro_rules! assert_tokens_snapshot {
@@ -61,7 +19,7 @@ macro_rules! assert_tokens_snapshot {
     settings.set_prepend_module_to_snapshot(false);
     settings.set_omit_expression(true);
     settings.bind(|| {
-      let formatted_output = $crate::test_helper::pretty_print(&$output);
+      let formatted_output = $crate::pretty_print(&$output);
       insta::assert_snapshot!(formatted_output);
     });
   }};
@@ -73,7 +31,7 @@ macro_rules! assert_rust_compilation {
         // TODO: Current this requires removing include_absolute_path! macro from the output (See #45)
 
         /*
-        let formatted_output = $crate::test_helper::pretty_print(&$output);
+        let formatted_output = $crate::pretty_print(&$output);
         // Extract test name automatically using stdext function_name macro
         let full_name = stdext::function_name!();
         // Extract just the function name (after the last ::) and sanitize for use as project name
@@ -85,23 +43,18 @@ macro_rules! assert_rust_compilation {
     }};
 }
 
-pub fn indexed_name_ident(name: &str, index: u32) -> Ident {
-  format_ident!("{name}{index}")
-}
-
-pub fn sanitize_and_pascal_case(v: &str) -> String {
-  v.chars()
-    .filter(|ch| ch.is_alphanumeric() || *ch == '_')
-    .collect::<String>()
-    .to_pascal_case()
-}
-
-pub fn sanitized_upper_snake_case(v: &str) -> String {
-  v.chars()
-    .filter(|ch| ch.is_alphanumeric() || *ch == '_')
-    .collect::<String>()
-    .to_snake_case()
-    .to_uppercase()
+#[macro_export]
+macro_rules! assert_rust_compilation_working {
+    ($output:expr) => {{
+        let formatted_output = $crate::pretty_print(&$output);
+        // Extract test name automatically using stdext function_name macro
+        let full_name = stdext::function_name!();
+        // Extract just the function name (after the last ::) and sanitize for use as project name
+        let test_name = full_name.split("::").last().unwrap_or(full_name).replace("::", "_");
+        if let Err(e) = $crate::test_helper::try_compilation_test_with_name(&formatted_output, &test_name) {
+            panic!("Generated code failed to compile: {e}\n\n");
+        }
+    }};
 }
 
 /// Try to compile generated code and return a Result instead of panicking
@@ -276,17 +229,136 @@ edition = "2021"
 "#
   );
 
+  // Read workspace Cargo.toml to get the actual dependency versions
+  #[cfg(test)]
+  let workspace_deps = read_workspace_dependencies().unwrap_or_default();
+  #[cfg(not(test))]
+  let workspace_deps: std::collections::HashMap<String, String> =
+    std::collections::HashMap::new();
+
   for dep in dependencies {
     match dep.as_str() {
-            "wgpu" => cargo_toml.push_str("wgpu = { version = \"25.0\", features = [\"wgsl\"] }\nnaga = { version = \"25.0\", features = [\"wgsl-out\"] }\n"),
-            "glam" => cargo_toml.push_str("glam = \"0.30\"\n"),
-            "bytemuck" => cargo_toml.push_str("bytemuck = { version = \"1.16\", features = [\"derive\"] }\n"),
-            "encase" => cargo_toml.push_str("encase = \"0.11\"\n"),
-            "naga_oil" => cargo_toml.push_str("naga_oil = \"0.16\"\n"),
-            "include_absolute_path" => cargo_toml.push_str("include_absolute_path = \"0.1\"\n"),
-            _ => {}
-        }
+      "wgpu" => {
+        let wgpu_version = workspace_deps
+          .get("wgpu")
+          .map(|s| s.as_str())
+          .unwrap_or("25.0");
+        let naga_version = workspace_deps
+          .get("naga")
+          .map(|s| s.as_str())
+          .unwrap_or("25.0");
+        cargo_toml.push_str(&format!("wgpu = {{ version = \"{wgpu_version}\", features = [\"wgsl\", \"naga-ir\"] }}\nnaga = {{ version = \"{naga_version}\", features = [\"wgsl-out\"] }}\n"));
+      }
+      "glam" => {
+        let version = workspace_deps
+          .get("glam")
+          .map(|s| s.as_str())
+          .unwrap_or("0.30");
+        cargo_toml.push_str(&format!("glam = \"{version}\"\n"));
+      }
+      "bytemuck" => {
+        let version = workspace_deps
+          .get("bytemuck")
+          .map(|s| s.as_str())
+          .unwrap_or("1.13");
+        cargo_toml.push_str(&format!(
+          "bytemuck = {{ version = \"{version}\", features = [\"derive\"] }}\n"
+        ));
+      }
+      "encase" => {
+        let version = workspace_deps
+          .get("encase")
+          .map(|s| s.as_str())
+          .unwrap_or("0.11");
+        cargo_toml.push_str(&format!("encase = \"{version}\"\n"));
+      }
+      "naga_oil" => {
+        let version = workspace_deps
+          .get("naga_oil")
+          .map(|s| s.as_str())
+          .unwrap_or("0.18");
+        cargo_toml.push_str(&format!("naga_oil = \"{version}\"\n"));
+      }
+      "include_absolute_path" => {
+        let version = workspace_deps
+          .get("include_absolute_path")
+          .map(|s| s.as_str())
+          .unwrap_or("0.1");
+        cargo_toml.push_str(&format!("include_absolute_path = \"{version}\"\n"));
+      }
+      _ => {}
+    }
   }
 
   cargo_toml
+}
+
+/// Read dependency versions from workspace Cargo.toml
+#[cfg(test)]
+fn read_workspace_dependencies(
+) -> Result<std::collections::HashMap<String, String>, Box<dyn std::error::Error>> {
+  use std::collections::HashMap;
+
+  // Find workspace root by looking for Cargo.toml with [workspace] section
+  let workspace_root = find_workspace_root()?;
+  let cargo_toml_path = workspace_root.join("Cargo.toml");
+
+  let content = std::fs::read_to_string(cargo_toml_path)?;
+
+  // Parse TOML using the toml crate
+  let parsed: toml::Value = content.parse()?;
+
+  let mut deps = HashMap::new();
+
+  // Navigate to workspace.dependencies section
+  if let Some(workspace) = parsed.get("workspace") {
+    if let Some(dependencies) = workspace.get("dependencies") {
+      if let Some(deps_table) = dependencies.as_table() {
+        for (name, value) in deps_table {
+          let version = match value {
+            // Simple string version: name = "1.0"
+            toml::Value::String(version_str) => version_str.clone(),
+            // Complex dependency: name = { version = "1.0", features = [...] }
+            toml::Value::Table(table) => {
+              if let Some(version_value) = table.get("version") {
+                if let Some(version_str) = version_value.as_str() {
+                  version_str.to_string()
+                } else {
+                  continue;
+                }
+              } else {
+                continue;
+              }
+            }
+            _ => continue,
+          };
+
+          deps.insert(name.clone(), version);
+        }
+      }
+    }
+  }
+
+  Ok(deps)
+}
+
+/// Find the workspace root directory
+#[cfg(test)]
+fn find_workspace_root() -> Result<PathBuf, Box<dyn std::error::Error>> {
+  let mut current = std::env::current_dir()?;
+
+  loop {
+    let cargo_toml = current.join("Cargo.toml");
+    if cargo_toml.exists() {
+      let content = std::fs::read_to_string(&cargo_toml)?;
+      if content.contains("[workspace]") {
+        return Ok(current);
+      }
+    }
+
+    match current.parent() {
+      Some(parent) => current = parent.to_path_buf(),
+      None => return Err("Could not find workspace root".into()),
+    }
+  }
 }

@@ -188,12 +188,12 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
             }
           }
 
-          pub fn as_array(&self) -> [#entry_struct_type; #entries_length] {
-            [ #(#all_entries.clone()),* ]
+          pub fn into_array(self) -> [#entry_struct_type; #entries_length] {
+            [ #(#all_entries),* ]
           }
 
           pub fn collect<B: FromIterator<#entry_struct_type>>(self) -> B {
-            self.as_array().into_iter().collect()
+            self.into_array().into_iter().collect()
           }
         }
     }
@@ -265,7 +265,7 @@ impl<'a> BindGroupStructBuilder<'a> {
 
             pub fn from_bindings(device: &wgpu::Device, bindings: #bind_group_entries_struct_name) -> Self {
                 let bind_group_layout = Self::get_bind_group_layout(device);
-                let entries = bindings.as_array();
+                let entries = bindings.into_array();
                 let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some(#bind_group_label),
                     layout: &bind_group_layout,

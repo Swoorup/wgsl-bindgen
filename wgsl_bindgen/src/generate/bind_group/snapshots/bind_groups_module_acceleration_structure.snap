@@ -24,11 +24,11 @@ impl<'a> WgpuBindGroup0Entries<'a> {
       },
     }
   }
-  pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 2] {
-    [self.transforms.clone(), self.acc_struct.clone()]
+  pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+    [self.transforms, self.acc_struct]
   }
   pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-    self.as_array().into_iter().collect()
+    self.into_array().into_iter().collect()
   }
 }
 #[derive(Debug)]
@@ -67,7 +67,7 @@ impl WgpuBindGroup0 {
   }
   pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
     let bind_group_layout = Self::get_bind_group_layout(device);
-    let entries = bindings.as_array();
+    let entries = bindings.into_array();
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
       label: Some("Test::BindGroup0"),
       layout: &bind_group_layout,

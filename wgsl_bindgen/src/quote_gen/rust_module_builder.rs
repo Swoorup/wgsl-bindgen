@@ -10,8 +10,8 @@ use thiserror::Error;
 
 use super::constants::MOD_REFERENCE_ROOT;
 use super::{RustSourceItem, RustSourceItemCategory};
+use crate::pretty_print;
 use crate::quote_gen::constants::mod_reference_root;
-use crate::test_helper::pretty_print;
 use crate::FastIndexMap;
 
 #[derive(Debug, Error, Diagnostic)]

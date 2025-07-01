@@ -53,24 +53,51 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   fn build_create_shader_module(&self, source_type: WgslShaderSourceType) -> TokenStream {
     let fn_name = format_ident!("{}", source_type.create_shader_module_fn_name());
     let (param_defs, params) = source_type.shader_module_params_defs_and_params();
-
-    let match_arms = self.entries.iter().map(|entry| {
-      let mod_path = format_ident!("{}", entry.mod_name);
-      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
-
-      quote! {
-        Self::#enum_variant => {
-          #mod_path::#fn_name(#params)
-        }
-      }
-    });
-
     let return_type = source_type.get_return_type(quote!(wgpu::ShaderModule));
 
-    quote! {
-      pub fn #fn_name(&self, #param_defs) -> #return_type {
-        match self {
-          #( #match_arms, )*
+    match source_type {
+      WgslShaderSourceType::ComposerWithRelativePath => {
+        // For ComposerWithRelativePath, we need to pass the entry_point enum to the module function
+        let match_arms = self.entries.iter().map(|entry| {
+          let mod_path = format_ident!("{}", entry.mod_name);
+          let enum_variant =
+            format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
+
+          quote! {
+            Self::#enum_variant => {
+              #mod_path::#fn_name(device, base_dir, *self, shader_defs, load_file)
+            }
+          }
+        });
+
+        quote! {
+          pub fn #fn_name(&self, #param_defs) -> #return_type
+          {
+            match self {
+              #( #match_arms, )*
+            }
+          }
+        }
+      }
+      _ => {
+        let match_arms = self.entries.iter().map(|entry| {
+          let mod_path = format_ident!("{}", entry.mod_name);
+          let enum_variant =
+            format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
+
+          quote! {
+            Self::#enum_variant => {
+              #mod_path::#fn_name(#params)
+            }
+          }
+        });
+
+        quote! {
+          pub fn #fn_name(&self, #param_defs) -> #return_type {
+            match self {
+              #( #match_arms, )*
+            }
+          }
         }
       }
     }
@@ -82,6 +109,10 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
   ) -> TokenStream {
     match source_type {
       WgslShaderSourceType::EmbedSource => {
+        quote!()
+      }
+      WgslShaderSourceType::ComposerWithRelativePath => {
+        // For ComposerWithRelativePath, we reference the global function directly
         quote!()
       }
       _ => {
@@ -174,6 +205,32 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
     }
   }
 
+  fn build_relative_path_fn(&self) -> TokenStream {
+    if !self
+      .source_type
+      .contains(WgslShaderSourceType::ComposerWithRelativePath)
+    {
+      return quote!();
+    }
+
+    let match_arms = self.entries.iter().map(|entry| {
+      let mod_path = format_ident!("{}", entry.mod_name);
+      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
+
+      quote! {
+        Self::#enum_variant => #mod_path::SHADER_ENTRY_PATH
+      }
+    });
+
+    quote! {
+      pub fn relative_path(&self) -> &'static str {
+        match self {
+          #( #match_arms, )*
+        }
+      }
+    }
+  }
+
   fn build_enum_impl(&self) -> TokenStream {
     let create_shader_module_fns = self
       .source_type
@@ -190,6 +247,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
 
     let shader_paths_fn = self.build_shader_paths_fn();
     let shader_entry_filename_fn = self.build_shader_entry_filename_fn();
+    let relative_path_fn = self.build_relative_path_fn();
 
     quote! {
       impl ShaderEntry {
@@ -198,6 +256,7 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
         #(#load_shader_to_composer_module_fns)*
         #shader_entry_filename_fn
         #shader_paths_fn
+        #relative_path_fn
       }
     }
   }
