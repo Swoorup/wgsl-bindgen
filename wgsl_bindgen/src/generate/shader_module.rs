@@ -9,10 +9,10 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote, TokenStreamExt};
 use syn::{Ident, Index};
 
+use crate::generate::quote_naga_capabilities;
 use crate::naga_util::module_to_source;
 use crate::quote_gen::create_shader_raw_string_literal;
 use crate::{WgslBindgenOption, WgslEntryResult, WgslShaderSourceType};
-use crate::generate::quote_naga_capabilities;
 
 impl<'a> WgslEntryResult<'a> {
   fn get_label(&self) -> TokenStream {
@@ -38,7 +38,6 @@ impl WgslShaderSourceType {
     match self {
       EmbedSource => "create_shader_module_embed_source",
       EmbedWithNagaOilComposer => "create_shader_module_embedded",
-      HardCodedFilePathWithNagaOilComposer => "create_shader_module_from_path",
       ComposerWithRelativePath => "create_shader_module_relative_path",
     }
   }
@@ -46,9 +45,6 @@ impl WgslShaderSourceType {
   pub(crate) fn load_shader_module_fn_name(&self) -> Ident {
     use WgslShaderSourceType::*;
     match self {
-      HardCodedFilePathWithNagaOilComposer => {
-        format_ident!("load_shader_module_from_path")
-      }
       ComposerWithRelativePath => format_ident!("load_naga_module_from_path"),
       _ => format_ident!("load_shader_module_embedded"),
     }
@@ -61,9 +57,6 @@ impl WgslShaderSourceType {
       EmbedWithNagaOilComposer => {
         format_ident!("create_{}_pipeline_embedded", name)
       }
-      HardCodedFilePathWithNagaOilComposer => {
-        format_ident!("create_{}_pipeline_from_path", name)
-      }
       ComposerWithRelativePath => {
         format_ident!("create_{}_pipeline_relative_path", name)
       }
@@ -74,9 +67,7 @@ impl WgslShaderSourceType {
     use WgslShaderSourceType::*;
     match self {
       EmbedSource => type_to_return,
-      EmbedWithNagaOilComposer
-      | HardCodedFilePathWithNagaOilComposer
-      | ComposerWithRelativePath => {
+      EmbedWithNagaOilComposer | ComposerWithRelativePath => {
         quote!(Result<#type_to_return, naga_oil::compose::ComposerError>)
       }
     }
@@ -85,9 +76,7 @@ impl WgslShaderSourceType {
   pub(crate) fn wrap_return_stmt(&self, stm: TokenStream) -> TokenStream {
     use WgslShaderSourceType::*;
     match self {
-      EmbedWithNagaOilComposer
-      | HardCodedFilePathWithNagaOilComposer
-      | ComposerWithRelativePath => quote!(Ok(#stm)),
+      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote!(Ok(#stm)),
       _ => stm,
     }
   }
@@ -95,9 +84,7 @@ impl WgslShaderSourceType {
   pub(crate) fn get_propagate_operator(&self) -> TokenStream {
     use WgslShaderSourceType::*;
     match self {
-      EmbedWithNagaOilComposer
-      | HardCodedFilePathWithNagaOilComposer
-      | ComposerWithRelativePath => quote!(?),
+      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote!(?),
       _ => quote!(),
     }
   }
@@ -111,9 +98,7 @@ impl WgslShaderSourceType {
     use WgslShaderSourceType::*;
 
     match self {
-      HardCodedFilePathWithNagaOilComposer
-      | EmbedWithNagaOilComposer
-      | ComposerWithRelativePath => quote! {
+      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote! {
         composer.add_composable_module(
           naga_oil::compose::ComposableModuleDescriptor {
             source: #source,
@@ -136,9 +121,7 @@ impl WgslShaderSourceType {
   ) -> TokenStream {
     use WgslShaderSourceType::*;
     match self {
-      HardCodedFilePathWithNagaOilComposer
-      | EmbedWithNagaOilComposer
-      | ComposerWithRelativePath => quote! {
+      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote! {
         composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
           source: #source,
           file_path: #relative_file_path,
@@ -160,7 +143,7 @@ impl WgslShaderSourceType {
         let params = quote!(device);
         (param_defs, params)
       }
-      EmbedWithNagaOilComposer | HardCodedFilePathWithNagaOilComposer => {
+      EmbedWithNagaOilComposer => {
         let param_defs = quote! {
           device: &wgpu::Device,
           shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
@@ -344,53 +327,6 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     use WgslShaderSourceType::*;
 
     match self.source_type {
-      HardCodedFilePathWithNagaOilComposer => {
-        let (mut module_vars, mut assignments): (Vec<Ident>, Vec<TokenStream>) = self
-          .entry
-          .source_including_deps
-          .full_dependencies
-          .iter()
-          .map(|dep| {
-            let module_name = dep
-              .module_name
-              .as_ref()
-              .map(|name| name.to_string())
-              .unwrap()
-              .to_uppercase();
-
-            let module_name_var = format_ident!("{}_PATH",
-              create_canonical_variable_name(&module_name, true)
-            );
-
-            let relative_file_path = get_path_relative_to(self.output_dir, &dep.file_path);
-
-            let assignment = quote! {
-              pub const #module_name_var: &str = include_absolute_path::include_absolute_path!(#relative_file_path);
-            };
-
-            (module_name_var, assignment)
-          }).unzip();
-
-        let shader_entry_path =
-          get_path_relative_to(self.output_dir, self.entry_source_path);
-        let entry_name_var = format_ident!("SHADER_ENTRY_PATH");
-
-        let assignment = quote! {
-          pub const #entry_name_var: &str = include_absolute_path::include_absolute_path!(#shader_entry_path);
-        };
-
-        module_vars.insert(0, entry_name_var);
-        assignments.insert(0, assignment);
-
-        quote! {
-          #(#assignments)*
-          pub const SHADER_PATHS: &[&str] = &[
-            #(
-              #module_vars,
-            )*
-          ];
-        }
-      }
       ComposerWithRelativePath => {
         let shader_entry_path =
           get_path_relative_to(self.workspace_root, self.entry_source_path);
@@ -422,16 +358,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
         let as_name_assignment = quote! { as_name: Some(#as_name.into()) };
 
         let relative_file_path = get_path_relative_to(self.output_dir, &dep.file_path);
-        let source = if self
-          .source_type
-          .is_hard_coded_file_path_with_naga_oil_composer()
-        {
-          let mod_var =
-            format_ident!("{}_PATH", create_canonical_variable_name(&as_name, true));
-          quote!(&std::fs::read_to_string(#mod_var).unwrap())
-        } else {
-          quote!(include_str!(#relative_file_path))
-        };
+        let source = quote!(include_str!(#relative_file_path));
 
         self.source_type.add_composable_naga_module_stmt(
           source,
@@ -461,15 +388,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
         let relative_file_path =
           get_path_relative_to(self.output_dir, self.entry_source_path);
 
-        let source = if self
-          .source_type
-          .is_hard_coded_file_path_with_naga_oil_composer()
-        {
-          let mod_var = format_ident!("SHADER_ENTRY_PATH");
-          quote!(&std::fs::read_to_string(#mod_var).unwrap())
-        } else {
-          quote!(include_str!(#relative_file_path))
-        };
+        let source = quote!(include_str!(#relative_file_path));
 
         let make_naga_module_stmt = self
           .source_type
@@ -600,25 +519,37 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
 
 pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
   quote! {
-    pub fn load_naga_module_from_path(
+    /// Visits and processes all shader files in a dependency tree.
+    ///
+    /// This function traverses the shader dependency tree and calls the visitor function
+    /// for each file encountered. This allows for custom processing like hot reloading,
+    /// caching, or debugging.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_dir` - The base directory for resolving relative paths
+    /// * `entry_point` - The shader entry point to start traversal from
+    /// * `shader_defs` - Shader defines to be used during processing
+    /// * `load_file` - Function to load file contents from a path
+    /// * `visitor` - Function called for each file with (file_path, file_content)
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if all files were processed successfully, or an error string.
+    pub fn visit_shader_files(
       base_dir: &str,
       entry_point: ShaderEntry,
-      composer: &mut naga_oil::compose::Composer,
-      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
       load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-    ) -> Result<wgpu::naga::Module, String>
-    {
-      // Helper function to recursively load dependencies
-      fn load_dependencies_recursive(
+      mut visitor: impl FnMut(&str, &str),
+    ) -> Result<(), String> {
+      fn visit_dependencies_recursive(
         base_dir: &str,
         source: &str,
         current_path: &str,
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: &std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
         load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
+        visitor: &mut impl FnMut(&str, &str),
         visited: &mut std::collections::HashSet<String>,
-      ) -> Result<(), String>
-      {
+      ) -> Result<(), String> {
         // Use naga_oil's preprocessor to get import information
         let (_, imports, _) = naga_oil::compose::get_preprocessor_data(source);
 
@@ -665,33 +596,18 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
           let import_source = load_file(&full_import_path)
             .map_err(|e| format!("Failed to load {full_import_path}: {e}"))?;
 
-          // Recursively load its dependencies
-          load_dependencies_recursive(
+          // Call visitor for this file
+          visitor(&full_import_path, &import_source);
+
+          // Recursively visit its dependencies
+          visit_dependencies_recursive(
             base_dir,
             &import_source,
             full_import_path.trim_start_matches(&format!("{base_dir}/")),
-            composer,
-            shader_defs,
             load_file,
+            visitor,
             visited,
           )?;
-
-          // Extract module name from file path (remove .wgsl extension)
-          let relative_path = full_import_path.trim_start_matches(&format!("{base_dir}/"));
-
-          let as_name = std::path::Path::new(relative_path)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string());
-
-          composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-            source: &import_source,
-            file_path: relative_path,
-            language: naga_oil::compose::ShaderLanguage::Wgsl,
-            shader_defs: shader_defs.clone(),
-            as_name,
-            ..Default::default()
-          }).map_err(|e| format!("Failed to add composable module: {e}"))?;
         }
 
         Ok(())
@@ -702,21 +618,76 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
       let entry_source = load_file(&entry_path)
         .map_err(|e| format!("Failed to load entry point {entry_path}: {e}"))?;
 
-      // Load all dependencies
+      // Call visitor for entry point
+      visitor(&entry_path, &entry_source);
+
+      // Visit all dependencies
       let mut visited = std::collections::HashSet::new();
-      load_dependencies_recursive(
+      visit_dependencies_recursive(
         base_dir,
         &entry_source,
         entry_point.relative_path(),
-        composer,
-        &shader_defs,
         &load_file,
+        &mut visitor,
         &mut visited,
       )?;
 
+      Ok(())
+    }
+
+    pub fn load_naga_module_from_path(
+      base_dir: &str,
+      entry_point: ShaderEntry,
+      composer: &mut naga_oil::compose::Composer,
+      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+      load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+    ) -> Result<wgpu::naga::Module, String>
+    {
+      // Store file contents for later processing
+      let mut files = std::collections::HashMap::<String, String>::new();
+
+      // Use visit_shader_files to collect all files and their contents
+      visit_shader_files(
+        base_dir,
+        entry_point,
+        &load_file,
+        |file_path, file_content| {
+          files.insert(file_path.to_string(), file_content.to_string());
+        }
+      )?;
+
+      // Process dependency files first (all except entry point)
+      let entry_path = format!("{}/{}", base_dir, entry_point.relative_path());
+
+      for (file_path, file_content) in &files {
+        if *file_path == entry_path {
+          continue; // Skip entry point, process it last
+        }
+
+        // Extract module name from file path (remove .wgsl extension)
+        let relative_path = file_path.trim_start_matches(&format!("{base_dir}/"));
+        let as_name = std::path::Path::new(relative_path)
+          .file_stem()
+          .and_then(|s| s.to_str())
+          .map(|s| s.to_string());
+
+        composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+          source: file_content,
+          file_path: relative_path,
+          language: naga_oil::compose::ShaderLanguage::Wgsl,
+          shader_defs: shader_defs.clone(),
+          as_name,
+          ..Default::default()
+        }).map_err(|e| format!("Failed to add composable module: {e}"))?;
+      }
+
+      // Get entry point content
+      let entry_source = files.get(&entry_path)
+        .ok_or_else(|| format!("Entry point file not found: {entry_path}"))?;
+
       // Create the final module
       composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-        source: &entry_source,
+        source: entry_source,
         file_path: entry_point.relative_path(),
         shader_defs,
         ..Default::default()
@@ -756,17 +727,6 @@ pub(crate) fn shader_module(
       &output_dir,
       &output_dir,
       EmbedWithNagaOilComposer,
-    );
-    token_stream.append_all(builder.build());
-  }
-
-  if source_type.contains(HardCodedFilePathWithNagaOilComposer) {
-    let builder = ComposeShaderModuleBuilder::new(
-      entry,
-      capabilities,
-      &output_dir,
-      &output_dir,
-      HardCodedFilePathWithNagaOilComposer,
     );
     token_stream.append_all(builder.build());
   }

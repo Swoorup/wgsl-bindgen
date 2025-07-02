@@ -43,8 +43,7 @@ fn test_main_bindgen() -> Result<()> {
     .skip_header_comments(true)
     .ir_capabilities(naga::valid::Capabilities::PUSH_CONSTANT)
     .shader_source_type(
-      WgslShaderSourceType::EmbedSource
-        | WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer,
+      WgslShaderSourceType::EmbedSource | WgslShaderSourceType::ComposerWithRelativePath,
     )
     .output("tests/output/bindgen_main.actual.rs".to_string())
     .build()?
@@ -181,7 +180,6 @@ fn test_shared_bind_group_visibility() -> Result<()> {
     .build()?
     .generate_string()?;
 
-  
   // Check that the common bind group has combined visibility
   // The generated code now uses union() method for const-compatible chaining
   assert!(
@@ -194,6 +192,6 @@ fn test_shared_bind_group_visibility() -> Result<()> {
   // Also ensure it compiled successfully
   let parsed_output = parse_str(&actual).unwrap();
   assert_rust_compilation_working!(parsed_output);
-  
+
   Ok(())
 }

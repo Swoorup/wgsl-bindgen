@@ -28,24 +28,6 @@ macro_rules! assert_tokens_snapshot {
 #[macro_export]
 macro_rules! assert_rust_compilation {
     ($output:expr) => {{
-        // TODO: Current this requires removing include_absolute_path! macro from the output (See #45)
-
-        /*
-        let formatted_output = $crate::pretty_print(&$output);
-        // Extract test name automatically using stdext function_name macro
-        let full_name = stdext::function_name!();
-        // Extract just the function name (after the last ::) and sanitize for use as project name
-        let test_name = full_name.split("::").last().unwrap_or(full_name).replace("::", "_");
-        if let Err(e) = $crate::test_helper::try_compilation_test_with_name(&formatted_output, &test_name) {
-            panic!("Generated code failed to compile: {e}\n\n");
-        }
-        */
-    }};
-}
-
-#[macro_export]
-macro_rules! assert_rust_compilation_working {
-    ($output:expr) => {{
         let formatted_output = $crate::pretty_print(&$output);
         // Extract test name automatically using stdext function_name macro
         let full_name = stdext::function_name!();
@@ -198,9 +180,6 @@ fn detect_required_dependencies_from_content(
   if content.contains("naga_oil::") {
     deps.insert("naga_oil".to_string());
   }
-  if content.contains("include_absolute_path!") {
-    deps.insert("include_absolute_path".to_string());
-  }
 
   // Always include core dependencies that are commonly used
   deps.insert("wgpu".to_string());
@@ -278,13 +257,6 @@ edition = "2021"
           .map(|s| s.as_str())
           .unwrap_or("0.18");
         cargo_toml.push_str(&format!("naga_oil = \"{version}\"\n"));
-      }
-      "include_absolute_path" => {
-        let version = workspace_deps
-          .get("include_absolute_path")
-          .map(|s| s.as_str())
-          .unwrap_or("0.1");
-        cargo_toml.push_str(&format!("include_absolute_path = \"{version}\"\n"));
       }
       _ => {}
     }

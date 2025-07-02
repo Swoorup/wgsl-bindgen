@@ -112,11 +112,8 @@ impl<'a> RawShadersBindGroups<'a> {
     let mut updated_common_bind_groups = BTreeMap::new();
     for (&group_no, (merged_stages, group)) in &common_bind_groups {
       let common_module = group.first_module();
-      let updated_group = group.with_updated_shader_stages(
-        &common_module,
-        self.options,
-        *merged_stages,
-      );
+      let updated_group =
+        group.with_updated_shader_stages(&common_module, self.options, *merged_stages);
       updated_common_bind_groups.insert(group_no, (merged_stages, updated_group));
     }
 
@@ -149,7 +146,9 @@ impl<'a> RawShadersBindGroups<'a> {
         });
 
       for (group_no, group) in &shader.bind_group_data {
-        let common_bindgroup = updated_common_bind_groups.get(group_no).map(|(_, group)| group);
+        let common_bindgroup = updated_common_bind_groups
+          .get(group_no)
+          .map(|(_, group)| group);
         let is_common = Some(group.first_module())
           == common_bindgroup.map(|group| group.first_module());
         let reusable_bindgroup = is_common.then_some(common_bindgroup).flatten();

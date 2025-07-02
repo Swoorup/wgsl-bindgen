@@ -146,65 +146,6 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
     }
   }
 
-  fn build_shader_entry_filename_fn(&self) -> TokenStream {
-    if !self
-      .source_type
-      .contains(WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer)
-    {
-      return quote!();
-    }
-
-    let match_arms = self.entries.iter().map(|entry| {
-      let filename = entry
-        .source_including_deps
-        .source_file
-        .file_path
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap();
-      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
-
-      quote! {
-        Self::#enum_variant => #filename
-      }
-    });
-
-    quote! {
-      pub fn shader_entry_filename(&self) -> &'static str {
-        match self {
-          #( #match_arms, )*
-        }
-      }
-    }
-  }
-
-  fn build_shader_paths_fn(&self) -> TokenStream {
-    if !self
-      .source_type
-      .contains(WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer)
-    {
-      return quote!();
-    }
-
-    let match_arms = self.entries.iter().map(|entry| {
-      let mod_path = format_ident!("{}", entry.mod_name);
-      let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
-
-      quote! {
-        Self::#enum_variant => #mod_path::SHADER_PATHS
-      }
-    });
-
-    quote! {
-      pub fn shader_paths(&self) -> &[&str] {
-        match self {
-          #( #match_arms, )*
-        }
-      }
-    }
-  }
-
   fn build_relative_path_fn(&self) -> TokenStream {
     if !self
       .source_type
@@ -245,8 +186,6 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       .map(|source_ty| self.build_load_shader_to_composer_module(source_ty))
       .collect::<Vec<_>>();
 
-    let shader_paths_fn = self.build_shader_paths_fn();
-    let shader_entry_filename_fn = self.build_shader_entry_filename_fn();
     let relative_path_fn = self.build_relative_path_fn();
 
     quote! {
@@ -254,8 +193,6 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
         #create_pipeline_layout_fn
         #(#create_shader_module_fns)*
         #(#load_shader_to_composer_module_fns)*
-        #shader_entry_filename_fn
-        #shader_paths_fn
         #relative_path_fn
       }
     }

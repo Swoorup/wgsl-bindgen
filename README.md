@@ -59,11 +59,9 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 ### Shader Handling:
 
 -   Supports import syntax and many more features from naga oil flavour.
--   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer`, `WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer`, or `WgslShaderSourceType::ComposerWithRelativePath` source output type.
+-   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer` or `WgslShaderSourceType::ComposerWithRelativePath` source output type.
 
-    The `WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer` could be used for hot reloading.
-    
-    The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems.
+    The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems and hot reloading.
 
 -   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
 -   Ability to add additional scan directories for shader imports when defining the workflow.
