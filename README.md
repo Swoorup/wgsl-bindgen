@@ -63,6 +63,27 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 
     The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems and hot reloading.
 
+-   **File Visitor Pattern**: The `visit_shader_files` function allows custom processing of all shader files in a dependency tree. This enables advanced use cases like:
+    - **Hot reloading**: Watch for file changes and rebuild shaders automatically
+    - **Caching**: Store processed shader content for faster rebuilds
+    - **Debugging**: Log or analyze shader dependencies and content
+    - **Custom asset systems**: Integrate with existing asset loading pipelines
+
+    ```rust
+    // Example: Hot reloading with file watching
+    use shader_bindings::visit_shader_files;
+    
+    visit_shader_files(
+        "shaders",
+        ShaderEntry::MyShader,
+        |path| std::fs::read_to_string(path),
+        |file_path, file_content| {
+            println!("Processing shader: {}", file_path);
+            // Add to file watcher, cache, etc.
+        }
+    )?;
+    ```
+
 -   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
 -   Ability to add additional scan directories for shader imports when defining the workflow.
 
