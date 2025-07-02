@@ -74,17 +74,9 @@ pub fn try_compilation_test_with_name(
   fs::create_dir_all(&temp_dir)
     .map_err(|e| format!("Failed to create temp directory: {e}"))?;
 
-  // Only complete modules are tested for compilation
-  let test_content = generated_code.to_string();
-
-  // Write the test content to a temporary file
-  let test_file = temp_dir.join("generated_test.rs");
-  fs::write(&test_file, &test_content)
-    .map_err(|e| format!("Failed to write test file: {e}"))?;
-
   // Create a simple compilation test for just this specific file
   let compile_test =
-    create_single_file_compile_test(&temp_dir, test_name, &test_content)?;
+    create_single_file_compile_test(&temp_dir, test_name, generated_code)?;
 
   let result = match compile_test.test_compilation() {
     Ok(true) => {

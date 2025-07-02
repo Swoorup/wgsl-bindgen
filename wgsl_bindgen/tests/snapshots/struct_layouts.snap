@@ -68,7 +68,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(layouts::Scalars, a) == 0);
     assert!(std::mem::offset_of!(layouts::Scalars, b) == 4);
     assert!(std::mem::offset_of!(layouts::Scalars, c) == 8);
-    assert!(std::mem::size_of::<layouts::Scalars>() == 16);
+    assert!(std::mem::size_of::<layouts::Scalars>() == 12);
   };
   const LAYOUTS_VECTORS_U32_ASSERTS: () = {
     assert!(std::mem::offset_of!(layouts::VectorsU32, a) == 0);

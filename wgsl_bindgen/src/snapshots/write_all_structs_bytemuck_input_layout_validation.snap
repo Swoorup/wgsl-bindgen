@@ -51,7 +51,7 @@ const INPUT0_ASSERTS: () = {
   assert!(std::mem::offset_of!(Input0, a) == 0);
   assert!(std::mem::offset_of!(Input0, b) == 8);
   assert!(std::mem::offset_of!(Input0, c) == 32);
-  assert!(std::mem::size_of::<Input0>() == 64);
+  assert!(std::mem::size_of::<Input0>() == 36);
 };
 unsafe impl bytemuck::Zeroable for Input0 {}
 unsafe impl bytemuck::Pod for Input0 {}

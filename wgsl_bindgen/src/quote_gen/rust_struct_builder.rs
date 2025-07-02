@@ -520,6 +520,42 @@ impl<'a> RustStructBuilder<'a> {
     derives
   }
 
+  fn calculate_actual_struct_size(&self) -> usize {
+    let naga_context = self.naga_module.to_ctx();
+
+    // Find the last field and calculate struct size
+    let mut max_end = 0usize;
+
+    for (idx, entry) in self.members.iter().enumerate() {
+      match entry {
+        RustStructMemberEntry::Field(field) => {
+          let offset = field.naga_member.offset as usize;
+          let size = field.naga_type.inner.size(naga_context) as usize;
+          let field_end = offset + size;
+          max_end = max_end.max(field_end);
+        }
+        RustStructMemberEntry::Padding(_) => {
+          // Padding fields have already been calculated to fill gaps
+          // We'll find their size from the next field or end of struct
+          if idx + 1 < self.members.len() {
+            if let RustStructMemberEntry::Field(next_field) = &self.members[idx + 1] {
+              max_end = max_end.max(next_field.naga_member.offset as usize);
+            }
+          }
+        }
+      }
+    }
+
+    // If we didn't find any fields (shouldn't happen), use 0
+    if max_end == 0 {
+      return 0;
+    }
+
+    // Round up to struct alignment
+    let struct_alignment = self.layout.alignment;
+    struct_alignment.round_up(max_end as u32) as usize
+  }
+
   fn build_layout_assertion(
     &self,
     custom_alignment: Option<naga::proc::Alignment>,
@@ -553,9 +589,12 @@ impl<'a> RustStructBuilder<'a> {
     if self.is_directly_shareable() {
       // Assert that the Rust layout matches the WGSL layout.
       // Enable for bytemuck since it uses the Rust struct's memory layout.
+
+      // Calculate actual struct size excluding builtin fields
+      let struct_size = self.calculate_actual_struct_size();
       let struct_size = custom_alignment
-        .map(|alignment| alignment.round_up(self.layout.size))
-        .unwrap_or(self.layout.size) as usize;
+        .map(|alignment| alignment.round_up(struct_size as u32) as usize)
+        .unwrap_or(struct_size);
 
       let struct_size = Index::from(struct_size);
 
