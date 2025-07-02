@@ -529,7 +529,7 @@ pub struct SingleBindGroupData<'a> {
   pub naga_module: &'a naga::Module,
 }
 
-impl SingleBindGroupData<'_> {
+impl<'a> SingleBindGroupData<'a> {
   pub fn first_module(&self) -> SmolStr {
     self.bindings.first().unwrap().item_path.module.clone()
   }
@@ -540,6 +540,50 @@ impl SingleBindGroupData<'_> {
       .bindings
       .iter()
       .all(|b| b.item_path.module == first_module)
+  }
+
+  /// Update all binding entries with new shader stages
+  pub fn with_updated_shader_stages(
+    &self,
+    invoking_entry_module: &str,
+    options: &WgslBindgenOption,
+    shader_stages: wgpu::ShaderStages,
+  ) -> Self {
+    let updated_bindings = self
+      .bindings
+      .iter()
+      .map(|binding| {
+        // We need to get the address space from the original global variable
+        // Find the global variable that matches this binding
+        let address_space = self
+          .naga_module
+          .global_variables
+          .iter()
+          .find_map(|(_, global)| {
+            global.binding.as_ref().and_then(|global_binding| {
+              if global_binding.binding == binding.binding_index {
+                Some(global.space)
+              } else {
+                None
+              }
+            })
+          })
+          .unwrap_or(naga::AddressSpace::Handle); // Default fallback
+
+        binding.with_updated_shader_stages(
+          invoking_entry_module,
+          options,
+          self.naga_module,
+          shader_stages,
+          address_space,
+        )
+      })
+      .collect();
+
+    Self {
+      bindings: updated_bindings,
+      naga_module: self.naga_module,
+    }
   }
 }
 
@@ -582,6 +626,35 @@ impl<'a> SingleBindGroupEntry<'a> {
       item_path,
       binding_index,
       binding_type,
+      layout_entry_token_stream,
+    }
+  }
+
+  /// Regenerate the layout entry token stream with updated shader stages
+  pub fn with_updated_shader_stages(
+    &self,
+    invoking_entry_module: &str,
+    options: &WgslBindgenOption,
+    naga_module: &naga::Module,
+    shader_stages: wgpu::ShaderStages,
+    address_space: naga::AddressSpace,
+  ) -> Self {
+    let layout_entry_token_stream = bind_group_layout_entry(
+      invoking_entry_module,
+      naga_module,
+      options,
+      shader_stages,
+      self.binding_index,
+      self.binding_type,
+      self.name.clone(),
+      address_space,
+    );
+
+    Self {
+      name: self.name.clone(),
+      item_path: self.item_path.clone(),
+      binding_index: self.binding_index,
+      binding_type: self.binding_type,
       layout_entry_token_stream,
     }
   }

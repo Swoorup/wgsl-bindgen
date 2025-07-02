@@ -392,7 +392,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
   ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
     let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
     let module = load_shader_module_from_path(&mut composer, shader_defs)?;
     let info = wgpu::naga::valid::Validator::new(
       wgpu::naga::valid::ValidationFlags::empty(),

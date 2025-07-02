@@ -104,19 +104,27 @@ mod _root {
           };
           format!("{module_path}.wgsl")
         };
-        let full_import_path = if import_path.starts_with('/') {
-          format!("{base_dir}{import_path}")
-        } else {
-          let current_dir = std::path::Path::new(current_path)
-            .parent()
-            .and_then(|p| p.to_str())
-            .unwrap_or("");
-          if current_dir.is_empty() {
-            format!("{base_dir}/{import_path}")
+        let full_import_path =
+          if import_path.starts_with('/') || import_path.starts_with('\\') {
+            format!("{base_dir}{import_path}")
           } else {
-            format!("{base_dir}/{current_dir}/{import_path}")
-          }
-        };
+            let current_dir = std::path::Path::new(current_path)
+              .parent()
+              .and_then(|p| p.to_str())
+              .unwrap_or("");
+            if current_dir.is_empty() {
+              std::path::Path::new(base_dir)
+                .join(import_path)
+                .display()
+                .to_string()
+            } else {
+              std::path::Path::new(base_dir)
+                .join(current_dir)
+                .join(import_path)
+                .display()
+                .to_string()
+            }
+          };
         if visited.contains(&full_import_path) {
           continue;
         }
@@ -529,7 +537,7 @@ pub mod fullscreen_effects {
     load_file: impl Fn(&str) -> Result<String, std::io::Error>,
   ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
     let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
     let module = load_naga_module_from_path(
       base_dir,
       entry_point,
@@ -859,7 +867,7 @@ pub mod simple_array_demo {
     load_file: impl Fn(&str) -> Result<String, std::io::Error>,
   ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
     let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
     let module = load_naga_module_from_path(
       base_dir,
       entry_point,
@@ -1116,7 +1124,7 @@ pub mod overlay {
     load_file: impl Fn(&str) -> Result<String, std::io::Error>,
   ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
     let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
     let module = load_naga_module_from_path(
       base_dir,
       entry_point,
@@ -1257,7 +1265,7 @@ pub mod gradient_triangle {
     load_file: impl Fn(&str) -> Result<String, std::io::Error>,
   ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
     let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(1));
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
     let module = load_naga_module_from_path(
       base_dir,
       entry_point,

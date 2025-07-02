@@ -12,6 +12,7 @@ use syn::{Ident, Index};
 use crate::naga_util::module_to_source;
 use crate::quote_gen::create_shader_raw_string_literal;
 use crate::{WgslBindgenOption, WgslEntryResult, WgslShaderSourceType};
+use crate::generate::quote_naga_capabilities;
 
 impl<'a> WgslEntryResult<'a> {
   fn get_label(&self) -> TokenStream {
@@ -501,9 +502,9 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
 
     let composer_with_capabilities = match self.capabilities {
       Some(capabilities) => {
-        let capabilities = Index::from(capabilities.bits() as usize);
+        let capabilities_expr = quote_naga_capabilities(capabilities);
         quote! {
-          #composer.with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(#capabilities))
+          #composer.with_capabilities(#capabilities_expr)
         }
       }
       None => quote! {
