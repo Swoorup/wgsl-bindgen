@@ -12,6 +12,8 @@ use winit::window::Window;
 
 pub type MyTwoU32 = [u32; 2];
 
+pub const SHADER_DIR: &str = include_absolute_path::include_absolute_path!("../shaders");
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct MyScalars {

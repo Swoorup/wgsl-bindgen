@@ -157,7 +157,6 @@
 extern crate wgpu_types as wgpu;
 
 use crate::quote_gen::{custom_vector_matrix_assertions, MOD_STRUCT_ASSERTIONS};
-use crate::test_helper::pretty_print;
 use bevy_util::SourceWithFullDependenciesResult;
 use case::CaseExt;
 use derive_more::IsVariant;
@@ -243,6 +242,16 @@ fn create_rust_bindings(
   // Setup base type assertions if custom vector/matrix types are configured
   if let Some(custom_wgsl_type_asserts) = custom_vector_matrix_assertions(options) {
     mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
+  }
+
+  // Add global load_naga_module_from_path function to _root module if needed
+  if options
+    .shader_source_type
+    .contains(WgslShaderSourceType::ComposerWithRelativePath)
+  {
+    let global_load_function =
+      shader_module::generate_global_load_naga_module_from_path();
+    mod_builder.add("_root", global_load_function);
   }
 
   // === PHASE 1: Generate basic components for each shader ===
@@ -349,6 +358,52 @@ fn sanitized_upper_snake_case(v: &str) -> String {
     .collect::<String>()
     .to_snake()
     .to_uppercase()
+}
+
+pub fn pretty_print(tokens: &TokenStream) -> String {
+  let code = tokens.to_string();
+
+  // Try rustfmt first to use the project's formatting configuration
+  match format_with_rustfmt(&code) {
+    Ok(formatted) => formatted,
+    Err(error) => {
+      // Log the rustfmt failure and fall back to prettyplease
+      eprintln!(
+        "Warning: rustfmt formatting failed ({error}), falling back to prettyplease",
+      );
+      let file = syn::parse_file(&code).unwrap();
+      prettyplease::unparse(&file)
+    }
+  }
+}
+
+fn format_with_rustfmt(code: &str) -> Result<String, Box<dyn std::error::Error>> {
+  use std::io::Write;
+  use std::process::{Command, Stdio};
+
+  let mut child = Command::new("rustfmt")
+    .arg("--emit")
+    .arg("stdout")
+    .arg("--quiet")
+    .stdin(Stdio::piped())
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
+    .spawn()?;
+
+  if let Some(stdin) = child.stdin.as_mut() {
+    stdin.write_all(code.as_bytes())?;
+  } else {
+    return Err("Failed to open stdin".into());
+  }
+
+  let output = child.wait_with_output()?;
+
+  if output.status.success() {
+    Ok(String::from_utf8(output.stdout)?)
+  } else {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    Err(format!("rustfmt failed: {stderr}").into())
+  }
 }
 
 #[cfg(test)]

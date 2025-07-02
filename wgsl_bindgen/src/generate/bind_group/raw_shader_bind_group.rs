@@ -108,9 +108,18 @@ impl<'a> RawShadersBindGroups<'a> {
     // Remove all the bind groups that are not reusable.
     common_bind_groups.retain(|_, (_, group)| group.are_all_same_module());
 
+    // Update common bind groups with combined shader stages for correct visibility
+    let mut updated_common_bind_groups = BTreeMap::new();
+    for (&group_no, (merged_stages, group)) in &common_bind_groups {
+      let common_module = group.first_module();
+      let updated_group =
+        group.with_updated_shader_stages(&common_module, self.options, *merged_stages);
+      updated_common_bind_groups.insert(group_no, (merged_stages, updated_group));
+    }
+
     // Create the reusable shader bind groups
     let mut reusable_shader_bind_groups = ReusableShaderBindGroups::new();
-    for (&group_no, (_, group)) in &common_bind_groups {
+    for (&group_no, (_, group)) in &updated_common_bind_groups {
       let common_module = group.first_module();
 
       reusable_shader_bind_groups.common_bind_groups.insert(
@@ -137,7 +146,9 @@ impl<'a> RawShadersBindGroups<'a> {
         });
 
       for (group_no, group) in &shader.bind_group_data {
-        let common_bindgroup = common_bind_groups.get(group_no).map(|(_, group)| group);
+        let common_bindgroup = updated_common_bind_groups
+          .get(group_no)
+          .map(|(_, group)| group);
         let is_common = Some(group.first_module())
           == common_bindgroup.map(|group| group.first_module());
         let reusable_bindgroup = is_common.then_some(common_bindgroup).flatten();

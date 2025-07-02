@@ -29,9 +29,9 @@ pub enum WgslShaderSourceType {
   /// This option allows shader defines and but doesn't allow hot-reloading.
   EmbedWithNagaOilComposer,
 
-  /// Use Composer with absolute path to shaders, meant only for hot-reloading
-  /// This option allows shader defines and is useful for hot-reloading.
-  HardCodedFilePathWithNagaOilComposer,
+  /// Use Composer with relative paths and user-provided file loading
+  /// This option allows shader defines and custom IO without requiring nightly Rust.
+  ComposerWithRelativePath,
 }
 
 /// A struct representing a directory to scan for additional source files.

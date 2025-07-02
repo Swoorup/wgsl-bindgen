@@ -41,6 +41,7 @@ heck.workspace = true
 
 [features]
 minify = []
+default = []
 
 # Note: wgsl-minifier currently has version conflicts with naga
 # [dependencies.wgsl-minifier]
@@ -53,3 +54,4 @@ pretty_assertions.workspace = true
 miette = { workspace = true, features = ["fancy"] }
 insta.workspace = true
 stdext.workspace = true
+toml.workspace = true

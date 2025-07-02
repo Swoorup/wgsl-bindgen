@@ -545,11 +545,11 @@ pub mod layouts {
         },
       }
     }
-    pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
-      [self.uniforms.clone()]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.uniforms]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.as_array().into_iter().collect()
+      self.into_array().into_iter().collect()
     }
   }
   #[derive(Debug)]
@@ -579,7 +579,7 @@ pub mod layouts {
     }
     pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
       let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.as_array();
+      let entries = bindings.into_array();
       let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Layouts::BindGroup1"),
         layout: &bind_group_layout,
@@ -644,19 +644,11 @@ pub mod layouts {
         },
       }
     }
-    pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 7] {
-      [
-        self.a.clone(),
-        self.b.clone(),
-        self.c.clone(),
-        self.d.clone(),
-        self.f.clone(),
-        self.h.clone(),
-        self.i.clone(),
-      ]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 7] {
+      [self.a, self.b, self.c, self.d, self.f, self.h, self.i]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.as_array().into_iter().collect()
+      self.into_array().into_iter().collect()
     }
   }
   #[derive(Debug)]
@@ -764,7 +756,7 @@ pub mod layouts {
     }
     pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup2Entries) -> Self {
       let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.as_array();
+      let entries = bindings.into_array();
       let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Layouts::BindGroup2"),
         layout: &bind_group_layout,
@@ -968,11 +960,11 @@ pub mod bindings {
         },
       }
     }
-    pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 2] {
-      [self.color_texture.clone(), self.color_sampler.clone()]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+      [self.color_texture, self.color_sampler]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.as_array().into_iter().collect()
+      self.into_array().into_iter().collect()
     }
   }
   #[derive(Debug)]
@@ -1007,7 +999,7 @@ pub mod bindings {
     }
     pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
       let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.as_array();
+      let entries = bindings.into_array();
       let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Bindings::BindGroup0"),
         layout: &bind_group_layout,

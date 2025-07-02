@@ -101,6 +101,7 @@ pub mod minimal {
     }
   }
   pub mod compute {
+    use super::{_root, _root::*};
     pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
     pub fn create_main_pipeline_embed_source(
       device: &wgpu::Device,
@@ -135,11 +136,11 @@ pub mod minimal {
         },
       }
     }
-    pub fn as_array(&self) -> [wgpu::BindGroupEntry<'a>; 1] {
-      [self.uniform_buf.clone()]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.uniform_buf]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.as_array().into_iter().collect()
+      self.into_array().into_iter().collect()
     }
   }
   #[derive(Debug)]
@@ -169,7 +170,7 @@ pub mod minimal {
     }
     pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
       let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.as_array();
+      let entries = bindings.into_array();
       let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Minimal::BindGroup0"),
         layout: &bind_group_layout,

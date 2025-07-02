@@ -59,9 +59,30 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 ### Shader Handling:
 
 -   Supports import syntax and many more features from naga oil flavour.
--   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer` or `WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer` source output type.
+-   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer` or `WgslShaderSourceType::ComposerWithRelativePath` source output type.
 
-    The `WgslShaderSourceType::HardCodedFilePathWithNagaOilComposer` could be used for hot reloading.
+    The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems and hot reloading.
+
+-   **File Visitor Pattern**: The `visit_shader_files` function allows custom processing of all shader files in a dependency tree. This enables advanced use cases like:
+    - **Hot reloading**: Watch for file changes and rebuild shaders automatically
+    - **Caching**: Store processed shader content for faster rebuilds
+    - **Debugging**: Log or analyze shader dependencies and content
+    - **Custom asset systems**: Integrate with existing asset loading pipelines
+
+    ```rust
+    // Example: Hot reloading with file watching
+    use shader_bindings::visit_shader_files;
+    
+    visit_shader_files(
+        "shaders",
+        ShaderEntry::MyShader,
+        |path| std::fs::read_to_string(path),
+        |file_path, file_content| {
+            println!("Processing shader: {}", file_path);
+            // Add to file watcher, cache, etc.
+        }
+    )?;
+    ```
 
 -   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
 -   Ability to add additional scan directories for shader imports when defining the workflow.
@@ -89,6 +110,9 @@ bytemuck = { version = "1.0", features = ["derive"] }
 # Optional: for additional features
 # encase = "0.8"
 # serde = { version = "1.0", features = ["derive"] }
+
+# Note: When using ComposerWithRelativePath, enable naga-ir feature for optimal performance:
+# wgpu = { version = "25", features = ["naga-ir"] }
 ```
 
 ### 2. Create your WGSL shader (`shaders/my_shader.wgsl`)
@@ -260,6 +284,44 @@ Control how shaders are embedded:
 
 // Use naga-oil composer for advanced import features
 .shader_source_type(WgslShaderSourceType::EmbedWithNagaOilComposer)
+
+// Use relative paths with custom file loading (no nightly Rust required)
+// Requires wgpu "naga-ir" feature for optimal performance
+.shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)
+```
+
+### Using Custom File Loading
+
+The `ComposerWithRelativePath` option allows you to provide your own file loading logic, which is perfect for integrating with custom asset systems.
+
+**Performance Note**: This mode uses wgpu's `naga-ir` feature to pass Naga IR modules directly to the GPU instead of converting back to WGSL source. This provides better performance by avoiding the round-trip conversion process. Make sure to enable the feature in your dependencies:
+
+```toml
+[dependencies]
+wgpu = { version = "25", features = ["naga-ir"] }
+```
+
+```rust
+// In your build.rs
+.shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)
+
+// In your application code
+let module = main::load_naga_module_from_path(
+    "assets/shaders",  // Base directory
+    ShaderEntry::Main, // Entry point enum variant
+    &mut composer,
+    shader_defs,
+    |path| std::fs::read_to_string(path), // Your custom file loader
+)?;
+
+// Or use your own asset system
+let module = main::load_naga_module_from_path(
+    "shaders",
+    ShaderEntry::Main,
+    &mut composer,
+    shader_defs,
+    |path| asset_manager.load_text_file(path), // Custom asset manager
+)?;
 ```
 
 ## Wgsl Import Resolution

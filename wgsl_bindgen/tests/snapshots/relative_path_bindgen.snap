@@ -12,14 +12,6 @@ impl ShaderEntry {
       Self::Main => main::create_pipeline_layout(device),
     }
   }
-  pub fn create_shader_module_embed_source(
-    &self,
-    device: &wgpu::Device,
-  ) -> wgpu::ShaderModule {
-    match self {
-      Self::Main => main::create_shader_module_embed_source(device),
-    }
-  }
   pub fn create_shader_module_relative_path(
     &self,
     device: &wgpu::Device,
@@ -226,12 +218,12 @@ pub mod layout_asserts {
   const MAIN_STYLE_ASSERTS: () = {
     assert!(std::mem::offset_of!(main::Style, color) == 0);
     assert!(std::mem::offset_of!(main::Style, width) == 16);
-    assert!(std::mem::size_of::<main::Style>() == 256);
+    assert!(std::mem::size_of::<main::Style>() == 32);
   };
 }
 pub mod main {
   use super::{_root, _root::*};
-  #[repr(C, align(256))]
+  #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Style {
     #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
@@ -272,20 +264,6 @@ pub mod main {
   pub mod compute {
     use super::{_root, _root::*};
     pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
-    pub fn create_main_pipeline_embed_source(
-      device: &wgpu::Device,
-    ) -> wgpu::ComputePipeline {
-      let module = super::create_shader_module_embed_source(device);
-      let layout = super::create_pipeline_layout(device);
-      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Compute Pipeline main"),
-        layout: Some(&layout),
-        module: &module,
-        entry_point: Some("main"),
-        compilation_options: Default::default(),
-        cache: None,
-      })
-    }
     pub fn create_main_pipeline_relative_path(
       device: &wgpu::Device,
       base_dir: &str,
@@ -468,41 +446,6 @@ pub mod main {
       }],
     })
   }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("main.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
-  }
-  pub const SHADER_STRING: &str = r#"
-struct Style {
-    color: vec4<f32>,
-    width: f32,
-}
-
-@group(1) @binding(0) 
-var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
-@group(0) @binding(0) 
-var<storage, read_write> buffer: array<f32>;
-@group(0) @binding(1) 
-var texture_float: texture_2d<f32>;
-@group(0) @binding(2) 
-var texture_sint: texture_2d<i32>;
-@group(0) @binding(3) 
-var texture_uint: texture_2d<u32>;
-var<push_constant> const_style: Style;
-
-@compute @workgroup_size(1, 1, 1) 
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
-    let _e11 = const_style.color.w;
-    let _e15 = const_style.width;
-    let _e17 = buffer[id.x];
-    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
-    return;
-}
-"#;
   pub const SHADER_ENTRY_PATH: &str = "../basic/main.wgsl";
   pub fn create_shader_module_relative_path(
     device: &wgpu::Device,

@@ -21,8 +21,14 @@ impl Demo for TextureArrayDemo {
     surface_format: wgpu::TextureFormat,
   ) -> Self {
     // Create shader and pipeline layout
-    let shader =
-      shader_bindings::simple_array_demo::create_shader_module_embed_source(device);
+    let shader = shader_bindings::simple_array_demo::create_shader_module_relative_path(
+      device,
+      crate::SHADER_DIR,
+      shader_bindings::ShaderEntry::SimpleArrayDemo,
+      std::collections::HashMap::new(),
+      |path| std::fs::read_to_string(path),
+    )
+    .expect("Failed to create shader module");
     let render_pipeline_layout =
       shader_bindings::simple_array_demo::create_pipeline_layout(device);
 
