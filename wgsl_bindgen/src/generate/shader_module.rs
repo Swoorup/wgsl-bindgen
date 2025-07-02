@@ -640,7 +640,7 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
           };
 
           // Resolve relative import path
-          let full_import_path = if import_path.starts_with('/') {
+          let full_import_path = if import_path.starts_with('/') || import_path.starts_with('\\') {
             format!("{base_dir}{import_path}")
           } else {
             let current_dir = std::path::Path::new(current_path)
@@ -648,9 +648,9 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
               .and_then(|p| p.to_str())
               .unwrap_or("");
             if current_dir.is_empty() {
-              format!("{base_dir}/{import_path}")
+              std::path::Path::new(base_dir).join(import_path).display().to_string()
             } else {
-              format!("{base_dir}/{current_dir}/{import_path}")
+              std::path::Path::new(base_dir).join(current_dir).join(import_path).display().to_string()
             }
           };
 
