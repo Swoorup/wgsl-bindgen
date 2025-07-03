@@ -485,7 +485,6 @@ mod test {
   }
 
   #[test]
-  #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
   fn create_shader_module_non_consecutive_bind_groups() {
     let source = indoc! {r#"
             @group(0) @binding(0) var<uniform> a: vec4<f32>;
