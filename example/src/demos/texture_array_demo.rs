@@ -92,15 +92,9 @@ impl Demo for TextureArrayDemo {
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("vertex buffer"),
       contents: bytemuck::cast_slice(&[
-        shader_bindings::simple_array_demo::VertexInput(
-          glam::vec3(-1.0, -1.0, 0.0).into(),
-        ),
-        shader_bindings::simple_array_demo::VertexInput(
-          glam::vec3(3.0, -1.0, 0.0).into(),
-        ),
-        shader_bindings::simple_array_demo::VertexInput(
-          glam::vec3(-1.0, 3.0, 0.0).into(),
-        ),
+        shader_bindings::simple_array_demo::VertexInput(glam::vec3(-1.0, -1.0, 0.0)),
+        shader_bindings::simple_array_demo::VertexInput(glam::vec3(3.0, -1.0, 0.0)),
+        shader_bindings::simple_array_demo::VertexInput(glam::vec3(-1.0, 3.0, 0.0)),
       ]),
       usage: wgpu::BufferUsages::VERTEX,
     });
@@ -125,8 +119,13 @@ impl Demo for TextureArrayDemo {
     "Advanced demo showcasing texture arrays with animated blending and effects"
   }
 
-  fn update(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _elapsed_time: f32) {
-    // Time is now managed globally in main.rs
+  fn update(
+    &mut self,
+    _device: &wgpu::Device,
+    _queue: &wgpu::Queue,
+    _context: super::DemoContext,
+  ) {
+    // No updates needed for this static demo
   }
 
   fn render<'a>(

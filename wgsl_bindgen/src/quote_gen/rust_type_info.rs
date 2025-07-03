@@ -246,16 +246,10 @@ pub(crate) fn rust_type(
 
   let alignment = type_layout.alignment;
 
-  let with_validation = |ty: RustTypeInfo| -> Option<RustTypeInfo> {
-    assert!(alignment == ty.alignment);
-    Some(ty)
-  };
-
   match &ty.inner {
     naga::TypeInner::Scalar(scalar) => rust_scalar_type(scalar, alignment),
     naga::TypeInner::Vector { size, scalar } => {
-      let rust_type =
-        map_naga_vec_type(*size, *scalar, alignment, options).and_then(with_validation);
+      let rust_type = map_naga_vec_type(*size, *scalar, alignment, options);
       if let Some(ty) = rust_type {
         ty
       } else {
@@ -272,8 +266,7 @@ pub(crate) fn rust_type(
       rows,
       scalar,
     } => {
-      let rust_type = map_naga_mat_type(*columns, *rows, *scalar, alignment, options)
-        .and_then(with_validation);
+      let rust_type = map_naga_mat_type(*columns, *rows, *scalar, alignment, options);
 
       if let Some(ty) = rust_type {
         ty
@@ -300,11 +293,35 @@ pub(crate) fn rust_type(
       size: naga::ArraySize::Constant(size),
       stride,
     } => {
-      let inner_ty =
-        rust_type(invoking_entry_module, module, &module.types[*base], options);
+      let base_type = &module.types[*base];
+      let inner_ty = rust_type(invoking_entry_module, module, base_type, options);
       let count = Index::from(size.get() as usize);
+      let total_size = (size.get() as usize) * (*stride as usize);
 
-      RustTypeInfo(quote!([#inner_ty; #count]), *stride as usize, alignment)
+      // Check if we need padding between array elements
+      if options.serialization_strategy == WgslTypeSerializeStrategy::Bytemuck {
+        let element_size = inner_ty.size.unwrap_or(0);
+        let actual_stride = *stride as usize;
+
+        if element_size < actual_stride {
+          // We need padding between elements
+          let padding_size = actual_stride - element_size;
+          let padding_hex = format!("0x{padding_size:X}");
+          let padding_size_tokens = syn::parse_str::<TokenStream>(&padding_hex).unwrap();
+
+          // Create a tuple type with the element and padding
+          RustTypeInfo(
+            quote!([(#inner_ty, [u8; #padding_size_tokens]); #count]),
+            total_size,
+            alignment,
+          )
+        } else {
+          // No padding needed
+          RustTypeInfo(quote!([#inner_ty; #count]), total_size, alignment)
+        }
+      } else {
+        RustTypeInfo(quote!([#inner_ty; #count]), total_size, alignment)
+      }
     }
     naga::TypeInner::Array {
       base,

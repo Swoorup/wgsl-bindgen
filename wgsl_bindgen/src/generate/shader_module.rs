@@ -571,19 +571,13 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
             format!("{module_path}.wgsl")
           };
 
-          // Resolve relative import path
+          // Resolve import path - simplified to always resolve from base directory
+          // This works for both module imports (global_bindings::time) and relative imports
           let full_import_path = if import_path.starts_with('/') || import_path.starts_with('\\') {
             format!("{base_dir}{import_path}")
           } else {
-            let current_dir = std::path::Path::new(current_path)
-              .parent()
-              .and_then(|p| p.to_str())
-              .unwrap_or("");
-            if current_dir.is_empty() {
-              std::path::Path::new(base_dir).join(import_path).display().to_string()
-            } else {
-              std::path::Path::new(base_dir).join(current_dir).join(import_path).display().to_string()
-            }
+            // Use proper path joining for Windows compatibility
+            std::path::Path::new(base_dir).join(import_path).display().to_string()
           };
 
           // Skip if already visited

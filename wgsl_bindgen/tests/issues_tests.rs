@@ -13,7 +13,7 @@ fn test_issue_35() -> Result<()> {
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .short_constructor(2)
-    .shader_source_type(WgslShaderSourceType::EmbedWithNagaOilComposer)
+    .shader_source_type(WgslShaderSourceType::EmbedSource)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
@@ -25,7 +25,7 @@ fn test_issue_35() -> Result<()> {
   let actual = read_to_string("tests/output/issue_35.actual.rs").unwrap();
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
-  // assert_rust_compilation!(parsed_output); // TODO: Fix this test
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }
 
@@ -161,6 +161,6 @@ fn test_vec3a_padding_overflow_issue() -> Result<()> {
   let actual = read_to_string("tests/output/vec3a_padding_issue.actual.rs").unwrap();
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
-  // assert_rust_compilation!(parsed_output); // TODO: Fix this test
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }

@@ -1,5 +1,5 @@
 // Texture array demo shader
-#import global_bindings::time
+#import global_bindings::get_time
 
 @group(1) @binding(0) var texture_array: binding_array<texture_2d<f32>, 2>;
 @group(1) @binding(1) var sampler_array: binding_array<sampler, 2>;
@@ -38,7 +38,7 @@ var<push_constant> constants: PushConstants;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let base_uv = in.tex_coords;
-    let t = time * 0.5;
+    let t = get_time() * 0.5;
     
     // Create animated UV coordinates for texture array sampling
     let uv1 = base_uv + vec2<f32>(sin(t) * 0.1, cos(t * 1.3) * 0.1);

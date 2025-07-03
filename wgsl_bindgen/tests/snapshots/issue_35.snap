@@ -12,22 +12,12 @@ impl ShaderEntry {
       Self::Clear => clear::create_pipeline_layout(device),
     }
   }
-  pub fn create_shader_module_embedded(
+  pub fn create_shader_module_embed_source(
     &self,
     device: &wgpu::Device,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+  ) -> wgpu::ShaderModule {
     match self {
-      Self::Clear => clear::create_shader_module_embedded(device, shader_defs),
-    }
-  }
-  pub fn load_shader_module_embedded(
-    &self,
-    composer: &mut naga_oil::compose::Composer,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-  ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-    match self {
-      Self::Clear => clear::load_shader_module_embedded(composer, shader_defs),
+      Self::Clear => clear::create_shader_module_embed_source(device),
     }
   }
 }
@@ -37,10 +27,26 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
@@ -155,48 +161,34 @@ pub mod clear {
       push_constant_ranges: &[],
     })
   }
-  pub fn load_shader_module_embedded(
-    composer: &mut naga_oil::compose::Composer,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-  ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-    composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-      source: include_str!("../shaders/issue_35/vertices.wgsl"),
-      file_path: "../shaders/issue_35/vertices.wgsl",
-      language: naga_oil::compose::ShaderLanguage::Wgsl,
-      shader_defs: shader_defs.clone(),
-      as_name: Some("vertices".into()),
-      ..Default::default()
-    })?;
-    composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-      source: include_str!("../shaders/issue_35/clear.wgsl"),
-      file_path: "../shaders/issue_35/clear.wgsl",
-      shader_defs,
-      ..Default::default()
-    })
-  }
-  pub fn create_shader_module_embedded(
-    device: &wgpu::Device,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    let mut composer = naga_oil::compose::Composer::default();
-    let module = load_shader_module_embedded(&mut composer, shader_defs)?;
-    let info = wgpu::naga::valid::Validator::new(
-      wgpu::naga::valid::ValidationFlags::empty(),
-      wgpu::naga::valid::Capabilities::all(),
-    )
-    .validate(&module)
-    .unwrap();
-    let shader_string = wgpu::naga::back::wgsl::write_string(
-      &module,
-      &info,
-      wgpu::naga::back::wgsl::WriterFlags::empty(),
-    )
-    .expect("failed to convert naga module to source");
-    let source = std::borrow::Cow::Owned(shader_string);
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("clear.wgsl"),
       source: wgpu::ShaderSource::Wgsl(source),
-    });
-    Ok(shader_module)
+    })
   }
+  pub const SHADER_STRING: &str = r#"
+struct VertexInX_naga_oil_mod_XOZSXE5DJMNSXGX {
+    @location(0) position: vec4<f32>,
+}
+
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+}
+
+@vertex 
+fn vertex_main(input: VertexInX_naga_oil_mod_XOZSXE5DJMNSXGX) -> VertexOutput {
+    var output: VertexOutput;
+
+    output.position = input.position;
+    let _e4 = output;
+    return _e4;
+}
+
+@fragment 
+fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4<f32>(1f, 1f, 1f, 1f);
+}
+"#;
 }

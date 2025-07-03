@@ -55,10 +55,26 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
@@ -68,7 +84,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(layouts::Scalars, a) == 0);
     assert!(std::mem::offset_of!(layouts::Scalars, b) == 4);
     assert!(std::mem::offset_of!(layouts::Scalars, c) == 8);
-    assert!(std::mem::size_of::<layouts::Scalars>() == 12);
+    assert!(std::mem::size_of::<layouts::Scalars>() == 16);
   };
   const LAYOUTS_VECTORS_U32_ASSERTS: () = {
     assert!(std::mem::offset_of!(layouts::VectorsU32, a) == 0);
@@ -130,55 +146,91 @@ pub mod layouts {
     pub b: i32,
     #[doc = " size: 4, offset: 0x8, type: `f32`"]
     pub c: f32,
+    pub _pad_d: [u8; 0x4],
   }
   impl Scalars {
     pub const fn new(a: u32, b: i32, c: f32) -> Self {
-      Self { a, b, c }
+      Self {
+        a,
+        b,
+        c,
+        _pad_d: [0; 0x4],
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct ScalarsInit {
+    pub a: u32,
+    pub b: i32,
+    pub c: f32,
+  }
+  impl ScalarsInit {
+    pub const fn build(&self) -> Scalars {
+      Scalars {
+        a: self.a,
+        b: self.b,
+        c: self.c,
+        _pad_d: [0; 0x4],
+      }
+    }
+  }
+  impl From<ScalarsInit> for Scalars {
+    fn from(data: ScalarsInit) -> Self {
+      data.build()
     }
   }
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VectorsU32 {
     #[doc = " size: 8, offset: 0x0, type: `vec2<u32>`"]
-    pub a: [u32; 2],
-    pub _pad_a: [u8; 0x10 - ::core::mem::size_of::<[u32; 2]>()],
+    pub a: glam::UVec2,
+    pub _pad_a: [u8; 0x8],
     #[doc = " size: 12, offset: 0x10, type: `vec3<u32>`"]
-    pub b: [u32; 4],
+    pub b: glam::UVec3,
+    pub _pad_b: [u8; 0x4],
     #[doc = " size: 16, offset: 0x20, type: `vec4<u32>`"]
-    pub c: [u32; 4],
+    pub c: glam::UVec4,
     #[doc = " size: 4, offset: 0x30, type: `f32`"]
     pub _padding: f32,
-    pub _pad__padding: [u8; 0x10 - ::core::mem::size_of::<f32>()],
+    pub _pad__padding: [u8; 0xC],
   }
   impl VectorsU32 {
-    pub const fn new(a: [u32; 2], b: [u32; 4], c: [u32; 4], _padding: f32) -> Self {
+    pub const fn new(
+      a: glam::UVec2,
+      b: glam::UVec3,
+      c: glam::UVec4,
+      _padding: f32,
+    ) -> Self {
       Self {
         a,
-        _pad_a: [0; 0x10 - ::core::mem::size_of::<[u32; 2]>()],
+        _pad_a: [0; 0x8],
         b,
+        _pad_b: [0; 0x4],
         c,
         _padding,
-        _pad__padding: [0; 0x10 - ::core::mem::size_of::<f32>()],
+        _pad__padding: [0; 0xC],
       }
     }
   }
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VectorsU32Init {
-    pub a: [u32; 2],
-    pub b: [u32; 4],
-    pub c: [u32; 4],
+    pub a: glam::UVec2,
+    pub b: glam::UVec3,
+    pub c: glam::UVec4,
     pub _padding: f32,
   }
   impl VectorsU32Init {
     pub const fn build(&self) -> VectorsU32 {
       VectorsU32 {
         a: self.a,
-        _pad_a: [0; 0x10 - ::core::mem::size_of::<[u32; 2]>()],
+        _pad_a: [0; 0x8],
         b: self.b,
+        _pad_b: [0; 0x4],
         c: self.c,
         _padding: self._padding,
-        _pad__padding: [0; 0x10 - ::core::mem::size_of::<f32>()],
+        _pad__padding: [0; 0xC],
       }
     }
   }
@@ -191,19 +243,21 @@ pub mod layouts {
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VectorsI32 {
     #[doc = " size: 8, offset: 0x0, type: `vec2<i32>`"]
-    pub a: [i32; 2],
-    pub _pad_a: [u8; 0x10 - ::core::mem::size_of::<[i32; 2]>()],
+    pub a: glam::IVec2,
+    pub _pad_a: [u8; 0x8],
     #[doc = " size: 12, offset: 0x10, type: `vec3<i32>`"]
-    pub b: [i32; 4],
+    pub b: glam::IVec3,
+    pub _pad_b: [u8; 0x4],
     #[doc = " size: 16, offset: 0x20, type: `vec4<i32>`"]
-    pub c: [i32; 4],
+    pub c: glam::IVec4,
   }
   impl VectorsI32 {
-    pub const fn new(a: [i32; 2], b: [i32; 4], c: [i32; 4]) -> Self {
+    pub const fn new(a: glam::IVec2, b: glam::IVec3, c: glam::IVec4) -> Self {
       Self {
         a,
-        _pad_a: [0; 0x10 - ::core::mem::size_of::<[i32; 2]>()],
+        _pad_a: [0; 0x8],
         b,
+        _pad_b: [0; 0x4],
         c,
       }
     }
@@ -211,16 +265,17 @@ pub mod layouts {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VectorsI32Init {
-    pub a: [i32; 2],
-    pub b: [i32; 4],
-    pub c: [i32; 4],
+    pub a: glam::IVec2,
+    pub b: glam::IVec3,
+    pub c: glam::IVec4,
   }
   impl VectorsI32Init {
     pub const fn build(&self) -> VectorsI32 {
       VectorsI32 {
         a: self.a,
-        _pad_a: [0; 0x10 - ::core::mem::size_of::<[i32; 2]>()],
+        _pad_a: [0; 0x8],
         b: self.b,
+        _pad_b: [0; 0x4],
         c: self.c,
       }
     }
@@ -234,19 +289,21 @@ pub mod layouts {
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VectorsF32 {
     #[doc = " size: 8, offset: 0x0, type: `vec2<f32>`"]
-    pub a: [f32; 2],
-    pub _pad_a: [u8; 0x10 - ::core::mem::size_of::<[f32; 2]>()],
+    pub a: glam::Vec2,
+    pub _pad_a: [u8; 0x8],
     #[doc = " size: 12, offset: 0x10, type: `vec3<f32>`"]
-    pub b: glam::Vec3A,
+    pub b: glam::Vec3,
+    pub _pad_b: [u8; 0x4],
     #[doc = " size: 16, offset: 0x20, type: `vec4<f32>`"]
     pub c: glam::Vec4,
   }
   impl VectorsF32 {
-    pub const fn new(a: [f32; 2], b: glam::Vec3A, c: glam::Vec4) -> Self {
+    pub const fn new(a: glam::Vec2, b: glam::Vec3, c: glam::Vec4) -> Self {
       Self {
         a,
-        _pad_a: [0; 0x10 - ::core::mem::size_of::<[f32; 2]>()],
+        _pad_a: [0; 0x8],
         b,
+        _pad_b: [0; 0x4],
         c,
       }
     }
@@ -254,16 +311,17 @@ pub mod layouts {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VectorsF32Init {
-    pub a: [f32; 2],
-    pub b: glam::Vec3A,
+    pub a: glam::Vec2,
+    pub b: glam::Vec3,
     pub c: glam::Vec4,
   }
   impl VectorsF32Init {
     pub const fn build(&self) -> VectorsF32 {
       VectorsF32 {
         a: self.a,
-        _pad_a: [0; 0x10 - ::core::mem::size_of::<[f32; 2]>()],
+        _pad_a: [0; 0x8],
         b: self.b,
+        _pad_b: [0; 0x4],
         c: self.c,
       }
     }
@@ -288,13 +346,13 @@ pub mod layouts {
     pub e: glam::Mat3A,
     #[doc = " size: 24, offset: 0x100, type: `mat3x2<f32>`"]
     pub f: [[f32; 2]; 3],
-    pub _pad_f: [u8; 0x20 - ::core::mem::size_of::<[[f32; 2]; 3]>()],
+    pub _pad_f: [u8; 0x8],
     #[doc = " size: 32, offset: 0x120, type: `mat2x4<f32>`"]
     pub g: [[f32; 4]; 2],
     #[doc = " size: 32, offset: 0x140, type: `mat2x3<f32>`"]
     pub h: [[f32; 4]; 2],
     #[doc = " size: 16, offset: 0x160, type: `mat2x2<f32>`"]
-    pub i: [[f32; 2]; 2],
+    pub i: glam::Mat2,
   }
   impl MatricesF32 {
     pub const fn new(
@@ -306,7 +364,7 @@ pub mod layouts {
       f: [[f32; 2]; 3],
       g: [[f32; 4]; 2],
       h: [[f32; 4]; 2],
-      i: [[f32; 2]; 2],
+      i: glam::Mat2,
     ) -> Self {
       Self {
         a,
@@ -315,7 +373,7 @@ pub mod layouts {
         d,
         e,
         f,
-        _pad_f: [0; 0x20 - ::core::mem::size_of::<[[f32; 2]; 3]>()],
+        _pad_f: [0; 0x8],
         g,
         h,
         i,
@@ -333,7 +391,7 @@ pub mod layouts {
     pub f: [[f32; 2]; 3],
     pub g: [[f32; 4]; 2],
     pub h: [[f32; 4]; 2],
-    pub i: [[f32; 2]; 2],
+    pub i: glam::Mat2,
   }
   impl MatricesF32Init {
     pub const fn build(&self) -> MatricesF32 {
@@ -344,7 +402,7 @@ pub mod layouts {
         d: self.d,
         e: self.e,
         f: self.f,
-        _pad_f: [0; 0x20 - ::core::mem::size_of::<[[f32; 2]; 3]>()],
+        _pad_f: [0; 0x8],
         g: self.g,
         h: self.h,
         i: self.i,
@@ -361,61 +419,21 @@ pub mod layouts {
   pub struct StaticArrays {
     #[doc = " size: 20, offset: 0x0, type: `array<u32, 5>`"]
     pub a: [u32; 5],
-    pub _pad_a: [u8; 0x14 - ::core::mem::size_of::<[u32; 5]>()],
     #[doc = " size: 12, offset: 0x14, type: `array<f32, 3>`"]
     pub b: [f32; 3],
-    pub _pad_b: [u8; 0xC - ::core::mem::size_of::<[f32; 3]>()],
     #[doc = " size: 32768, offset: 0x20, type: `array<mat4x4<f32>, 512>`"]
     pub c: [glam::Mat4; 512],
-    pub _pad_c: [u8; 0x8000 - ::core::mem::size_of::<[glam::Mat4; 512]>()],
     #[doc = " size: 64, offset: 0x8020, type: `array<vec3<f32>, 4>`"]
-    pub d: [glam::Vec3A; 4],
-    pub _pad_d: [u8; 0x40 - ::core::mem::size_of::<[glam::Vec3A; 4]>()],
+    pub d: [(glam::Vec3, [u8; 0x4]); 4],
   }
   impl StaticArrays {
     pub const fn new(
       a: [u32; 5],
       b: [f32; 3],
       c: [glam::Mat4; 512],
-      d: [glam::Vec3A; 4],
+      d: [(glam::Vec3, [u8; 0x4]); 4],
     ) -> Self {
-      Self {
-        a,
-        _pad_a: [0; 0x14 - ::core::mem::size_of::<[u32; 5]>()],
-        b,
-        _pad_b: [0; 0xC - ::core::mem::size_of::<[f32; 3]>()],
-        c,
-        _pad_c: [0; 0x8000 - ::core::mem::size_of::<[glam::Mat4; 512]>()],
-        d,
-        _pad_d: [0; 0x40 - ::core::mem::size_of::<[glam::Vec3A; 4]>()],
-      }
-    }
-  }
-  #[repr(C)]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct StaticArraysInit {
-    pub a: [u32; 5],
-    pub b: [f32; 3],
-    pub c: [glam::Mat4; 512],
-    pub d: [glam::Vec3A; 4],
-  }
-  impl StaticArraysInit {
-    pub const fn build(&self) -> StaticArrays {
-      StaticArrays {
-        a: self.a,
-        _pad_a: [0; 0x14 - ::core::mem::size_of::<[u32; 5]>()],
-        b: self.b,
-        _pad_b: [0; 0xC - ::core::mem::size_of::<[f32; 3]>()],
-        c: self.c,
-        _pad_c: [0; 0x8000 - ::core::mem::size_of::<[glam::Mat4; 512]>()],
-        d: self.d,
-        _pad_d: [0; 0x40 - ::core::mem::size_of::<[glam::Vec3A; 4]>()],
-      }
-    }
-  }
-  impl From<StaticArraysInit> for StaticArrays {
-    fn from(data: StaticArraysInit) -> Self {
-      data.build()
+      Self { a, b, c, d }
     }
   }
   #[repr(C, align(16))]

@@ -46,6 +46,7 @@ struct State {
   start_time: Instant,
   global_time_buffer: wgpu::Buffer,
   global_bind_group: shader_bindings::global_bindings::WgpuBindGroup0,
+  mouse_pos: glam::Vec2, // Mouse position in screen coordinates (-1 to 1)
 }
 
 impl State {
@@ -103,11 +104,20 @@ impl State {
       .unwrap();
     surface.configure(&device, &config);
 
-    // Create global time buffer and bind group
+    // Create global uniforms buffer and bind group
+    let scale_factor = window.scale_factor() as f32;
+    let frame_size = glam::Vec2::new(size.width as f32, size.height as f32);
+    let global_uniforms = shader_bindings::global_bindings::GlobalUniforms::new(
+      0.0, // time
+      scale_factor,
+      frame_size,
+      glam::Vec2::new(0.0, 0.0), // initial mouse position
+    );
+
     let global_time_buffer =
       device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("global time buffer"),
-        contents: bytemuck::cast_slice(&[0.0f32]),
+        label: Some("global uniforms buffer"),
+        contents: bytemuck::cast_slice(&[global_uniforms]),
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
       });
 
@@ -116,7 +126,7 @@ impl State {
         &device,
         shader_bindings::global_bindings::WgpuBindGroup0Entries::new(
           shader_bindings::global_bindings::WgpuBindGroup0EntriesParams {
-            time: global_time_buffer.as_entire_buffer_binding(),
+            globals: global_time_buffer.as_entire_buffer_binding(),
           },
         ),
       );
@@ -150,6 +160,7 @@ impl State {
       start_time: Instant::now(),
       global_time_buffer,
       global_bind_group,
+      mouse_pos: glam::Vec2::new(0.0, 0.0),
     }
   }
 
@@ -159,6 +170,43 @@ impl State {
       self.config.width = new_size.width;
       self.config.height = new_size.height;
       self.surface.configure(&self.device, &self.config);
+
+      // Update global uniforms with new frame size immediately
+      let elapsed = self.start_time.elapsed().as_secs_f32();
+      let scale_factor = self.window.scale_factor() as f32;
+      let frame_size = glam::Vec2::new(new_size.width as f32, new_size.height as f32);
+      let global_uniforms = shader_bindings::global_bindings::GlobalUniforms::new(
+        elapsed,
+        scale_factor,
+        frame_size,
+        self.mouse_pos,
+      );
+
+      self.queue.write_buffer(
+        &self.global_time_buffer,
+        0,
+        bytemuck::cast_slice(&[global_uniforms]),
+      );
+    }
+  }
+
+  pub fn update_mouse_position(&mut self, position: winit::dpi::PhysicalPosition<f64>) {
+    // Convert to normalized screen coordinates (-1 to 1)
+    let x = (position.x as f32 / self.size.width as f32) * 2.0 - 1.0;
+    let y = 1.0 - (position.y as f32 / self.size.height as f32) * 2.0; // Flip Y coordinate
+    self.mouse_pos = glam::Vec2::new(x, y);
+
+    // Debug: print occasionally to verify mouse updates
+    static mut COUNTER: u32 = 0;
+    unsafe {
+      COUNTER += 1;
+      if COUNTER % 60 == 0 {
+        // Print every 60 mouse moves
+        println!(
+          "Mouse: physical=({:.0}, {:.0}) window_size=({}, {}) normalized=({:.2}, {:.2})",
+          position.x, position.y, self.size.width, self.size.height, x, y
+        );
+      }
     }
   }
 
@@ -171,15 +219,42 @@ impl State {
     // Calculate elapsed time in seconds
     let elapsed = self.start_time.elapsed().as_secs_f32();
 
-    // Update global time buffer
+    // Update global uniforms buffer
+    let scale_factor = self.window.scale_factor() as f32;
+    let frame_size = glam::Vec2::new(self.size.width as f32, self.size.height as f32);
+    let global_uniforms = shader_bindings::global_bindings::GlobalUniforms::new(
+      elapsed,
+      scale_factor,
+      frame_size,
+      self.mouse_pos,
+    );
+
+    // Debug: occasionally print what we're sending to GPU
+    static mut RENDER_COUNTER: u32 = 0;
+    unsafe {
+      RENDER_COUNTER += 1;
+      if RENDER_COUNTER % 180 == 0 {
+        // Print every 3 seconds at 60fps
+        println!(
+          "GPU uniforms: mouse=({:.2}, {:.2}) frame_size=({:.0}, {:.0})",
+          self.mouse_pos.x, self.mouse_pos.y, frame_size.x, frame_size.y
+        );
+      }
+    }
+
     self.queue.write_buffer(
       &self.global_time_buffer,
       0,
-      bytemuck::cast_slice(&[elapsed]),
+      bytemuck::cast_slice(&[global_uniforms]),
     );
 
-    // Update current demo
-    self.demo_manager.update(&self.device, &self.queue, elapsed);
+    // Update current demo with context
+    let context = demos::DemoContext {
+      elapsed_time: elapsed,
+      mouse_pos: self.mouse_pos,
+      frame_size,
+    };
+    self.demo_manager.update(&self.device, &self.queue, context);
 
     let mut encoder =
       self
@@ -337,6 +412,10 @@ impl ApplicationHandler<()> for App {
         }
         WindowEvent::Resized(physical_size) => {
           state.resize(physical_size);
+          state.window.request_redraw();
+        }
+        WindowEvent::CursorMoved { position, .. } => {
+          state.update_mouse_position(position);
           state.window.request_redraw();
         }
         WindowEvent::ScaleFactorChanged { .. } => {}

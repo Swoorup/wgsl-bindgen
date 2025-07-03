@@ -91,11 +91,17 @@ impl Demo for FullscreenEffectsDemo {
       ),
     );
 
-    // Create local time buffer and global bind group for this demo
+    // Create local global uniforms buffer and bind group for this demo
     // This allows us to include the global bind group in the cached render bundle
+    let global_uniforms = shader_bindings::global_bindings::GlobalUniforms::new(
+      0.0,                           // time
+      1.0,                           // scale_factor - will be updated
+      glam::Vec2::new(800.0, 600.0), // frame_size - will be updated
+      glam::Vec2::new(0.0, 0.0),     // mouse_pos - will be updated
+    );
     let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-      label: Some("Fullscreen Effects Time Buffer"),
-      contents: bytemuck::cast_slice(&[0.0f32]),
+      label: Some("Fullscreen Effects Global Uniforms Buffer"),
+      contents: bytemuck::cast_slice(&[global_uniforms]),
       usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
@@ -103,7 +109,7 @@ impl Demo for FullscreenEffectsDemo {
       shader_bindings::global_bindings::WgpuBindGroup0::from_bindings(
         device,
         WgpuBindGroup0Entries::new(WgpuBindGroup0EntriesParams {
-          time: time_buffer.as_entire_buffer_binding(),
+          globals: time_buffer.as_entire_buffer_binding(),
         }),
       );
 
@@ -111,15 +117,9 @@ impl Demo for FullscreenEffectsDemo {
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("vertex buffer"),
       contents: bytemuck::cast_slice(&[
-        shader_bindings::fullscreen_effects::VertexInput(
-          glam::vec3(-1.0, -1.0, 0.0).into(),
-        ),
-        shader_bindings::fullscreen_effects::VertexInput(
-          glam::vec3(3.0, -1.0, 0.0).into(),
-        ),
-        shader_bindings::fullscreen_effects::VertexInput(
-          glam::vec3(-1.0, 3.0, 0.0).into(),
-        ),
+        shader_bindings::fullscreen_effects::VertexInput(glam::vec3(-1.0, -1.0, 0.0)),
+        shader_bindings::fullscreen_effects::VertexInput(glam::vec3(3.0, -1.0, 0.0)),
+        shader_bindings::fullscreen_effects::VertexInput(glam::vec3(-1.0, 3.0, 0.0)),
       ]),
       usage: wgpu::BufferUsages::VERTEX,
     });
@@ -144,10 +144,21 @@ impl Demo for FullscreenEffectsDemo {
     "Fullscreen shader with ripple effects, color shifting, and vignette"
   }
 
-  fn update(&mut self, _device: &wgpu::Device, queue: &wgpu::Queue, elapsed_time: f32) {
-    // Update our local time buffer with the current time
+  fn update(
+    &mut self,
+    _device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    context: super::DemoContext,
+  ) {
+    // Update our local global uniforms buffer with the current time
     // The render bundle contains a static reference to this buffer
-    queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[elapsed_time]));
+    let global_uniforms = shader_bindings::global_bindings::GlobalUniforms::new(
+      context.elapsed_time,
+      1.0,                // scale_factor - approximation
+      context.frame_size, // Use actual frame size from context
+      context.mouse_pos,  // mouse_pos - now available through context
+    );
+    queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[global_uniforms]));
   }
 
   fn render<'a>(

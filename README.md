@@ -229,7 +229,7 @@ fn setup_bind_group(device: &wgpu::Device, texture_view: &wgpu::TextureView, sam
 
 🎉 **That's it!** Your shader bindings are now fully type-safe and will automatically update when you modify your WGSL files.
 
-> 📚 **See the [example project](./example) for a complete working demo with multiple shaders, including advanced features like texture arrays and overlay rendering.**
+> 📚 **See the [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for a complete working demo with multiple shaders, including advanced features like texture arrays and overlay rendering.**
 
 ## 🔧 Advanced Configuration
 

@@ -6,21 +6,23 @@ source: wgsl_bindgen/src/structs.rs
 pub struct Input0 {
   #[doc = " size: 4, offset: 0x0, type: `u32`"]
   pub a: u32,
-  pub _pad_a: [u8; 0x8 - ::core::mem::size_of::<u32>()],
+  pub _pad_a: [u8; 0x4],
   #[doc = " size: 4, offset: 0x8, type: `i32`"]
   pub b: i32,
-  pub _pad_b: [u8; 0x18 - ::core::mem::size_of::<i32>()],
+  pub _pad_b: [u8; 0x14],
   #[doc = " size: 4, offset: 0x20, type: `f32`"]
   pub c: f32,
+  pub _pad_d: [u8; 0x1C],
 }
 impl Input0 {
   pub const fn new(a: u32, b: i32, c: f32) -> Self {
     Self {
       a,
-      _pad_a: [0; 0x8 - ::core::mem::size_of::<u32>()],
+      _pad_a: [0; 0x4],
       b,
-      _pad_b: [0; 0x18 - ::core::mem::size_of::<i32>()],
+      _pad_b: [0; 0x14],
       c,
+      _pad_d: [0; 0x1C],
     }
   }
 }
@@ -35,10 +37,11 @@ impl Input0Init {
   pub const fn build(&self) -> Input0 {
     Input0 {
       a: self.a,
-      _pad_a: [0; 0x8 - ::core::mem::size_of::<u32>()],
+      _pad_a: [0; 0x4],
       b: self.b,
-      _pad_b: [0; 0x18 - ::core::mem::size_of::<i32>()],
+      _pad_b: [0; 0x14],
       c: self.c,
+      _pad_d: [0; 0x1C],
     }
   }
 }
@@ -51,7 +54,7 @@ const INPUT0_ASSERTS: () = {
   assert!(std::mem::offset_of!(Input0, a) == 0);
   assert!(std::mem::offset_of!(Input0, b) == 8);
   assert!(std::mem::offset_of!(Input0, c) == 32);
-  assert!(std::mem::size_of::<Input0>() == 36);
+  assert!(std::mem::size_of::<Input0>() == 64);
 };
 unsafe impl bytemuck::Zeroable for Input0 {}
 unsafe impl bytemuck::Pod for Input0 {}
