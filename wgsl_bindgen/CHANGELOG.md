@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.19.1...wgsl_bindgen-v0.20.0) - 2025-07-03
+
+### Other
+
+- Fix old vec4 tests which should pass now
+- Fix issue #74
+- Refactor WGSL bindings to replace glam::Vec3A with glam::Vec3 and adjust padding
+- Fix test by skipping assertions related to built in fields in vertex buffer struct
+- Update readme
+- Disable compilation of broken compilation tests
+- Remove `HardCodedFilePathWithNagaOilComposer`
+- Handle visibility for shared bindings when using across multiple shader types. Fixes #27
+- Fix path on windows when generating the full path import
+- Add ComposerWithRelativePath to load shader dynamically
+- Added support for rust compilation
+
 ## [0.19.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.19.0...wgsl_bindgen-v0.19.1) - 2025-06-28
 
 ### Fixed
