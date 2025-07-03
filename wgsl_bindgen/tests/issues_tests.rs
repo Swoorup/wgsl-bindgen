@@ -164,3 +164,36 @@ fn test_vec3a_padding_overflow_issue() -> Result<()> {
   assert_rust_compilation!(parsed_output);
   Ok(())
 }
+
+#[test]
+fn test_duplicate_import_vertexinput_issue() -> Result<()> {
+  // This test reproduces the issue where importing the same VertexInput struct
+  // into multiple shader files causes "duplicate content found" error
+  println!("Testing duplicate import issue...");
+
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/duplicate_import_issue")
+    .add_entry_point("tests/shaders/duplicate_import_issue/shader1.wgsl")
+    .add_entry_point("tests/shaders/duplicate_import_issue/shader2.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/duplicate_import_issue.actual.rs")
+    .build()
+    .unwrap()
+    .generate_string()
+    .into_diagnostic()
+    .unwrap();
+
+  // For now, just check that we got some output - we'll refine assertions once we see what's generated
+  assert!(!actual.is_empty(), "Generated code should not be empty");
+
+  // Try to parse and compile
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_rust_compilation!(parsed_output);
+
+  Ok(())
+}

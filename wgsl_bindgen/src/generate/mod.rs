@@ -7,6 +7,7 @@ pub(crate) mod entry;
 pub(crate) mod pipeline;
 pub(crate) mod shader_module;
 pub(crate) mod shader_registry;
+pub(crate) mod vertex_input_collector;
 
 pub(crate) fn quote_naga_capabilities(
   capabilities: naga::valid::Capabilities,

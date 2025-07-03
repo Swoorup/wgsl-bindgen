@@ -81,17 +81,18 @@ pub fn vertex_format(ty: &naga::Type) -> wgpu::VertexFormat {
   }
 }
 
-pub struct VertexInput {
+pub struct VertexInput<'a> {
   pub item_path: RustSourceItemPath,
   pub fields: Vec<(u32, StructMember)>,
+  pub naga_module: &'a naga::Module,
 }
 
 // TODO: Handle errors.
 // Collect the necessary data to generate an equivalent Rust struct.
-pub fn get_vertex_input_structs(
+pub fn get_vertex_input_structs<'a>(
   invoking_entry_module: &str,
-  module: &naga::Module,
-) -> Vec<VertexInput> {
+  module: &'a naga::Module,
+) -> Vec<VertexInput<'a>> {
   // TODO: Handle multiple entries?
   module
     .entry_points
@@ -126,6 +127,7 @@ pub fn get_vertex_input_structs(
                     Some((location, member.clone()))
                   })
                   .collect(),
+                naga_module: module,
               };
 
               Some(input)
@@ -140,11 +142,11 @@ pub fn get_vertex_input_structs(
 }
 
 /// Get vertex input structs for a specific vertex entry point
-pub fn get_vertex_input_structs_for_entry_point(
+pub fn get_vertex_input_structs_for_entry_point<'a>(
   invoking_entry_module: &str,
-  module: &naga::Module,
+  module: &'a naga::Module,
   entry_point: &naga::EntryPoint,
-) -> Vec<VertexInput> {
+) -> Vec<VertexInput<'a>> {
   entry_point
     .function
     .arguments
@@ -173,6 +175,7 @@ pub fn get_vertex_input_structs_for_entry_point(
                 Some((location, member.clone()))
               })
               .collect(),
+            naga_module: module,
           };
 
           Some(input)
@@ -185,10 +188,10 @@ pub fn get_vertex_input_structs_for_entry_point(
 }
 
 /// Get all unique vertex input structs from all vertex entry points
-pub fn get_all_vertex_input_structs(
+pub fn get_all_vertex_input_structs<'a>(
   invoking_entry_module: &str,
-  module: &naga::Module,
-) -> Vec<VertexInput> {
+  module: &'a naga::Module,
+) -> Vec<VertexInput<'a>> {
   let mut all_inputs = Vec::new();
   let mut seen_types = std::collections::HashSet::new();
 
