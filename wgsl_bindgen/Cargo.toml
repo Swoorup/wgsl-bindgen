@@ -38,10 +38,12 @@ strum_macros.workspace = true
 pathdiff.workspace = true
 enumflags2.workspace = true
 heck.workspace = true
+glam = { workspace = true, optional = true }
+nalgebra = { version = "0.33", optional = true }
 
 [features]
 minify = []
-default = []
+default = ["glam"]
 
 # Note: wgsl-minifier currently has version conflicts with naga
 # [dependencies.wgsl-minifier]

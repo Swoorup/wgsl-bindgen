@@ -45,10 +45,26 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
@@ -69,14 +85,14 @@ pub mod minimal {
     pub color: glam::Vec4,
     #[doc = " size: 4, offset: 0x10, type: `f32`"]
     pub width: f32,
-    pub _pad_width: [u8; 0x10 - ::core::mem::size_of::<f32>()],
+    pub _pad_width: [u8; 0xC],
   }
   impl Uniforms {
     pub const fn new(color: glam::Vec4, width: f32) -> Self {
       Self {
         color,
         width,
-        _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
+        _pad_width: [0; 0xC],
       }
     }
   }
@@ -91,7 +107,7 @@ pub mod minimal {
       Uniforms {
         color: self.color,
         width: self.width,
-        _pad_width: [0; 0x10 - ::core::mem::size_of::<f32>()],
+        _pad_width: [0; 0xC],
       }
     }
   }

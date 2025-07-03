@@ -31,10 +31,26 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
@@ -46,10 +62,10 @@ pub mod multiple_vertex_shaders {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VertexInput {
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
   }
   impl VertexInput {
-    pub const fn new(position: glam::Vec3A) -> Self {
+    pub const fn new(position: glam::Vec3) -> Self {
       Self { position }
     }
   }
@@ -72,10 +88,10 @@ pub mod multiple_vertex_shaders {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct InstanceInput {
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
   }
   impl InstanceInput {
-    pub const fn new(position: glam::Vec3A) -> Self {
+    pub const fn new(position: glam::Vec3) -> Self {
       Self { position }
     }
   }

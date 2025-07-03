@@ -41,11 +41,11 @@ impl VectorsI32 {
 #[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
 pub struct VectorsF32 {
   pub a: glam::Vec2,
-  pub b: glam::Vec3A,
+  pub b: glam::Vec3,
   pub c: glam::Vec4,
 }
 impl VectorsF32 {
-  pub const fn new(a: glam::Vec2, b: glam::Vec3A, c: glam::Vec4) -> Self {
+  pub const fn new(a: glam::Vec2, b: glam::Vec3, c: glam::Vec4) -> Self {
     Self { a, b, c }
   }
 }

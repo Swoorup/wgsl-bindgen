@@ -55,10 +55,26 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
@@ -222,10 +238,10 @@ pub mod bevy_pbr {
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct MeshVertexOutput {
       pub world_position: glam::Vec4,
-      pub world_normal: glam::Vec3A,
+      pub world_normal: glam::Vec3,
     }
     impl MeshVertexOutput {
-      pub const fn new(world_position: glam::Vec4, world_normal: glam::Vec3A) -> Self {
+      pub const fn new(world_position: glam::Vec4, world_normal: glam::Vec3) -> Self {
         Self {
           world_position,
           world_normal,
@@ -254,7 +270,7 @@ pub mod bevy_pbr {
         pub flags: u32,
         #[doc = " size: 4, offset: 0x30, type: `f32`"]
         pub alpha_cutoff: f32,
-        pub _pad_alpha_cutoff: [u8; 0x10 - ::core::mem::size_of::<f32>()],
+        pub _pad_alpha_cutoff: [u8; 0xC],
       }
       impl StandardMaterial {
         pub const fn new(
@@ -274,7 +290,7 @@ pub mod bevy_pbr {
             reflectance,
             flags,
             alpha_cutoff,
-            _pad_alpha_cutoff: [0; 0x10 - ::core::mem::size_of::<f32>()],
+            _pad_alpha_cutoff: [0; 0xC],
           }
         }
       }
@@ -299,7 +315,7 @@ pub mod bevy_pbr {
             reflectance: self.reflectance,
             flags: self.flags,
             alpha_cutoff: self.alpha_cutoff,
-            _pad_alpha_cutoff: [0; 0x10 - ::core::mem::size_of::<f32>()],
+            _pad_alpha_cutoff: [0; 0xC],
           }
         }
       }
@@ -401,13 +417,12 @@ pub mod bevy_pbr {
       #[doc = " size: 64, offset: 0x140, type: `mat4x4<f32>`"]
       pub inverse_projection: glam::Mat4,
       #[doc = " size: 12, offset: 0x180, type: `vec3<f32>`"]
-      pub world_position: glam::Vec3A,
-      pub _pad_world_position: [u8; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
+      pub world_position: glam::Vec3,
       #[doc = " size: 4, offset: 0x18C, type: `f32`"]
       pub width: f32,
       #[doc = " size: 4, offset: 0x190, type: `f32`"]
       pub height: f32,
-      pub _pad_height: [u8; 0x10 - ::core::mem::size_of::<f32>()],
+      pub _pad_height: [u8; 0xC],
     }
     impl View {
       pub const fn new(
@@ -417,7 +432,7 @@ pub mod bevy_pbr {
         inverse_view: glam::Mat4,
         projection: glam::Mat4,
         inverse_projection: glam::Mat4,
-        world_position: glam::Vec3A,
+        world_position: glam::Vec3,
         width: f32,
         height: f32,
       ) -> Self {
@@ -429,10 +444,9 @@ pub mod bevy_pbr {
           projection,
           inverse_projection,
           world_position,
-          _pad_world_position: [0; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
           width,
           height,
-          _pad_height: [0; 0x10 - ::core::mem::size_of::<f32>()],
+          _pad_height: [0; 0xC],
         }
       }
     }
@@ -445,7 +459,7 @@ pub mod bevy_pbr {
       pub inverse_view: glam::Mat4,
       pub projection: glam::Mat4,
       pub inverse_projection: glam::Mat4,
-      pub world_position: glam::Vec3A,
+      pub world_position: glam::Vec3,
       pub width: f32,
       pub height: f32,
     }
@@ -459,10 +473,9 @@ pub mod bevy_pbr {
           projection: self.projection,
           inverse_projection: self.inverse_projection,
           world_position: self.world_position,
-          _pad_world_position: [0; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
           width: self.width,
           height: self.height,
-          _pad_height: [0; 0x10 - ::core::mem::size_of::<f32>()],
+          _pad_height: [0; 0xC],
         }
       }
     }
@@ -479,21 +492,20 @@ pub mod bevy_pbr {
       #[doc = " size: 16, offset: 0x40, type: `vec4<f32>`"]
       pub color: glam::Vec4,
       #[doc = " size: 12, offset: 0x50, type: `vec3<f32>`"]
-      pub direction_to_light: glam::Vec3A,
-      pub _pad_direction_to_light: [u8; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
+      pub direction_to_light: glam::Vec3,
       #[doc = " size: 4, offset: 0x5C, type: `u32`"]
       pub flags: u32,
       #[doc = " size: 4, offset: 0x60, type: `f32`"]
       pub shadow_depth_bias: f32,
       #[doc = " size: 4, offset: 0x64, type: `f32`"]
       pub shadow_normal_bias: f32,
-      pub _pad_shadow_normal_bias: [u8; 0xC - ::core::mem::size_of::<f32>()],
+      pub _pad_shadow_normal_bias: [u8; 0x8],
     }
     impl DirectionalLight {
       pub const fn new(
         view_projection: glam::Mat4,
         color: glam::Vec4,
-        direction_to_light: glam::Vec3A,
+        direction_to_light: glam::Vec3,
         flags: u32,
         shadow_depth_bias: f32,
         shadow_normal_bias: f32,
@@ -502,11 +514,10 @@ pub mod bevy_pbr {
           view_projection,
           color,
           direction_to_light,
-          _pad_direction_to_light: [0; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
           flags,
           shadow_depth_bias,
           shadow_normal_bias,
-          _pad_shadow_normal_bias: [0; 0xC - ::core::mem::size_of::<f32>()],
+          _pad_shadow_normal_bias: [0; 0x8],
         }
       }
     }
@@ -515,7 +526,7 @@ pub mod bevy_pbr {
     pub struct DirectionalLightInit {
       pub view_projection: glam::Mat4,
       pub color: glam::Vec4,
-      pub direction_to_light: glam::Vec3A,
+      pub direction_to_light: glam::Vec3,
       pub flags: u32,
       pub shadow_depth_bias: f32,
       pub shadow_normal_bias: f32,
@@ -526,11 +537,10 @@ pub mod bevy_pbr {
           view_projection: self.view_projection,
           color: self.color,
           direction_to_light: self.direction_to_light,
-          _pad_direction_to_light: [0; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
           flags: self.flags,
           shadow_depth_bias: self.shadow_depth_bias,
           shadow_normal_bias: self.shadow_normal_bias,
-          _pad_shadow_normal_bias: [0; 0xC - ::core::mem::size_of::<f32>()],
+          _pad_shadow_normal_bias: [0; 0x8],
         }
       }
     }
@@ -547,20 +557,20 @@ pub mod bevy_pbr {
       #[doc = " size: 16, offset: 0x70, type: `vec4<f32>`"]
       pub ambient_color: glam::Vec4,
       #[doc = " size: 16, offset: 0x80, type: `vec4<u32>`"]
-      pub cluster_dimensions: [u32; 4],
+      pub cluster_dimensions: glam::UVec4,
       #[doc = " size: 16, offset: 0x90, type: `vec4<f32>`"]
       pub cluster_factors: glam::Vec4,
       #[doc = " size: 4, offset: 0xA0, type: `u32`"]
       pub n_directional_lights: u32,
       #[doc = " size: 4, offset: 0xA4, type: `i32`"]
       pub spot_light_shadowmap_offset: i32,
-      pub _pad_spot_light_shadowmap_offset: [u8; 0xC - ::core::mem::size_of::<i32>()],
+      pub _pad_spot_light_shadowmap_offset: [u8; 0x8],
     }
     impl Lights {
       pub const fn new(
         directional_lights: [_root::bevy_pbr::mesh_view_types::DirectionalLight; 1],
         ambient_color: glam::Vec4,
-        cluster_dimensions: [u32; 4],
+        cluster_dimensions: glam::UVec4,
         cluster_factors: glam::Vec4,
         n_directional_lights: u32,
         spot_light_shadowmap_offset: i32,
@@ -572,7 +582,7 @@ pub mod bevy_pbr {
           cluster_factors,
           n_directional_lights,
           spot_light_shadowmap_offset,
-          _pad_spot_light_shadowmap_offset: [0; 0xC - ::core::mem::size_of::<i32>()],
+          _pad_spot_light_shadowmap_offset: [0; 0x8],
         }
       }
     }
@@ -581,7 +591,7 @@ pub mod bevy_pbr {
     pub struct LightsInit {
       pub directional_lights: [_root::bevy_pbr::mesh_view_types::DirectionalLight; 1],
       pub ambient_color: glam::Vec4,
-      pub cluster_dimensions: [u32; 4],
+      pub cluster_dimensions: glam::UVec4,
       pub cluster_factors: glam::Vec4,
       pub n_directional_lights: u32,
       pub spot_light_shadowmap_offset: i32,
@@ -595,7 +605,7 @@ pub mod bevy_pbr {
           cluster_factors: self.cluster_factors,
           n_directional_lights: self.n_directional_lights,
           spot_light_shadowmap_offset: self.spot_light_shadowmap_offset,
-          _pad_spot_light_shadowmap_offset: [0; 0xC - ::core::mem::size_of::<i32>()],
+          _pad_spot_light_shadowmap_offset: [0; 0x8],
         }
       }
     }
@@ -666,10 +676,10 @@ pub mod bevy_pbr {
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct ClusterOffsetsAndCounts<const N: usize> {
       #[doc = " size: 16, offset: 0x0, type: `array<vec4<u32>>`"]
-      pub data: [[u32; 4]; N],
+      pub data: [glam::UVec4; N],
     }
     impl<const N: usize> ClusterOffsetsAndCounts<N> {
-      pub const fn new(data: [[u32; 4]; N]) -> Self {
+      pub const fn new(data: [glam::UVec4; N]) -> Self {
         Self { data }
       }
     }
@@ -688,7 +698,7 @@ pub mod bevy_pbr {
       pub inverse_transpose_model: glam::Mat4,
       #[doc = " size: 4, offset: 0x80, type: `u32`"]
       pub flags: u32,
-      pub _pad_flags: [u8; 0x10 - ::core::mem::size_of::<u32>()],
+      pub _pad_flags: [u8; 0xC],
     }
     impl Mesh {
       pub const fn new(
@@ -700,7 +710,7 @@ pub mod bevy_pbr {
           model,
           inverse_transpose_model,
           flags,
-          _pad_flags: [0; 0x10 - ::core::mem::size_of::<u32>()],
+          _pad_flags: [0; 0xC],
         }
       }
     }
@@ -717,7 +727,7 @@ pub mod bevy_pbr {
           model: self.model,
           inverse_transpose_model: self.inverse_transpose_model,
           flags: self.flags,
-          _pad_flags: [0; 0x10 - ::core::mem::size_of::<u32>()],
+          _pad_flags: [0; 0xC],
         }
       }
     }

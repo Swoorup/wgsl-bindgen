@@ -14,7 +14,7 @@ use crate::quote_gen::{
   MOD_BYTEMUCK_IMPLS, MOD_STRUCT_ASSERTIONS,
 };
 use crate::{
-  sanitized_upper_snake_case, WgslBindgenOption, WgslTypeSerializeStrategy,
+  sanitized_upper_snake_case, WgslBindgenOption, WgslType, WgslTypeSerializeStrategy,
   WgslTypeVisibility,
 };
 
@@ -115,24 +115,33 @@ impl<'a> NagaToRustStructState<'a> {
         let pad_name = format!("_pad_{member_name}");
         let required_member_size = next_offset - current_offset;
 
-        match rust_type.aligned_size() {
-          Some(rust_type_size) if required_member_size == rust_type_size => None,
-          _ => {
-            let required_member_size = format!("0x{required_member_size:X}");
-            let member_size =
-              syn::parse_str::<TokenStream>(&required_member_size).unwrap();
+        // WGSL type size from naga (this is the true WGSL size)
+        let wgsl_type_size = member_naga_type.inner.size(naga_context) as usize;
 
-            let pad_name = Ident::new(&pad_name, Span::call_site());
-            let pad_size_tokens =
-              quote!(#member_size - ::core::mem::size_of::<#rust_type>());
+        // Calculate where the next field should be according to WGSL layout
+        // vs where Rust would naturally place it
+        let wgsl_field_end = current_offset + wgsl_type_size;
 
-            let padding = Padding {
-              pad_name,
-              pad_size_tokens,
-            };
+        if wgsl_field_end == next_offset {
+          // WGSL field ends exactly where the next field should start, no padding needed
+          None
+        } else if wgsl_field_end < next_offset {
+          // Next field starts after this field ends, add padding
+          let padding_size = next_offset - wgsl_field_end;
+          let pad_name = Ident::new(&pad_name, Span::call_site());
+          let padding_size_hex = format!("0x{padding_size:X}");
+          let pad_size_tokens = syn::parse_str::<TokenStream>(&padding_size_hex).unwrap();
 
-            Some(padding)
-          }
+          let padding = Padding {
+            pad_name,
+            pad_size_tokens,
+          };
+
+          Some(padding)
+        } else {
+          // wgsl_field_end > next_offset
+          // WGSL field extends beyond where next field should be
+          panic!("WGSL field extends beyond next field start: WGSL ends at {wgsl_field_end}, next starts at {next_offset}");
         }
       };
 
@@ -145,10 +154,33 @@ impl<'a> NagaToRustStructState<'a> {
       let is_builtin_field =
         matches!(naga_member.binding, Some(naga::Binding::BuiltIn(_)));
 
-      // Skip builtin fields entirely for all serialization strategies
-      // Builtin fields are GPU-provided values that are never part of user vertex buffer data
+      // For builtin fields, we need to add padding instead of the field itself
       if is_builtin_field {
-        // Skip this member entirely - don't add to state.members
+        // For builtin fields, calculate padding for the space the builtin field would occupy
+        if is_directly_sharable {
+          let current_offset = naga_member.offset as usize;
+          let next_offset = if state.index + 1 < naga_members.len() {
+            naga_members[state.index + 1].offset as usize
+          } else {
+            layout_size
+          };
+          let builtin_field_space = next_offset - current_offset;
+
+          if builtin_field_space > 0 {
+            let pad_name = format!("_pad_{member_name}");
+            let pad_name = Ident::new(&pad_name, Span::call_site());
+            let padding_size_hex = format!("0x{builtin_field_space:X}");
+            let pad_size_tokens =
+              syn::parse_str::<TokenStream>(&padding_size_hex).unwrap();
+
+            let padding = Padding {
+              pad_name,
+              pad_size_tokens,
+            };
+            state.members.push(RustStructMemberEntry::Padding(padding));
+          }
+        }
+
         state.index += 1;
         return state;
       }
@@ -520,6 +552,42 @@ impl<'a> RustStructBuilder<'a> {
     derives
   }
 
+  fn calculate_actual_struct_size(&self) -> usize {
+    let naga_context = self.naga_module.to_ctx();
+
+    // Find the last field and calculate struct size
+    let mut max_end = 0usize;
+
+    for (idx, entry) in self.members.iter().enumerate() {
+      match entry {
+        RustStructMemberEntry::Field(field) => {
+          let offset = field.naga_member.offset as usize;
+          let size = field.naga_type.inner.size(naga_context) as usize;
+          let field_end = offset + size;
+          max_end = max_end.max(field_end);
+        }
+        RustStructMemberEntry::Padding(_) => {
+          // Padding fields have already been calculated to fill gaps
+          // We'll find their size from the next field or end of struct
+          if idx + 1 < self.members.len() {
+            if let RustStructMemberEntry::Field(next_field) = &self.members[idx + 1] {
+              max_end = max_end.max(next_field.naga_member.offset as usize);
+            }
+          }
+        }
+      }
+    }
+
+    // If we didn't find any fields (shouldn't happen), use 0
+    if max_end == 0 {
+      return 0;
+    }
+
+    // Round up to struct alignment
+    let struct_alignment = self.layout.alignment;
+    struct_alignment.round_up(max_end as u32) as usize
+  }
+
   fn build_layout_assertion(
     &self,
     custom_alignment: Option<naga::proc::Alignment>,
@@ -534,28 +602,44 @@ impl<'a> RustStructBuilder<'a> {
       quote!(#fully_qualified_name)
     };
 
-    let assert_member_offsets: Vec<_> = self
-      .members
-      .iter()
-      .filter_map(|m| match m {
-        RustStructMemberEntry::Field(field) => Some(field),
-        RustStructMemberEntry::Padding(_) => None,
-      })
-      .map(|m| {
-        let m = m.naga_member;
-        let name = Ident::new(m.name.as_ref().unwrap(), Span::call_site());
-        let rust_offset = quote!(std::mem::offset_of!(#struct_name, #name));
-        let wgsl_offset = Index::from(m.offset as usize);
-        quote!(assert!(#rust_offset == #wgsl_offset);)
-      })
-      .collect();
+    // Calculate actual Rust struct offsets including padding fields
+    let mut assert_member_offsets = Vec::new();
+    let mut current_rust_offset = 0usize;
+
+    for m in &self.members {
+      match m {
+        RustStructMemberEntry::Field(field) => {
+          let name =
+            Ident::new(field.naga_member.name.as_ref().unwrap(), Span::call_site());
+          let rust_offset = quote!(std::mem::offset_of!(#struct_name, #name));
+
+          // Use the WGSL offset from naga, which is the correct expected offset
+          let expected_offset = Index::from(field.naga_member.offset as usize);
+
+          assert_member_offsets.push(quote!(assert!(#rust_offset == #expected_offset);));
+
+          // Don't need to track current_rust_offset since we use WGSL offsets directly
+        }
+        RustStructMemberEntry::Padding(_padding) => {
+          // Padding doesn't have assertions
+        }
+      }
+    }
 
     if self.is_directly_shareable() {
       // Assert that the Rust layout matches the WGSL layout.
       // Enable for bytemuck since it uses the Rust struct's memory layout.
+
+      // For bytemuck mode, use WGSL layout size since we add explicit padding for exact compatibility
+      let struct_size = if self.members.is_empty() {
+        0
+      } else {
+        // Use the WGSL struct layout size
+        self.layout.size as usize
+      };
       let struct_size = custom_alignment
-        .map(|alignment| alignment.round_up(self.layout.size))
-        .unwrap_or(self.layout.size) as usize;
+        .map(|alignment| alignment.round_up(struct_size as u32) as usize)
+        .unwrap_or(struct_size);
 
       let struct_size = Index::from(struct_size);
 

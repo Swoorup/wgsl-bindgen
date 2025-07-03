@@ -2,14 +2,22 @@ use std::time::Instant;
 use winit::event::KeyEvent;
 use winit::keyboard::{KeyCode, PhysicalKey};
 
+/// Context object containing parameters for demo updates
+#[derive(Debug, Clone, Copy)]
+pub struct DemoContext {
+  pub elapsed_time: f32,
+  pub mouse_pos: glam::Vec2,
+  pub frame_size: glam::Vec2,
+}
+
 pub mod fullscreen_effects_demo;
 pub mod gradient_triangle_demo;
-// pub mod particle_compute_demo; // TODO: Fix (#47)
+pub mod particle_compute_demo;
 pub mod texture_array_demo;
 
 pub use fullscreen_effects_demo::FullscreenEffectsDemo;
 pub use gradient_triangle_demo::GradientTriangleDemo;
-// pub use particle_compute_demo::ParticleComputeDemo;
+pub use particle_compute_demo::ParticleComputeDemo;
 pub use texture_array_demo::TextureArrayDemo;
 
 /// Trait for shader demos that can be rendered and controlled
@@ -30,7 +38,7 @@ pub trait Demo {
   fn description(&self) -> &'static str;
 
   /// Update the demo state (called every frame)
-  fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, elapsed_time: f32);
+  fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, context: DemoContext);
 
   /// Render the demo to the given render pass
   fn render<'a>(
@@ -66,7 +74,7 @@ impl DemoManager {
       Box::new(FullscreenEffectsDemo::new(device, queue, surface_format)),
       Box::new(TextureArrayDemo::new(device, queue, surface_format)),
       Box::new(GradientTriangleDemo::new(device, queue, surface_format)),
-      // Box::new(ParticleComputeDemo::new(device, queue, surface_format)),
+      Box::new(ParticleComputeDemo::new(device, queue, surface_format)),
     ];
 
     Self {
@@ -158,9 +166,9 @@ impl DemoManager {
     &mut self,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    elapsed_time: f32,
+    context: DemoContext,
   ) {
-    self.current_demo_mut().update(device, queue, elapsed_time);
+    self.current_demo_mut().update(device, queue, context);
   }
 
   pub fn render<'a>(

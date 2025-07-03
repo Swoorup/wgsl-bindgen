@@ -31,10 +31,10 @@ pub mod mixed_builtin_issue {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
   pub struct VertexInput {
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
   }
   impl VertexInput {
-    pub const fn new(position: glam::Vec3A) -> Self {
+    pub const fn new(position: glam::Vec3) -> Self {
       Self { position }
     }
   }

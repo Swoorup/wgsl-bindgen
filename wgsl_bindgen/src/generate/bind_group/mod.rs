@@ -269,7 +269,6 @@ mod tests {
   use crate::bind_group::raw_shader_bind_group::RawShaderEntryBindGroups;
 
   #[test]
-  #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
   fn bind_group_data_consecutive_bind_groups() {
     let source = indoc! {r#"
             @group(0) @binding(0) var<uniform> a: vec4<f32>;
@@ -296,7 +295,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
   fn bind_group_data_first_group_not_zero() {
     let source = indoc! {r#"
             @group(1) @binding(0) var<uniform> a: vec4<f32>;
@@ -318,7 +316,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
   fn bind_group_data_non_consecutive_bind_groups() {
     let source = indoc! {r#"
             @group(0) @binding(0) var<uniform> a: vec4<f32>;
@@ -367,7 +364,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
   fn bind_groups_module_compute() {
     let source = indoc! {r#"
             struct VertexInput0 {};
@@ -389,10 +385,14 @@ mod tests {
 
     let module = naga::front::wgsl::parse_str(source).unwrap();
     let options = WgslBindgenOption::default();
-    let bind_group_data =
-      get_bind_group_data_for_entry(&module, wgpu::ShaderStages::NONE, &options, "test")
-        .unwrap()
-        .bind_group_data;
+    let bind_group_data = get_bind_group_data_for_entry(
+      &module,
+      wgpu::ShaderStages::COMPUTE,
+      &options,
+      "test",
+    )
+    .unwrap()
+    .bind_group_data;
 
     let actual = generate_test_bind_groups_module(
       &bind_group_data,

@@ -7,6 +7,7 @@ pub(crate) mod entry;
 pub(crate) mod pipeline;
 pub(crate) mod shader_module;
 pub(crate) mod shader_registry;
+pub(crate) mod vertex_input_collector;
 
 pub(crate) fn quote_naga_capabilities(
   capabilities: naga::valid::Capabilities,
@@ -37,6 +38,9 @@ pub(crate) fn quote_shader_stages(shader_stages: wgpu::ShaderStages) -> TokenStr
     wgpu::ShaderStages::FRAGMENT => quote!(wgpu::ShaderStages::FRAGMENT),
     wgpu::ShaderStages::TASK => quote!(wgpu::ShaderStages::TASK),
     wgpu::ShaderStages::MESH => quote!(wgpu::ShaderStages::MESH),
+    _ if shader_stages.is_empty() => {
+      quote!(wgpu::ShaderStages::empty())
+    }
     _ if shader_stages == wgpu::ShaderStages::all() => {
       quote!(wgpu::ShaderStages::all())
     }
@@ -71,6 +75,9 @@ pub(crate) fn quote_shader_stages(shader_stages: wgpu::ShaderStages) -> TokenStr
         // We missed some bits, use from_bits_retain to preserve all information
         let bits = shader_stages.bits();
         quote!(wgpu::ShaderStages::from_bits_retain(#bits))
+      } else if stage_tokens.is_empty() {
+        // This shouldn't happen since we check for empty() earlier, but be safe
+        quote!(wgpu::ShaderStages::empty())
       } else if stage_tokens.len() == 1 {
         stage_tokens[0].clone()
       } else {

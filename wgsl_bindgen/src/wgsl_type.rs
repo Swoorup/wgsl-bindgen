@@ -103,11 +103,13 @@ where
   WgslType: From<T>,
 {
   fn get_mapped_type(&self, type_map: &WgslTypeMap) -> Option<RustTypeInfo> {
-    let (alignment_width, size) = self.alignment_and_size();
+    let (_, size) = self.alignment_and_size();
+
     let wgsl_ty = WgslType::from(*self);
-    let ty = type_map.get(&wgsl_ty)?.clone();
-    let alignment = naga::proc::Alignment::from_width(alignment_width);
-    Some(RustTypeInfo(ty, size, alignment))
+    let type_info = type_map.get(&wgsl_ty)?;
+    let alignment = naga::proc::Alignment::from_width(type_info.alignment as u8);
+
+    Some(RustTypeInfo(type_info.quoted_type.clone(), size, alignment))
   }
 }
 
@@ -131,8 +133,9 @@ impl WgslType {
       WgslType::Vector(vec_ty) => vec_ty.get_mapped_type(type_map),
       WgslType::Matrix(mat_ty) => mat_ty.get_mapped_type(type_map),
       WgslType::Struct { .. } => {
-        let ty = type_map.get(self)?.clone();
-        Some(RustTypeInfo(ty, size, alignment))
+        let type_info = type_map.get(self)?;
+        // For structs, use the provided size and alignment as they come from the actual struct layout
+        Some(RustTypeInfo(type_info.quoted_type.clone(), size, alignment))
       }
     }
   }

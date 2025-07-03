@@ -256,6 +256,8 @@ fn create_rust_bindings(
 
   // === PHASE 1: Generate basic components for each shader ===
   let mut all_shader_bind_groups = RawShadersBindGroups::new(options);
+  let mut all_shader_vertex_inputs =
+    generate::vertex_input_collector::RawShadersVertexInputs::new();
   for entry in entries.iter() {
     let WgslEntryResult {
       mod_name,
@@ -269,8 +271,13 @@ fn create_rust_bindings(
     mod_builder
       .add(mod_name, consts::pipeline_overridable_constants(naga_module, options));
 
-    // Generate vertex buffer layouts and implementations
-    mod_builder.add_items(vertex_struct_impls(mod_name, naga_module))?;
+    // Collect vertex input structs (moved to Phase 2 for global deduplication)
+    let shader_vertex_inputs =
+      generate::vertex_input_collector::RawShadersVertexInputs::from_module(
+        mod_name,
+        naga_module,
+      );
+    all_shader_vertex_inputs.add(shader_vertex_inputs);
 
     // Generate shader module creation functions
     mod_builder.add(
@@ -294,10 +301,14 @@ fn create_rust_bindings(
     all_shader_bind_groups.add(shader_bind_groups);
   }
 
-  // === PHASE 2: Analyze and generate reusable bind groups ===
+  // === PHASE 2: Analyze and generate reusable components ===
   let reusable_bind_groups = all_shader_bind_groups.create_reusable_shader_bind_groups();
   let bind_groups = reusable_bind_groups.generate_bind_groups(options);
   mod_builder.add_items(bind_groups)?;
+
+  // Generate globally deduplicated vertex input implementations
+  let vertex_input_impls = all_shader_vertex_inputs.generate_vertex_input_impls();
+  mod_builder.add_items(vertex_input_impls)?;
 
   // === PHASE 3: Generate pipeline layouts and final shader modules ===
   for entry in entries.iter() {
@@ -474,7 +485,6 @@ mod test {
   }
 
   #[test]
-  #[ignore = "TODO: Failing due to unhandled BindingType for vec4<f32> like cases"]
   fn create_shader_module_non_consecutive_bind_groups() {
     let source = indoc! {r#"
             @group(0) @binding(0) var<uniform> a: vec4<f32>;

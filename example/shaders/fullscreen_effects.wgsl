@@ -1,5 +1,5 @@
 // Fullscreen effects shader with ripple and color effects
-#import global_bindings::time
+#import global_bindings::get_time
 
 @group(1) @binding(0) var main_texture: texture_2d<f32>;
 @group(1) @binding(1) var main_sampler: sampler;
@@ -49,7 +49,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let color = textureSample(main_texture, main_sampler, uv).rgb;
   
   // Simple time variable from global bindings
-  let t = time * 0.5;
+  let t = get_time() * 0.5;
   
   // Create a simple ripple effect from the center - adjusted for low res
   let center = vec2<f32>(0.5, 0.5);

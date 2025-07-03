@@ -17,9 +17,9 @@ impl Demo for GradientTriangleDemo {
   ) -> Self {
     // Create vertex data - classic RGB triangle gradient
     let vertices = &[
-      VertexInput(Vec3::new(-0.5, -0.5, 0.0).into(), 1), // Bottom left - Red
-      VertexInput(Vec3::new(0.5, -0.5, 0.0).into(), 2),  // Bottom right - Green
-      VertexInput(Vec3::new(0.0, 0.5, 0.0).into(), 3),   // Top - Blue
+      VertexInput(Vec3::new(-0.5, -0.5, 0.0), 1), // Bottom left - Red
+      VertexInput(Vec3::new(0.5, -0.5, 0.0), 2),  // Bottom right - Green
+      VertexInput(Vec3::new(0.0, 0.5, 0.0), 3),   // Top - Blue
     ];
 
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -87,7 +87,12 @@ impl Demo for GradientTriangleDemo {
     "Classic RGB gradient triangle demonstrating vertex attribute interpolation.\nEach vertex has a texture_id (1=Red, 2=Green, 3=Blue) that gets\ninterpolated across the triangle to create a smooth color gradient."
   }
 
-  fn update(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _elapsed_time: f32) {
+  fn update(
+    &mut self,
+    _device: &wgpu::Device,
+    _queue: &wgpu::Queue,
+    _context: super::DemoContext,
+  ) {
     // No updates needed for this static demo
   }
 

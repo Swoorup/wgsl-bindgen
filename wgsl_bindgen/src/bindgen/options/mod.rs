@@ -56,8 +56,6 @@ impl From<(Option<&str>, &str)> for AdditionalScanDirectory {
   }
 }
 
-pub type WgslTypeMap = FastIndexMap<WgslType, TokenStream>;
-
 /// A trait for building `WgslType` to `TokenStream` map.
 ///
 /// This map is used to convert built-in WGSL types into their corresponding
@@ -89,13 +87,16 @@ pub struct OverrideStruct {
   pub from: String,
   /// fully qualified struct name in your crate, eg: `crate::fp64::Fp64`
   pub to: TokenStream,
+  /// the alignment of the struct in bytes, this is used to ensure that the struct is aligned correctly
+  pub alignment: usize,
 }
 
-impl From<(&str, TokenStream)> for OverrideStruct {
-  fn from((from, to): (&str, TokenStream)) -> Self {
+impl From<(&str, TokenStream, usize)> for OverrideStruct {
+  fn from((from, to, alignment): (&str, TokenStream, usize)) -> Self {
     OverrideStruct {
       from: from.to_owned(),
       to,
+      alignment,
     }
   }
 }
@@ -328,12 +329,20 @@ impl WgslBindgenOptionBuilder {
       .override_struct
       .iter()
       .flatten()
-      .map(|mapping| {
-        let wgsl_type = WgslType::Struct {
-          fully_qualified_name: mapping.from.clone(),
-        };
-        (wgsl_type, mapping.to.clone())
-      })
+      .map(
+        |OverrideStruct {
+           from,
+           to,
+           alignment,
+         }| {
+          let wgsl_type = WgslType::Struct {
+            fully_qualified_name: from.clone(),
+          };
+          // For struct overrides, we don't know the exact size/alignment, so use placeholders
+          // These will be calculated later when the struct is actually used
+          (wgsl_type, WgslTypeInfo::new(to.clone(), *alignment))
+        },
+      )
       .collect::<FastIndexMap<_, _>>();
 
     self.type_map(struct_mappings);

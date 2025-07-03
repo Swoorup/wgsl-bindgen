@@ -5,9 +5,9 @@ source: wgsl_bindgen/src/structs.rs
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Uniform {
   #[doc = " size: 8, offset: 0x0, type: `vec2<f32>`"]
-  pub position_data: [f32; 2],
+  pub position_data: glam::Vec2,
 }
-pub const fn Uniform(position_data: [f32; 2]) -> Uniform {
+pub const fn Uniform(position_data: glam::Vec2) -> Uniform {
   Uniform { position_data }
 }
 const UNIFORM_ASSERTS: () = {

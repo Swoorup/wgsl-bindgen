@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.19.1
 // Changes made to this file will not be saved.
-// SourceHash: 3fcdbf73c7230ef0c2848225032097a187854f292a9509a122a5ae760c291d82
+// SourceHash: af2e709210b0549ab680b9bb7ee6bf29db500aab9f3b9bc5eb5c4d0a0efa5a18
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -11,6 +11,8 @@ pub enum ShaderEntry {
   SimpleArrayDemo,
   Overlay,
   GradientTriangle,
+  ParticlePhysics,
+  ParticleRenderer,
 }
 impl ShaderEntry {
   pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
@@ -19,6 +21,8 @@ impl ShaderEntry {
       Self::SimpleArrayDemo => simple_array_demo::create_pipeline_layout(device),
       Self::Overlay => overlay::create_pipeline_layout(device),
       Self::GradientTriangle => gradient_triangle::create_pipeline_layout(device),
+      Self::ParticlePhysics => particle_physics::create_pipeline_layout(device),
+      Self::ParticleRenderer => particle_renderer::create_pipeline_layout(device),
     }
   }
   pub fn create_shader_module_relative_path(
@@ -58,6 +62,20 @@ impl ShaderEntry {
         shader_defs,
         load_file,
       ),
+      Self::ParticlePhysics => particle_physics::create_shader_module_relative_path(
+        device,
+        base_dir,
+        *self,
+        shader_defs,
+        load_file,
+      ),
+      Self::ParticleRenderer => particle_renderer::create_shader_module_relative_path(
+        device,
+        base_dir,
+        *self,
+        shader_defs,
+        load_file,
+      ),
     }
   }
   pub fn relative_path(&self) -> &'static str {
@@ -66,6 +84,8 @@ impl ShaderEntry {
       Self::SimpleArrayDemo => simple_array_demo::SHADER_ENTRY_PATH,
       Self::Overlay => overlay::SHADER_ENTRY_PATH,
       Self::GradientTriangle => gradient_triangle::SHADER_ENTRY_PATH,
+      Self::ParticlePhysics => particle_physics::SHADER_ENTRY_PATH,
+      Self::ParticleRenderer => particle_renderer::SHADER_ENTRY_PATH,
     }
   }
 }
@@ -123,22 +143,10 @@ mod _root {
           if import_path.starts_with('/') || import_path.starts_with('\\') {
             format!("{base_dir}{import_path}")
           } else {
-            let current_dir = std::path::Path::new(current_path)
-              .parent()
-              .and_then(|p| p.to_str())
-              .unwrap_or("");
-            if current_dir.is_empty() {
-              std::path::Path::new(base_dir)
-                .join(import_path)
-                .display()
-                .to_string()
-            } else {
-              std::path::Path::new(base_dir)
-                .join(current_dir)
-                .join(import_path)
-                .display()
-                .to_string()
-            }
+            std::path::Path::new(base_dir)
+              .join(import_path)
+              .display()
+              .to_string()
           };
         if visited.contains(&full_import_path) {
           continue;
@@ -245,18 +253,51 @@ mod _root {
       self.set_bind_group(index, bind_group, offsets);
     }
   }
+  impl SetBindGroup for wgpu::ComputePass<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
+    }
+  }
 }
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+  const GLOBAL_BINDINGS_GLOBAL_UNIFORMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, time) == 0);
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, scale_factor) == 4);
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, frame_size) == 8);
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, mouse_pos) == 16);
+    assert!(std::mem::size_of::<global_bindings::GlobalUniforms>() == 24);
   };
   const FULLSCREEN_EFFECTS_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(fullscreen_effects::Uniforms, color_rgb) == 0);
@@ -285,6 +326,140 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(overlay::InfoData, padding2) == 28);
     assert!(std::mem::size_of::<overlay::InfoData>() == 32);
   };
+  const PARTICLE_PHYSICS_JOB_ASSERTS: () = {
+    assert!(std::mem::offset_of!(particle_physics::Job, position) == 0);
+    assert!(std::mem::offset_of!(particle_physics::Job, direction) == 16);
+    assert!(std::mem::offset_of!(particle_physics::Job, accum) == 32);
+    assert!(std::mem::offset_of!(particle_physics::Job, depth) == 44);
+    assert!(std::mem::size_of::<particle_physics::Job>() == 48);
+  };
+  const PARTICLE_PHYSICS_PARAMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(particle_physics::Params, scale) == 0);
+    assert!(std::mem::offset_of!(particle_physics::Params, damping) == 4);
+    assert!(std::mem::size_of::<particle_physics::Params>() == 8);
+  };
+}
+pub mod global_bindings {
+  use super::{_root, _root::*};
+  #[repr(C, align(8))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct GlobalUniforms {
+    #[doc = " size: 4, offset: 0x0, type: `f32`"]
+    pub time: f32,
+    #[doc = " size: 4, offset: 0x4, type: `f32`"]
+    pub scale_factor: f32,
+    #[doc = " size: 8, offset: 0x8, type: `vec2<f32>`"]
+    pub frame_size: glam::Vec2,
+    #[doc = " size: 8, offset: 0x10, type: `vec2<f32>`"]
+    pub mouse_pos: glam::Vec2,
+  }
+  impl GlobalUniforms {
+    pub const fn new(
+      time: f32,
+      scale_factor: f32,
+      frame_size: glam::Vec2,
+      mouse_pos: glam::Vec2,
+    ) -> Self {
+      Self {
+        time,
+        scale_factor,
+        frame_size,
+        mouse_pos,
+      }
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub globals: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub globals: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        globals: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.globals),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.globals]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("GlobalBindings::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"_root::global_bindings::globals\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX
+              .union(wgpu::ShaderStages::FRAGMENT)
+              .union(wgpu::ShaderStages::COMPUTE),
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::global_bindings::GlobalUniforms,
+              >() as _),
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("GlobalBindings::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for global_bindings::GlobalUniforms {}
+  unsafe impl bytemuck::Pod for global_bindings::GlobalUniforms {}
+  unsafe impl bytemuck::Zeroable for fullscreen_effects::Uniforms {}
+  unsafe impl bytemuck::Pod for fullscreen_effects::Uniforms {}
+  unsafe impl bytemuck::Zeroable for fullscreen_effects::VertexInput {}
+  unsafe impl bytemuck::Pod for fullscreen_effects::VertexInput {}
+  unsafe impl bytemuck::Zeroable for fullscreen_effects::PushConstants {}
+  unsafe impl bytemuck::Pod for fullscreen_effects::PushConstants {}
+  unsafe impl bytemuck::Zeroable for simple_array_demo::Uniforms {}
+  unsafe impl bytemuck::Pod for simple_array_demo::Uniforms {}
+  unsafe impl bytemuck::Zeroable for simple_array_demo::VertexInput {}
+  unsafe impl bytemuck::Pod for simple_array_demo::VertexInput {}
+  unsafe impl bytemuck::Zeroable for simple_array_demo::PushConstants {}
+  unsafe impl bytemuck::Pod for simple_array_demo::PushConstants {}
+  unsafe impl bytemuck::Zeroable for overlay::InfoData {}
+  unsafe impl bytemuck::Pod for overlay::InfoData {}
+  unsafe impl bytemuck::Zeroable for gradient_triangle::VertexInput {}
+  unsafe impl bytemuck::Pod for gradient_triangle::VertexInput {}
+  unsafe impl bytemuck::Zeroable for particle_physics::Job {}
+  unsafe impl bytemuck::Pod for particle_physics::Job {}
+  unsafe impl bytemuck::Zeroable for particle_physics::Params {}
+  unsafe impl bytemuck::Pod for particle_physics::Params {}
+  unsafe impl bytemuck::Zeroable for particle_renderer::VertexInput {}
+  unsafe impl bytemuck::Pod for particle_renderer::VertexInput {}
 }
 pub mod fullscreen_effects {
   use super::{_root, _root::*};
@@ -300,9 +475,9 @@ pub mod fullscreen_effects {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VertexInput {
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
   }
-  pub const fn VertexInput(position: glam::Vec3A) -> VertexInput {
+  pub const fn VertexInput(position: glam::Vec3) -> VertexInput {
     VertexInput { position }
   }
   impl VertexInput {
@@ -597,25 +772,6 @@ pub mod fullscreen_effects {
     Ok(shader_module)
   }
 }
-pub mod bytemuck_impls {
-  use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for fullscreen_effects::Uniforms {}
-  unsafe impl bytemuck::Pod for fullscreen_effects::Uniforms {}
-  unsafe impl bytemuck::Zeroable for fullscreen_effects::VertexInput {}
-  unsafe impl bytemuck::Pod for fullscreen_effects::VertexInput {}
-  unsafe impl bytemuck::Zeroable for fullscreen_effects::PushConstants {}
-  unsafe impl bytemuck::Pod for fullscreen_effects::PushConstants {}
-  unsafe impl bytemuck::Zeroable for simple_array_demo::Uniforms {}
-  unsafe impl bytemuck::Pod for simple_array_demo::Uniforms {}
-  unsafe impl bytemuck::Zeroable for simple_array_demo::VertexInput {}
-  unsafe impl bytemuck::Pod for simple_array_demo::VertexInput {}
-  unsafe impl bytemuck::Zeroable for simple_array_demo::PushConstants {}
-  unsafe impl bytemuck::Pod for simple_array_demo::PushConstants {}
-  unsafe impl bytemuck::Zeroable for overlay::InfoData {}
-  unsafe impl bytemuck::Pod for overlay::InfoData {}
-  unsafe impl bytemuck::Zeroable for gradient_triangle::VertexInput {}
-  unsafe impl bytemuck::Pod for gradient_triangle::VertexInput {}
-}
 pub mod simple_array_demo {
   use super::{_root, _root::*};
   #[repr(C, align(16))]
@@ -630,9 +786,9 @@ pub mod simple_array_demo {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VertexInput {
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
   }
-  pub const fn VertexInput(position: glam::Vec3A) -> VertexInput {
+  pub const fn VertexInput(position: glam::Vec3) -> VertexInput {
     VertexInput { position }
   }
   impl VertexInput {
@@ -1189,10 +1345,10 @@ pub mod gradient_triangle {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VertexInput {
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
     pub texture_id: u32,
   }
-  pub const fn VertexInput(position: glam::Vec3A, texture_id: u32) -> VertexInput {
+  pub const fn VertexInput(position: glam::Vec3, texture_id: u32) -> VertexInput {
     VertexInput {
       position,
       texture_id,
@@ -1325,47 +1481,170 @@ pub mod gradient_triangle {
     Ok(shader_module)
   }
 }
-pub mod global_bindings {
+pub mod particle_physics {
   use super::{_root, _root::*};
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct Job {
+    #[doc = " size: 12, offset: 0x0, type: `vec3<f32>`"]
+    pub position: glam::Vec3,
+    pub _pad_position: [u8; 0x4],
+    #[doc = " size: 12, offset: 0x10, type: `vec3<f32>`"]
+    pub direction: glam::Vec3,
+    pub _pad_direction: [u8; 0x4],
+    #[doc = " size: 12, offset: 0x20, type: `vec3<f32>`"]
+    pub accum: glam::Vec3,
+    #[doc = " size: 4, offset: 0x2C, type: `u32`"]
+    pub depth: u32,
+  }
+  impl Job {
+    pub const fn new(
+      position: glam::Vec3,
+      direction: glam::Vec3,
+      accum: glam::Vec3,
+      depth: u32,
+    ) -> Self {
+      Self {
+        position,
+        _pad_position: [0; 0x4],
+        direction,
+        _pad_direction: [0; 0x4],
+        accum,
+        depth,
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct JobInit {
+    pub position: glam::Vec3,
+    pub direction: glam::Vec3,
+    pub accum: glam::Vec3,
+    pub depth: u32,
+  }
+  impl JobInit {
+    pub const fn build(&self) -> Job {
+      Job {
+        position: self.position,
+        _pad_position: [0; 0x4],
+        direction: self.direction,
+        _pad_direction: [0; 0x4],
+        accum: self.accum,
+        depth: self.depth,
+      }
+    }
+  }
+  impl From<JobInit> for Job {
+    fn from(data: JobInit) -> Self {
+      data.build()
+    }
+  }
+  #[repr(C, align(4))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct Params {
+    #[doc = " size: 4, offset: 0x0, type: `f32`"]
+    pub scale: f32,
+    #[doc = " size: 4, offset: 0x4, type: `f32`"]
+    pub damping: f32,
+  }
+  pub const fn Params(scale: f32, damping: f32) -> Params {
+    Params { scale, damping }
+  }
+  pub const DT: f32 = 0.012f32;
+  pub const BOUNDARY: f32 = 1f32;
+  pub const NEIGHBOR_RADIUS: f32 = 0.12f32;
+  pub const SEPARATION_RADIUS: f32 = 0.06f32;
+  pub const MAX_SPEED: f32 = 1f32;
+  pub const MAX_FORCE: f32 = 0.08f32;
+  pub const MOUSE_FORCE_RADIUS: f32 = 0.3f32;
+  pub const MOUSE_FORCE_STRENGTH: f32 = 1.2f32;
+  pub mod compute {
+    use super::{_root, _root::*};
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
+    pub fn create_main_pipeline_relative_path(
+      device: &wgpu::Device,
+      base_dir: &str,
+      entry_point: ShaderEntry,
+      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+      load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+    ) -> Result<wgpu::ComputePipeline, naga_oil::compose::ComposerError> {
+      let module = super::create_shader_module_relative_path(
+        device,
+        base_dir,
+        entry_point,
+        shader_defs,
+        load_file,
+      )?;
+      let layout = super::create_pipeline_layout(device);
+      Ok(device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      }))
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
   #[derive(Debug)]
-  pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub time: wgpu::BufferBinding<'a>,
+  pub struct WgpuBindGroup1EntriesParams<'a> {
+    pub jobs: wgpu::BufferBinding<'a>,
+    pub params: wgpu::BufferBinding<'a>,
   }
   #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup0Entries<'a> {
-    pub time: wgpu::BindGroupEntry<'a>,
+  pub struct WgpuBindGroup1Entries<'a> {
+    pub jobs: wgpu::BindGroupEntry<'a>,
+    pub params: wgpu::BindGroupEntry<'a>,
   }
-  impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+  impl<'a> WgpuBindGroup1Entries<'a> {
+    pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
       Self {
-        time: wgpu::BindGroupEntry {
+        jobs: wgpu::BindGroupEntry {
           binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.time),
+          resource: wgpu::BindingResource::Buffer(params.jobs),
+        },
+        params: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(params.params),
         },
       }
     }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-      [self.time]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+      [self.jobs, self.params]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
       self.into_array().into_iter().collect()
     }
   }
   #[derive(Debug)]
-  pub struct WgpuBindGroup0(wgpu::BindGroup);
-  impl WgpuBindGroup0 {
+  pub struct WgpuBindGroup1(wgpu::BindGroup);
+  impl WgpuBindGroup1 {
     pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
       wgpu::BindGroupLayoutDescriptor {
-        label: Some("GlobalBindings::BindGroup0::LayoutDescriptor"),
+        label: Some("ParticlePhysics::BindGroup1::LayoutDescriptor"),
         entries: &[
-          #[doc = " @binding(0): \"_root::global_bindings::time\""]
+          #[doc = " @binding(0): \"jobs\""]
           wgpu::BindGroupLayoutEntry {
             binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"params\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Buffer {
               ty: wgpu::BufferBindingType::Uniform,
               has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<f32>() as _),
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::particle_physics::Params,
+              >() as _),
             },
             count: None,
           },
@@ -1374,18 +1653,246 @@ pub mod global_bindings {
     pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
       device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
     }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
       let bind_group_layout = Self::get_bind_group_layout(device);
       let entries = bindings.into_array();
       let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("GlobalBindings::BindGroup0"),
+        label: Some("ParticlePhysics::BindGroup1"),
         layout: &bind_group_layout,
         entries: &entries,
       });
       Self(bind_group)
     }
     pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(0, &self.0, &[]);
+      pass.set_bind_group(1, &self.0, &[]);
     }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a global_bindings::WgpuBindGroup0,
+    pub bind_group1: &'a WgpuBindGroup1,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+      self.bind_group1.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 2],
+    ) -> [wgpu::BindGroupLayout; 2] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("ParticlePhysics::PipelineLayout"),
+      bind_group_layouts: &[
+        &global_bindings::WgpuBindGroup0::get_bind_group_layout(device),
+        &WgpuBindGroup1::get_bind_group_layout(device),
+      ],
+      push_constant_ranges: &[],
+    })
+  }
+  pub const SHADER_ENTRY_PATH: &str = "compute_demo/particle_physics.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
+    let module = load_naga_module_from_path(
+      base_dir,
+      entry_point,
+      &mut composer,
+      shader_defs,
+      load_file,
+    )
+    .map_err(|e| naga_oil::compose::ComposerError {
+      inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+      source: naga_oil::compose::ErrSource::Constructing {
+        path: "load_naga_module_from_path".to_string(),
+        source: "Generated code".to_string(),
+        offset: 0,
+      },
+    })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("particle_physics.wgsl"),
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
+  }
+}
+pub mod particle_renderer {
+  use super::{_root, _root::*};
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct VertexInput {
+    pub quad_pos: glam::Vec2,
+    pub position_and_size: glam::Vec4,
+  }
+  pub const fn VertexInput(
+    quad_pos: glam::Vec2,
+    position_and_size: glam::Vec4,
+  ) -> VertexInput {
+    VertexInput {
+      quad_pos,
+      position_and_size,
+    }
+  }
+  impl VertexInput {
+    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 2] = [
+      wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x2,
+        offset: std::mem::offset_of!(Self, quad_pos) as u64,
+        shader_location: 0,
+      },
+      wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x4,
+        offset: std::mem::offset_of!(Self, position_and_size) as u64,
+        shader_location: 1,
+      },
+    ];
+    pub const fn vertex_buffer_layout(
+      step_mode: wgpu::VertexStepMode,
+    ) -> wgpu::VertexBufferLayout<'static> {
+      wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<Self>() as u64,
+        step_mode,
+        attributes: &Self::VERTEX_ATTRIBUTES,
+      }
+    }
+  }
+  pub const ENTRY_VS_MAIN: &str = "vs_main";
+  pub const ENTRY_FS_MAIN: &str = "fs_main";
+  #[derive(Debug)]
+  pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+  ) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+      module,
+      entry_point: Some(entry.entry_point),
+      buffers: &entry.buffers,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn vs_main_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
+    VertexEntry {
+      entry_point: ENTRY_VS_MAIN,
+      buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct FragmentEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub targets: [Option<wgpu::ColorTargetState>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn fragment_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a FragmentEntry<N>,
+  ) -> wgpu::FragmentState<'a> {
+    wgpu::FragmentState {
+      module,
+      entry_point: Some(entry.entry_point),
+      targets: &entry.targets,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn fs_main_entry(targets: [Option<wgpu::ColorTargetState>; 1]) -> FragmentEntry<1> {
+    FragmentEntry {
+      entry_point: ENTRY_FS_MAIN,
+      targets,
+      constants: Default::default(),
+    }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a global_bindings::WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("ParticleRenderer::PipelineLayout"),
+      bind_group_layouts: &[&global_bindings::WgpuBindGroup0::get_bind_group_layout(
+        device,
+      )],
+      push_constant_ranges: &[],
+    })
+  }
+  pub const SHADER_ENTRY_PATH: &str = "compute_demo/particle_renderer.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    entry_point: ShaderEntry,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
+    let module = load_naga_module_from_path(
+      base_dir,
+      entry_point,
+      &mut composer,
+      shader_defs,
+      load_file,
+    )
+    .map_err(|e| naga_oil::compose::ComposerError {
+      inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+      source: naga_oil::compose::ErrSource::Constructing {
+        path: "load_naga_module_from_path".to_string(),
+        source: "Generated code".to_string(),
+        offset: 0,
+      },
+    })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("particle_renderer.wgsl"),
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
   }
 }

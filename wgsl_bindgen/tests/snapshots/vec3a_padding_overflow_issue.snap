@@ -47,10 +47,26 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
-    assert!(std::mem::size_of::<glam::Vec3A>() == 16);
-    assert!(std::mem::align_of::<glam::Vec3A>() == 16);
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
     assert!(std::mem::size_of::<glam::Vec4>() == 16);
     assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
     assert!(std::mem::size_of::<glam::Mat3A>() == 48);
     assert!(std::mem::align_of::<glam::Mat3A>() == 16);
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
@@ -70,27 +86,29 @@ pub mod vec3a_padding_issue {
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Job {
     #[doc = " size: 12, offset: 0x0, type: `vec3<f32>`"]
-    pub position: glam::Vec3A,
+    pub position: glam::Vec3,
+    pub _pad_position: [u8; 0x4],
     #[doc = " size: 12, offset: 0x10, type: `vec3<f32>`"]
-    pub direction: glam::Vec3A,
+    pub direction: glam::Vec3,
+    pub _pad_direction: [u8; 0x4],
     #[doc = " size: 12, offset: 0x20, type: `vec3<f32>`"]
-    pub accum: glam::Vec3A,
-    pub _pad_accum: [u8; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
+    pub accum: glam::Vec3,
     #[doc = " size: 4, offset: 0x2C, type: `u32`"]
     pub depth: u32,
   }
   impl Job {
     pub const fn new(
-      position: glam::Vec3A,
-      direction: glam::Vec3A,
-      accum: glam::Vec3A,
+      position: glam::Vec3,
+      direction: glam::Vec3,
+      accum: glam::Vec3,
       depth: u32,
     ) -> Self {
       Self {
         position,
+        _pad_position: [0; 0x4],
         direction,
+        _pad_direction: [0; 0x4],
         accum,
-        _pad_accum: [0; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
         depth,
       }
     }
@@ -98,18 +116,19 @@ pub mod vec3a_padding_issue {
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct JobInit {
-    pub position: glam::Vec3A,
-    pub direction: glam::Vec3A,
-    pub accum: glam::Vec3A,
+    pub position: glam::Vec3,
+    pub direction: glam::Vec3,
+    pub accum: glam::Vec3,
     pub depth: u32,
   }
   impl JobInit {
     pub const fn build(&self) -> Job {
       Job {
         position: self.position,
+        _pad_position: [0; 0x4],
         direction: self.direction,
+        _pad_direction: [0; 0x4],
         accum: self.accum,
-        _pad_accum: [0; 0xC - ::core::mem::size_of::<glam::Vec3A>()],
         depth: self.depth,
       }
     }
