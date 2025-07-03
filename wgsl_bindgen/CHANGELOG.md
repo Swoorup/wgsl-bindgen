@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.19.1...wgsl_bindgen-v0.20.0) - 2025-07-03
+
+### Added
+
+- Dynamic shader loading with `ComposerWithRelativePath` ([#45](https://github.com/Swoorup/wgsl-bindgen/issues/45))
+- Support for rust compilation tests to catch regressions ([#70](https://github.com/Swoorup/wgsl-bindgen/issues/70))
+- Helper function `visit_shader_files` for traversing shader dependency trees
+- Helper function `load_naga_module_from_path` for loading modules with relative paths
+
+### Fixed
+
+- **BREAKING**: Fixed duplicate content error when importing same vertex input across multiple shader files ([#74](https://github.com/Swoorup/wgsl-bindgen/issues/74))
+- **BREAKING**: Replaced `glam::Vec3A` with `glam::Vec3` and corrected padding calculations to fix compilation errors ([#47](https://github.com/Swoorup/wgsl-bindgen/issues/47))
+- Fixed shader stage visibility for shared bindings across multiple shader types ([#27](https://github.com/Swoorup/wgsl-bindgen/issues/27))
+- Fixed path handling on Windows for full path imports
+- Fixed vertex buffer layout generation for builtin fields
+
+### Changed
+
+- **BREAKING**: Removed `HardCodedFilePathWithNagaOilComposer` in favor of relative path composer
+- Improved test coverage with compilation validation
+- Updated example to demonstrate dynamic shader loading
+
 ## [0.19.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.19.0...wgsl_bindgen-v0.19.1) - 2025-06-28
 
 ### Fixed
