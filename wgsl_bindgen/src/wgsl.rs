@@ -32,7 +32,9 @@ pub fn buffer_binding_type(storage: naga::AddressSpace) -> TokenStream {
         quote!(wgpu::BufferBindingType::Storage { read_only: true })
       }
     }
-    _ => todo!(),
+    // This case is technically invalid.
+    // Return a default to allow users to see the wgpu validation error.
+    _ => quote!(wgpu::BufferBindingType::Uniform),
   }
 }
 

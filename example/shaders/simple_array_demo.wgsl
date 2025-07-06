@@ -1,5 +1,6 @@
 // Texture array demo shader
 #import global_bindings::get_time
+#import constants as Constants
 
 @group(1) @binding(0) var texture_array: binding_array<texture_2d<f32>, 2>;
 @group(1) @binding(1) var sampler_array: binding_array<sampler, 2>;
@@ -24,7 +25,7 @@ struct VertexOutput {
 fn vs_main(in: VertexInput) -> VertexOutput {
   //A fullscreen triangle.
   var out: VertexOutput;
-  out.clip_position = vec4(in.position.xyz, 1.0);
+  out.clip_position = vec4(in.position.xyz, Constants::ONE);
   out.tex_coords = in.position.xy * 0.5 + 0.5;
   return out;
 }
@@ -33,7 +34,7 @@ struct PushConstants {
     color_matrix: mat4x4<f32>
 }
 
-var<push_constant> constants: PushConstants;
+var<push_constant> push_constants: PushConstants;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -73,5 +74,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let vignette = smoothstep(0.0, 0.9, 1.0 - dist * 1.3);
     
     // Apply the color matrix from push constants
-    return constants.color_matrix * vec4(final_color * vignette, 1.0);
+    return push_constants.color_matrix * vec4(final_color * vignette, 1.0);
 }
