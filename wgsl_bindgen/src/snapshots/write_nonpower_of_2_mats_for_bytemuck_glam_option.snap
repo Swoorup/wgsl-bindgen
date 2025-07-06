@@ -4,7 +4,7 @@ source: wgsl_bindgen/src/structs.rs
 #[repr(C, align(16))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct UniformsData {
-  #[doc = " size: 48, offset: 0x0, type: `mat3x3<f32>`"]
+  #[doc = "offset: 0, size: 48, type: `mat3x3<f32>`"]
   pub centered_mvp: glam::Mat3A,
 }
 impl UniformsData {

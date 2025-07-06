@@ -18,6 +18,8 @@ pub(crate) struct RustTypeInfo {
   // size in bytes, if none then it is a runtime sized array
   pub size: Option<usize>,
   pub alignment: naga::proc::Alignment,
+  /// If this type has tuple padding, this contains the init-friendly version
+  pub init_type: Option<TokenStream>,
 }
 
 impl RustTypeInfo {
@@ -92,6 +94,22 @@ pub(crate) const fn RustTypeInfo(
     tokens,
     size: Some(size),
     alignment,
+    init_type: None,
+  }
+}
+
+#[allow(non_snake_case)]
+pub(crate) fn RustTypeInfoWithInit(
+  tokens: TokenStream,
+  size: usize,
+  alignment: naga::proc::Alignment,
+  init_type: TokenStream,
+) -> RustTypeInfo {
+  RustTypeInfo {
+    tokens,
+    size: Some(size),
+    alignment,
+    init_type: Some(init_type),
   }
 }
 
@@ -309,11 +327,12 @@ pub(crate) fn rust_type(
           let padding_hex = format!("0x{padding_size:X}");
           let padding_size_tokens = syn::parse_str::<TokenStream>(&padding_hex).unwrap();
 
-          // Create a tuple type with the element and padding
-          RustTypeInfo(
+          // Create a tuple type with the element and padding, and provide init type without padding
+          RustTypeInfoWithInit(
             quote!([(#inner_ty, [u8; #padding_size_tokens]); #count]),
             total_size,
             alignment,
+            quote!([#inner_ty; #count]),
           )
         } else {
           // No padding needed
@@ -343,6 +362,7 @@ pub(crate) fn rust_type(
         tokens: member_type,
         size: None,
         alignment,
+        init_type: None,
       }
     }
     naga::TypeInner::Array {

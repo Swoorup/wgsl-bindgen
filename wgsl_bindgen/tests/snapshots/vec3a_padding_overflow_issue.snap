@@ -85,15 +85,15 @@ pub mod vec3a_padding_issue {
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Job {
-    #[doc = " size: 12, offset: 0x0, type: `vec3<f32>`"]
+    #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
     pub position: glam::Vec3,
     pub _pad_position: [u8; 0x4],
-    #[doc = " size: 12, offset: 0x10, type: `vec3<f32>`"]
+    #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
     pub direction: glam::Vec3,
     pub _pad_direction: [u8; 0x4],
-    #[doc = " size: 12, offset: 0x20, type: `vec3<f32>`"]
+    #[doc = "offset: 32, size: 12, type: `vec3<f32>`"]
     pub accum: glam::Vec3,
-    #[doc = " size: 4, offset: 0x2C, type: `u32`"]
+    #[doc = "offset: 44, size: 4, type: `u32`"]
     pub depth: u32,
   }
   impl Job {
@@ -122,7 +122,7 @@ pub mod vec3a_padding_issue {
     pub depth: u32,
   }
   impl JobInit {
-    pub const fn build(&self) -> Job {
+    pub fn build(&self) -> Job {
       Job {
         position: self.position,
         _pad_position: [0; 0x4],

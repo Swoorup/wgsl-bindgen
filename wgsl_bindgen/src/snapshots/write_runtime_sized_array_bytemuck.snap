@@ -3,9 +3,9 @@ source: wgsl_bindgen/src/structs.rs
 ---
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct RtsStruct<const N: usize> {
-  #[doc = " size: 4, offset: 0x0, type: `i32`"]
+  #[doc = "offset: 0, size: 4, type: `i32`"]
   pub other_data: i32,
-  #[doc = " size: 4, offset: 0x4, type: `array<u32>`"]
+  #[doc = "offset: 4, size: 4, type: `array<u32>`"]
   pub the_array: [u32; N],
 }
 impl<const N: usize> RtsStruct<N> {

@@ -256,19 +256,19 @@ pub mod bevy_pbr {
       #[repr(C, align(16))]
       #[derive(Debug, PartialEq, Clone, Copy)]
       pub struct StandardMaterial {
-        #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+        #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
         pub base_color: glam::Vec4,
-        #[doc = " size: 16, offset: 0x10, type: `vec4<f32>`"]
+        #[doc = "offset: 16, size: 16, type: `vec4<f32>`"]
         pub emissive: glam::Vec4,
-        #[doc = " size: 4, offset: 0x20, type: `f32`"]
+        #[doc = "offset: 32, size: 4, type: `f32`"]
         pub perceptual_roughness: f32,
-        #[doc = " size: 4, offset: 0x24, type: `f32`"]
+        #[doc = "offset: 36, size: 4, type: `f32`"]
         pub metallic: f32,
-        #[doc = " size: 4, offset: 0x28, type: `f32`"]
+        #[doc = "offset: 40, size: 4, type: `f32`"]
         pub reflectance: f32,
-        #[doc = " size: 4, offset: 0x2C, type: `u32`"]
+        #[doc = "offset: 44, size: 4, type: `u32`"]
         pub flags: u32,
-        #[doc = " size: 4, offset: 0x30, type: `f32`"]
+        #[doc = "offset: 48, size: 4, type: `f32`"]
         pub alpha_cutoff: f32,
         pub _pad_alpha_cutoff: [u8; 0xC],
       }
@@ -306,7 +306,7 @@ pub mod bevy_pbr {
         pub alpha_cutoff: f32,
       }
       impl StandardMaterialInit {
-        pub const fn build(&self) -> StandardMaterial {
+        pub fn build(&self) -> StandardMaterial {
           StandardMaterial {
             base_color: self.base_color,
             emissive: self.emissive,
@@ -404,23 +404,23 @@ pub mod bevy_pbr {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct View {
-      #[doc = " size: 64, offset: 0x0, type: `mat4x4<f32>`"]
+      #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
       pub view_proj: glam::Mat4,
-      #[doc = " size: 64, offset: 0x40, type: `mat4x4<f32>`"]
+      #[doc = "offset: 64, size: 64, type: `mat4x4<f32>`"]
       pub inverse_view_proj: glam::Mat4,
-      #[doc = " size: 64, offset: 0x80, type: `mat4x4<f32>`"]
+      #[doc = "offset: 128, size: 64, type: `mat4x4<f32>`"]
       pub view: glam::Mat4,
-      #[doc = " size: 64, offset: 0xC0, type: `mat4x4<f32>`"]
+      #[doc = "offset: 192, size: 64, type: `mat4x4<f32>`"]
       pub inverse_view: glam::Mat4,
-      #[doc = " size: 64, offset: 0x100, type: `mat4x4<f32>`"]
+      #[doc = "offset: 256, size: 64, type: `mat4x4<f32>`"]
       pub projection: glam::Mat4,
-      #[doc = " size: 64, offset: 0x140, type: `mat4x4<f32>`"]
+      #[doc = "offset: 320, size: 64, type: `mat4x4<f32>`"]
       pub inverse_projection: glam::Mat4,
-      #[doc = " size: 12, offset: 0x180, type: `vec3<f32>`"]
+      #[doc = "offset: 384, size: 12, type: `vec3<f32>`"]
       pub world_position: glam::Vec3,
-      #[doc = " size: 4, offset: 0x18C, type: `f32`"]
+      #[doc = "offset: 396, size: 4, type: `f32`"]
       pub width: f32,
-      #[doc = " size: 4, offset: 0x190, type: `f32`"]
+      #[doc = "offset: 400, size: 4, type: `f32`"]
       pub height: f32,
       pub _pad_height: [u8; 0xC],
     }
@@ -464,7 +464,7 @@ pub mod bevy_pbr {
       pub height: f32,
     }
     impl ViewInit {
-      pub const fn build(&self) -> View {
+      pub fn build(&self) -> View {
         View {
           view_proj: self.view_proj,
           inverse_view_proj: self.inverse_view_proj,
@@ -487,17 +487,17 @@ pub mod bevy_pbr {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct DirectionalLight {
-      #[doc = " size: 64, offset: 0x0, type: `mat4x4<f32>`"]
+      #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
       pub view_projection: glam::Mat4,
-      #[doc = " size: 16, offset: 0x40, type: `vec4<f32>`"]
+      #[doc = "offset: 64, size: 16, type: `vec4<f32>`"]
       pub color: glam::Vec4,
-      #[doc = " size: 12, offset: 0x50, type: `vec3<f32>`"]
+      #[doc = "offset: 80, size: 12, type: `vec3<f32>`"]
       pub direction_to_light: glam::Vec3,
-      #[doc = " size: 4, offset: 0x5C, type: `u32`"]
+      #[doc = "offset: 92, size: 4, type: `u32`"]
       pub flags: u32,
-      #[doc = " size: 4, offset: 0x60, type: `f32`"]
+      #[doc = "offset: 96, size: 4, type: `f32`"]
       pub shadow_depth_bias: f32,
-      #[doc = " size: 4, offset: 0x64, type: `f32`"]
+      #[doc = "offset: 100, size: 4, type: `f32`"]
       pub shadow_normal_bias: f32,
       pub _pad_shadow_normal_bias: [u8; 0x8],
     }
@@ -532,7 +532,7 @@ pub mod bevy_pbr {
       pub shadow_normal_bias: f32,
     }
     impl DirectionalLightInit {
-      pub const fn build(&self) -> DirectionalLight {
+      pub fn build(&self) -> DirectionalLight {
         DirectionalLight {
           view_projection: self.view_projection,
           color: self.color,
@@ -552,17 +552,17 @@ pub mod bevy_pbr {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Lights {
-      #[doc = " size: 112, offset: 0x0, type: `array<bevy_pbr::mesh_view_types::DirectionalLight, 1>`"]
+      #[doc = "offset: 0, size: 112, type: `array<bevy_pbr::mesh_view_types::DirectionalLight, 1>`"]
       pub directional_lights: [_root::bevy_pbr::mesh_view_types::DirectionalLight; 1],
-      #[doc = " size: 16, offset: 0x70, type: `vec4<f32>`"]
+      #[doc = "offset: 112, size: 16, type: `vec4<f32>`"]
       pub ambient_color: glam::Vec4,
-      #[doc = " size: 16, offset: 0x80, type: `vec4<u32>`"]
+      #[doc = "offset: 128, size: 16, type: `vec4<u32>`"]
       pub cluster_dimensions: glam::UVec4,
-      #[doc = " size: 16, offset: 0x90, type: `vec4<f32>`"]
+      #[doc = "offset: 144, size: 16, type: `vec4<f32>`"]
       pub cluster_factors: glam::Vec4,
-      #[doc = " size: 4, offset: 0xA0, type: `u32`"]
+      #[doc = "offset: 160, size: 4, type: `u32`"]
       pub n_directional_lights: u32,
-      #[doc = " size: 4, offset: 0xA4, type: `i32`"]
+      #[doc = "offset: 164, size: 4, type: `i32`"]
       pub spot_light_shadowmap_offset: i32,
       pub _pad_spot_light_shadowmap_offset: [u8; 0x8],
     }
@@ -597,7 +597,7 @@ pub mod bevy_pbr {
       pub spot_light_shadowmap_offset: i32,
     }
     impl LightsInit {
-      pub const fn build(&self) -> Lights {
+      pub fn build(&self) -> Lights {
         Lights {
           directional_lights: self.directional_lights,
           ambient_color: self.ambient_color,
@@ -617,19 +617,19 @@ pub mod bevy_pbr {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct PointLight {
-      #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+      #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
       pub light_custom_data: glam::Vec4,
-      #[doc = " size: 16, offset: 0x10, type: `vec4<f32>`"]
+      #[doc = "offset: 16, size: 16, type: `vec4<f32>`"]
       pub color_inverse_square_range: glam::Vec4,
-      #[doc = " size: 16, offset: 0x20, type: `vec4<f32>`"]
+      #[doc = "offset: 32, size: 16, type: `vec4<f32>`"]
       pub position_radius: glam::Vec4,
-      #[doc = " size: 4, offset: 0x30, type: `u32`"]
+      #[doc = "offset: 48, size: 4, type: `u32`"]
       pub flags: u32,
-      #[doc = " size: 4, offset: 0x34, type: `f32`"]
+      #[doc = "offset: 52, size: 4, type: `f32`"]
       pub shadow_depth_bias: f32,
-      #[doc = " size: 4, offset: 0x38, type: `f32`"]
+      #[doc = "offset: 56, size: 4, type: `f32`"]
       pub shadow_normal_bias: f32,
-      #[doc = " size: 4, offset: 0x3C, type: `f32`"]
+      #[doc = "offset: 60, size: 4, type: `f32`"]
       pub spot_light_tan_angle: f32,
     }
     impl PointLight {
@@ -655,7 +655,7 @@ pub mod bevy_pbr {
     }
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct PointLights<const N: usize> {
-      #[doc = " size: 64, offset: 0x0, type: `array<bevy_pbr::mesh_view_types::PointLight>`"]
+      #[doc = "offset: 0, size: 64, type: `array<bevy_pbr::mesh_view_types::PointLight>`"]
       pub data: [_root::bevy_pbr::mesh_view_types::PointLight; N],
     }
     impl<const N: usize> PointLights<N> {
@@ -665,7 +665,7 @@ pub mod bevy_pbr {
     }
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct ClusterLightIndexLists<const N: usize> {
-      #[doc = " size: 4, offset: 0x0, type: `array<u32>`"]
+      #[doc = "offset: 0, size: 4, type: `array<u32>`"]
       pub data: [u32; N],
     }
     impl<const N: usize> ClusterLightIndexLists<N> {
@@ -675,7 +675,7 @@ pub mod bevy_pbr {
     }
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct ClusterOffsetsAndCounts<const N: usize> {
-      #[doc = " size: 16, offset: 0x0, type: `array<vec4<u32>>`"]
+      #[doc = "offset: 0, size: 16, type: `array<vec4<u32>>`"]
       pub data: [glam::UVec4; N],
     }
     impl<const N: usize> ClusterOffsetsAndCounts<N> {
@@ -692,11 +692,11 @@ pub mod bevy_pbr {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Mesh {
-      #[doc = " size: 64, offset: 0x0, type: `mat4x4<f32>`"]
+      #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
       pub model: glam::Mat4,
-      #[doc = " size: 64, offset: 0x40, type: `mat4x4<f32>`"]
+      #[doc = "offset: 64, size: 64, type: `mat4x4<f32>`"]
       pub inverse_transpose_model: glam::Mat4,
-      #[doc = " size: 4, offset: 0x80, type: `u32`"]
+      #[doc = "offset: 128, size: 4, type: `u32`"]
       pub flags: u32,
       pub _pad_flags: [u8; 0xC],
     }
@@ -722,7 +722,7 @@ pub mod bevy_pbr {
       pub flags: u32,
     }
     impl MeshInit {
-      pub const fn build(&self) -> Mesh {
+      pub fn build(&self) -> Mesh {
         Mesh {
           model: self.model,
           inverse_transpose_model: self.inverse_transpose_model,
