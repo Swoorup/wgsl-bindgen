@@ -33,7 +33,7 @@ fn test_bevy_bindgen() -> Result<()> {
 fn test_main_bindgen() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .add_entry_point("tests/shaders/basic/main.wgsl")
-    .workspace_root("tests/shaders/additional")
+    .workspace_root("tests/shaders")
     .additional_scan_dir((None, "tests/shaders/additional"))
     .override_struct_alignment([("main::Style", 256)].map(Into::into))
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)

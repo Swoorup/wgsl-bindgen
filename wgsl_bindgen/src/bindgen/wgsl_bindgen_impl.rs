@@ -72,10 +72,11 @@ impl WGSLBindgen {
     hasher.finalize().to_string()
   }
 
-  fn generate_naga_module_for_entry(
+  fn generate_naga_module_for_entry<'a>(
     ir_capabilities: Option<WgslShaderIrCapabilities>,
-    entry: SourceWithFullDependenciesResult<'_>,
-  ) -> Result<WgslEntryResult<'_>, WgslBindgenError> {
+    entry: SourceWithFullDependenciesResult<'a>,
+    workspace_root: &std::path::Path,
+  ) -> Result<WgslEntryResult<'a>, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
       let msg = err.emit_to_string(composer);
       WgslBindgenError::NagaModuleComposeError {
@@ -113,7 +114,7 @@ impl WGSLBindgen {
       .map_err(|err| map_err(&composer, err))?;
 
     Ok(WgslEntryResult {
-      mod_name: source.file_path.file_prefix(),
+      mod_name: source.file_path.module_path(workspace_root),
       naga_module: module,
       source_including_deps: entry,
     })
@@ -139,7 +140,13 @@ impl WGSLBindgen {
       .dependency_tree
       .get_source_files_with_full_dependencies()
       .into_iter()
-      .map(|it| Self::generate_naga_module_for_entry(ir_capabilities, it))
+      .map(|it| {
+        Self::generate_naga_module_for_entry(
+          ir_capabilities,
+          it,
+          &self.options.workspace_root,
+        )
+      })
       .collect::<Result<Vec<_>, _>>()?;
 
     Ok(create_rust_bindings(entry_results, &self.options)?)

@@ -357,7 +357,11 @@ fn indexed_name_ident(name: &str, index: u32) -> Ident {
 }
 
 fn sanitize_and_pascal_case(v: &str) -> String {
-  v.chars()
+  // Handle module paths by replacing "::" with "_" to preserve module boundaries
+  let normalized = v.replace("::", "_");
+
+  normalized
+    .chars()
     .filter(|ch| ch.is_alphanumeric() || *ch == '_')
     .collect::<String>()
     .to_pascal_case()
@@ -423,6 +427,31 @@ mod test {
 
   use self::bevy_util::source_file::SourceFile;
   use super::*;
+
+  #[test]
+  fn test_sanitize_and_pascal_case() {
+    // Test basic case
+    assert_eq!(sanitize_and_pascal_case("segment"), "Segment");
+
+    // Test module path handling
+    assert_eq!(sanitize_and_pascal_case("lines::segment"), "LinesSegment");
+
+    // Test complex nested paths
+    assert_eq!(
+      sanitize_and_pascal_case("compute_demo::particle_physics"),
+      "ComputeDemoParticlePhysics"
+    );
+
+    // Test multiple underscores and double colons
+    assert_eq!(
+      sanitize_and_pascal_case("bevy_pbr::mesh_view_bindings"),
+      "BevyPbrMeshViewBindings"
+    );
+
+    // Test edge cases
+    assert_eq!(sanitize_and_pascal_case("a::b::c::d"), "ABCD");
+    assert_eq!(sanitize_and_pascal_case("simple_name"), "SimpleName");
+  }
 
   fn create_shader_module(
     source: &str,
