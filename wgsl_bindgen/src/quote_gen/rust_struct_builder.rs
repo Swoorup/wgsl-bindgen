@@ -1,3 +1,5 @@
+// See also: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
+
 use derive_more::IsVariant;
 use naga::common::wgsl::TypeContext;
 use naga::StructMember;
