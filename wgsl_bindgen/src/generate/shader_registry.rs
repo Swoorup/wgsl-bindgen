@@ -33,11 +33,16 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
 
   fn build_create_pipeline_layout_fn(&self) -> TokenStream {
     let match_arms = self.entries.iter().map(|entry| {
-      let mod_path = format_ident!("{}", entry.mod_name);
+      // Convert module path like "lines::segment" to a proper Rust path
+      let mod_path_parts: Vec<_> = entry
+        .mod_name
+        .split("::")
+        .map(|part| format_ident!("{}", part))
+        .collect();
       let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
       quote! {
-        Self::#enum_variant => #mod_path::create_pipeline_layout(device)
+        Self::#enum_variant => #(#mod_path_parts)::*::create_pipeline_layout(device)
       }
     });
 
@@ -59,13 +64,13 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       WgslShaderSourceType::ComposerWithRelativePath => {
         // For ComposerWithRelativePath, we need to pass the entry_point enum to the module function
         let match_arms = self.entries.iter().map(|entry| {
-          let mod_path = format_ident!("{}", entry.mod_name);
+          let mod_path_parts: Vec<_> = entry.mod_name.split("::").map(|part| format_ident!("{}", part)).collect();
           let enum_variant =
             format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
           quote! {
             Self::#enum_variant => {
-              #mod_path::#fn_name(device, base_dir, *self, shader_defs, load_file)
+              #(#mod_path_parts)::*::#fn_name(device, base_dir, *self, shader_defs, load_file)
             }
           }
         });
@@ -81,13 +86,17 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       }
       _ => {
         let match_arms = self.entries.iter().map(|entry| {
-          let mod_path = format_ident!("{}", entry.mod_name);
+          let mod_path_parts: Vec<_> = entry
+            .mod_name
+            .split("::")
+            .map(|part| format_ident!("{}", part))
+            .collect();
           let enum_variant =
             format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
           quote! {
             Self::#enum_variant => {
-              #mod_path::#fn_name(#params)
+              #(#mod_path_parts)::*::#fn_name(#params)
             }
           }
         });
@@ -119,13 +128,17 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
         let fn_name = format_ident!("{}", source_type.load_shader_module_fn_name());
 
         let match_arms = self.entries.iter().map(|entry| {
-          let mod_path = format_ident!("{}", entry.mod_name);
+          let mod_path_parts: Vec<_> = entry
+            .mod_name
+            .split("::")
+            .map(|part| format_ident!("{}", part))
+            .collect();
           let enum_variant =
             format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
           quote! {
             Self::#enum_variant => {
-              #mod_path::#fn_name(composer, shader_defs)
+              #(#mod_path_parts)::*::#fn_name(composer, shader_defs)
             }
           }
         });
@@ -155,11 +168,15 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
     }
 
     let match_arms = self.entries.iter().map(|entry| {
-      let mod_path = format_ident!("{}", entry.mod_name);
+      let mod_path_parts: Vec<_> = entry
+        .mod_name
+        .split("::")
+        .map(|part| format_ident!("{}", part))
+        .collect();
       let enum_variant = format_ident!("{}", sanitize_and_pascal_case(&entry.mod_name));
 
       quote! {
-        Self::#enum_variant => #mod_path::SHADER_ENTRY_PATH
+        Self::#enum_variant => #(#mod_path_parts)::*::SHADER_ENTRY_PATH
       }
     });
 

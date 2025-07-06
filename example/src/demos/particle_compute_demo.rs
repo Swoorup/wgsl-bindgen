@@ -1,11 +1,11 @@
 use crate::demos::Demo;
+use crate::shader_bindings::compute_demo::particle_physics::{
+  self, Job, Params, WgpuBindGroup1Entries, WgpuBindGroup1EntriesParams,
+};
 use crate::shader_bindings::global_bindings::{
   WgpuBindGroup0Entries, WgpuBindGroup0EntriesParams,
 };
-use crate::shader_bindings::particle_physics::{
-  self, Job, Params, WgpuBindGroup1Entries, WgpuBindGroup1EntriesParams,
-};
-use crate::shader_bindings::{self, particle_renderer};
+use crate::shader_bindings::{self, compute_demo::particle_renderer};
 use glam::Vec3;
 use wgpu::util::DeviceExt;
 use winit::event::KeyEvent;
@@ -171,7 +171,7 @@ impl Demo for ParticleComputeDemo {
     let compute_shader_module = particle_physics::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      shader_bindings::ShaderEntry::ParticlePhysics,
+      shader_bindings::ShaderEntry::ComputeDemoParticlePhysics,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )
@@ -191,7 +191,7 @@ impl Demo for ParticleComputeDemo {
     let render_shader = particle_renderer::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      shader_bindings::ShaderEntry::ParticleRenderer,
+      shader_bindings::ShaderEntry::ComputeDemoParticleRenderer,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )
@@ -205,7 +205,7 @@ impl Demo for ParticleComputeDemo {
         layout: Some(&render_pipeline_layout),
         vertex: wgpu::VertexState {
           module: &render_shader,
-          entry_point: Some(shader_bindings::particle_renderer::ENTRY_VS_MAIN),
+          entry_point: Some(particle_renderer::ENTRY_VS_MAIN),
           compilation_options: wgpu::PipelineCompilationOptions::default(),
           buffers: &[
             // Quad vertices (per vertex) - matches @location(0) quad_pos
@@ -230,15 +230,13 @@ impl Demo for ParticleComputeDemo {
             },
           ],
         },
-        fragment: Some(shader_bindings::particle_renderer::fragment_state(
+        fragment: Some(particle_renderer::fragment_state(
           &render_shader,
-          &shader_bindings::particle_renderer::fs_main_entry([Some(
-            wgpu::ColorTargetState {
-              format: surface_format,
-              blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-              write_mask: wgpu::ColorWrites::ALL,
-            },
-          )]),
+          &particle_renderer::fs_main_entry([Some(wgpu::ColorTargetState {
+            format: surface_format,
+            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            write_mask: wgpu::ColorWrites::ALL,
+          })]),
         )),
         primitive: wgpu::PrimitiveState {
           topology: wgpu::PrimitiveTopology::TriangleList,

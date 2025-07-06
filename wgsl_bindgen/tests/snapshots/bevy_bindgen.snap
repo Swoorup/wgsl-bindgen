@@ -360,7 +360,7 @@ pub mod bevy_pbr {
       impl WgpuBindGroup1 {
         pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
           wgpu::BindGroupLayoutDescriptor {
-            label: Some("BevyPbrpbrbindings::BindGroup1::LayoutDescriptor"),
+            label: Some("BevyPbrPbrBindings::BindGroup1::LayoutDescriptor"),
             entries: &[
               #[doc = " @binding(0): \"_root::bevy_pbr::pbr::bindings::material\""]
               wgpu::BindGroupLayoutEntry {
@@ -387,7 +387,7 @@ pub mod bevy_pbr {
           let bind_group_layout = Self::get_bind_group_layout(device);
           let entries = bindings.into_array();
           let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("BevyPbrpbrbindings::BindGroup1"),
+            label: Some("BevyPbrPbrBindings::BindGroup1"),
             layout: &bind_group_layout,
             entries: &entries,
           });
@@ -837,7 +837,7 @@ pub mod bevy_pbr {
     impl WgpuBindGroup0 {
       pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
         wgpu::BindGroupLayoutDescriptor {
-          label: Some("BevyPbrmeshViewBindings::BindGroup0::LayoutDescriptor"),
+          label: Some("BevyPbrMeshViewBindings::BindGroup0::LayoutDescriptor"),
           entries: &[
             #[doc = " @binding(0): \"_root::bevy_pbr::mesh_view_bindings::view\""]
             wgpu::BindGroupLayoutEntry {
@@ -946,7 +946,7 @@ pub mod bevy_pbr {
         let bind_group_layout = Self::get_bind_group_layout(device);
         let entries = bindings.into_array();
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-          label: Some("BevyPbrmeshViewBindings::BindGroup0"),
+          label: Some("BevyPbrMeshViewBindings::BindGroup0"),
           layout: &bind_group_layout,
           entries: &entries,
         });
@@ -988,7 +988,7 @@ pub mod bevy_pbr {
     impl WgpuBindGroup2 {
       pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
         wgpu::BindGroupLayoutDescriptor {
-          label: Some("BevyPbrmeshBindings::BindGroup2::LayoutDescriptor"),
+          label: Some("BevyPbrMeshBindings::BindGroup2::LayoutDescriptor"),
           entries: &[
             #[doc = " @binding(0): \"_root::bevy_pbr::mesh_bindings::mesh\""]
             wgpu::BindGroupLayoutEntry {
@@ -1015,7 +1015,7 @@ pub mod bevy_pbr {
         let bind_group_layout = Self::get_bind_group_layout(device);
         let entries = bindings.into_array();
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-          label: Some("BevyPbrmeshBindings::BindGroup2"),
+          label: Some("BevyPbrMeshBindings::BindGroup2"),
           layout: &bind_group_layout,
           entries: &entries,
         });

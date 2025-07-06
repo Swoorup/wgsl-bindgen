@@ -7,7 +7,7 @@ use wgsl_bindgen::{assert_tokens_snapshot, *};
 #[test]
 fn test_issue_35() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("test/shaders/issue_35")
+    .workspace_root("tests/shaders/issue_35")
     .add_entry_point("tests/shaders/issue_35/clear.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
@@ -195,5 +195,40 @@ fn test_duplicate_import_vertexinput_issue() -> Result<()> {
   let parsed_output = parse_str(&actual).unwrap();
   assert_rust_compilation!(parsed_output);
 
+  Ok(())
+}
+
+#[test]
+fn test_module_path_binding_generation() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders")
+    .add_entry_point("tests/shaders/lines/segment.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/lines_segment.actual.rs")
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/lines_segment.actual.rs").unwrap();
+
+  // Verify the module path is lines::segment
+  assert!(actual.contains("pub mod lines {"), "Should have lines module");
+  assert!(actual.contains("pub mod segment {"), "Should have segment submodule");
+
+  // Verify ShaderEntry enum variant includes module prefix
+  assert!(actual.contains("LinesSegment,"), "ShaderEntry variant should be LinesSegment");
+  assert!(
+    actual.contains("Self::LinesSegment"),
+    "Should use Self::LinesSegment in match arms"
+  );
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }

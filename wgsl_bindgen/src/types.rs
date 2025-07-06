@@ -33,6 +33,38 @@ impl SourceFilePath {
     let prefix = file_name.split('.').next().unwrap_or("");
     prefix.to_string()
   }
+
+  pub fn module_path(&self, workspace_root: &std::path::Path) -> String {
+    Self::path_to_module_path(&self.0, workspace_root)
+  }
+
+  /// Converts a file path to a Rust module path relative to a workspace root.
+  ///
+  /// Examples:
+  /// - `"shaders/lines/segment.wgsl"` with workspace `"shaders"` -> `"lines::segment"`
+  /// - `"particle_physics.wgsl"` with workspace `"."` -> `"particle_physics"`
+  pub fn path_to_module_path(
+    file_path: &std::path::Path,
+    workspace_root: &std::path::Path,
+  ) -> String {
+    // Get the relative path from workspace root
+    let relative_path = file_path.strip_prefix(workspace_root).unwrap_or(file_path);
+
+    // Get parent directories and file stem
+    let parent = relative_path.parent();
+    let file_stem = relative_path.file_stem().unwrap().to_str().unwrap();
+    let file_prefix = file_stem.split('.').next().unwrap_or("");
+
+    // Build module path with :: separators
+    match parent {
+      Some(parent) if !parent.as_os_str().is_empty() => {
+        let parent_modules: Vec<&str> =
+          parent.iter().filter_map(|s| s.to_str()).collect();
+        format!("{}::{}", parent_modules.join("::"), file_prefix)
+      }
+      _ => file_prefix.to_string(),
+    }
+  }
 }
 
 #[derive(AsRef, Hash, From, Into, Clone, PartialEq, Eq, Educe, Deref, Display)]
