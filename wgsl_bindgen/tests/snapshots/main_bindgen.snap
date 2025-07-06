@@ -240,9 +240,9 @@ pub mod basic {
     #[repr(C, align(256))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Style {
-      #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+      #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
       pub color: glam::Vec4,
-      #[doc = " size: 4, offset: 0x10, type: `f32`"]
+      #[doc = "offset: 16, size: 4, type: `f32`"]
       pub width: f32,
       pub _pad_width: [u8; 0xC],
     }
@@ -262,7 +262,7 @@ pub mod basic {
       pub width: f32,
     }
     impl StyleInit {
-      pub const fn build(&self) -> Style {
+      pub fn build(&self) -> Style {
         Style {
           color: self.color,
           width: self.width,

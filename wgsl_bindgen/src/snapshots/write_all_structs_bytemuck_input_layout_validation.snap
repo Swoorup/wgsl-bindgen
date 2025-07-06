@@ -4,13 +4,13 @@ source: wgsl_bindgen/src/structs.rs
 #[repr(C, align(4))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Input0 {
-  #[doc = " size: 4, offset: 0x0, type: `u32`"]
+  #[doc = "offset: 0, size: 4, type: `u32`"]
   pub a: u32,
   pub _pad_a: [u8; 0x4],
-  #[doc = " size: 4, offset: 0x8, type: `i32`"]
+  #[doc = "offset: 8, size: 4, type: `i32`"]
   pub b: i32,
   pub _pad_b: [u8; 0x14],
-  #[doc = " size: 4, offset: 0x20, type: `f32`"]
+  #[doc = "offset: 32, size: 4, type: `f32`"]
   pub c: f32,
   pub _pad_d: [u8; 0x1C],
 }
@@ -34,7 +34,7 @@ pub struct Input0Init {
   pub c: f32,
 }
 impl Input0Init {
-  pub const fn build(&self) -> Input0 {
+  pub fn build(&self) -> Input0 {
     Input0 {
       a: self.a,
       _pad_a: [0; 0x4],
@@ -61,7 +61,7 @@ unsafe impl bytemuck::Pod for Input0 {}
 #[repr(C, align(4))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Inner {
-  #[doc = " size: 4, offset: 0x0, type: `f32`"]
+  #[doc = "offset: 0, size: 4, type: `f32`"]
   pub a: f32,
 }
 impl Inner {
@@ -78,7 +78,7 @@ unsafe impl bytemuck::Pod for Inner {}
 #[repr(C, align(4))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Outer {
-  #[doc = " size: 4, offset: 0x0, type: `Inner`"]
+  #[doc = "offset: 0, size: 4, type: `Inner`"]
   pub inner: Inner,
 }
 impl Outer {

@@ -81,9 +81,9 @@ pub mod minimal {
   #[repr(C, align(256))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Uniforms {
-    #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+    #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
     pub color: glam::Vec4,
-    #[doc = " size: 4, offset: 0x10, type: `f32`"]
+    #[doc = "offset: 16, size: 4, type: `f32`"]
     pub width: f32,
     pub _pad_width: [u8; 0xC],
   }
@@ -103,7 +103,7 @@ pub mod minimal {
     pub width: f32,
   }
   impl UniformsInit {
-    pub const fn build(&self) -> Uniforms {
+    pub fn build(&self) -> Uniforms {
       Uniforms {
         color: self.color,
         width: self.width,

@@ -94,11 +94,11 @@ pub mod lines {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct SegmentData {
-      #[doc = " size: 8, offset: 0x0, type: `vec2<f32>`"]
+      #[doc = "offset: 0, size: 8, type: `vec2<f32>`"]
       pub start: glam::Vec2,
-      #[doc = " size: 8, offset: 0x8, type: `vec2<f32>`"]
+      #[doc = "offset: 8, size: 8, type: `vec2<f32>`"]
       pub end: glam::Vec2,
-      #[doc = " size: 16, offset: 0x10, type: `vec4<f32>`"]
+      #[doc = "offset: 16, size: 16, type: `vec4<f32>`"]
       pub color: glam::Vec4,
     }
     impl SegmentData {

@@ -197,6 +197,7 @@ impl<'a> NagaToRustStructState<'a> {
           pad_size_tokens,
         })
       } else {
+        let init_type = rust_type_info.init_type.clone().map(syn::Type::Verbatim);
         let rust_type = Self::get_rust_type(
           options,
           &fully_qualified_name,
@@ -209,7 +210,8 @@ impl<'a> NagaToRustStructState<'a> {
           naga_member,
           naga_type: member_naga_type,
           naga_ty_handle: naga_member.ty,
-          rust_type: syn::Type::Verbatim(rust_type),
+          rust_type: syn::Type::Verbatim(rust_type.clone()),
+          init_type,
           is_rsa: is_runtime_sized_array,
         })
       };
@@ -233,13 +235,18 @@ pub struct Field<'a> {
   pub naga_type: &'a naga::Type,
   pub naga_ty_handle: naga::Handle<naga::Type>,
   pub rust_type: syn::Type,
+  pub init_type: Option<syn::Type>,
   pub is_rsa: bool,
 }
 
 impl<'a> Field<'a> {
   fn generate_member_instantiate(&self, other_struct_var_name: &Ident) -> TokenStream {
     let name = &self.name_ident;
-    quote!(#name: #other_struct_var_name.#name)
+    if self.has_init_type() {
+      self.generate_init_to_target_conversion(other_struct_var_name)
+    } else {
+      quote!(#name: #other_struct_var_name.#name)
+    }
   }
 
   fn generate_member_definition(&self) -> TokenStream {
@@ -248,10 +255,34 @@ impl<'a> Field<'a> {
     quote!(pub #name: #ty)
   }
 
+  fn generate_init_member_definition(&self) -> TokenStream {
+    let name = &self.name_ident;
+    if let Some(init_ty) = &self.init_type {
+      quote!(pub #name: #init_ty)
+    } else {
+      let ty = &self.rust_type;
+      quote!(pub #name: #ty)
+    }
+  }
+
   fn generate_fn_new_param(&self) -> TokenStream {
     let name = &self.name_ident;
     let ty = &self.rust_type;
     quote!(#name: #ty)
+  }
+
+  fn has_init_type(&self) -> bool {
+    self.init_type.is_some()
+  }
+
+  fn generate_init_to_target_conversion(
+    &self,
+    other_struct_var_name: &Ident,
+  ) -> TokenStream {
+    let name = &self.name_ident;
+    // Convert from init type (like [Vec3; 4]) to target type (like [(Vec3, [u8; 4]); 4])
+    // The padding bytes are zeroed out
+    quote!(#name: #other_struct_var_name.#name.map(|elem| (elem, [0u8; 4])))
   }
 }
 
@@ -315,7 +346,10 @@ impl<'a> RustStructBuilder<'a> {
   }
 
   fn uses_padding(&self) -> bool {
-    self.members.iter().any(|m| m.is_padding())
+    self.members.iter().any(|m| match m {
+      RustStructMemberEntry::Padding(_) => true,
+      RustStructMemberEntry::Field(field) => field.has_init_type(),
+    })
   }
 
   fn ty_param_use(&self) -> TokenStream {
@@ -395,7 +429,7 @@ impl<'a> RustStructBuilder<'a> {
     for entry in self.members.iter() {
       match entry {
         RustStructMemberEntry::Field(field) => {
-          init_struct_members.push(field.generate_member_definition());
+          init_struct_members.push(field.generate_init_member_definition());
           mem_assignments.push(field.generate_member_instantiate(&init_var_name));
         }
         RustStructMemberEntry::Padding(padding) => {
@@ -407,7 +441,7 @@ impl<'a> RustStructBuilder<'a> {
     let init_derives =
       generate_derive_attributes(&["Debug", "PartialEq", "Clone", "Copy"]);
     let build_method = quote! {
-      pub const fn build(&self) -> #struct_name_in_usage {
+      pub fn build(&self) -> #struct_name_in_usage {
         #struct_name {
           #(#mem_assignments),*
         }
@@ -496,6 +530,7 @@ impl<'a> RustStructBuilder<'a> {
             naga_member: member,
             naga_type,
             naga_ty_handle,
+            init_type: _,
           } = field;
 
           let doc_comment = if self.is_directly_shareable() {
@@ -503,7 +538,7 @@ impl<'a> RustStructBuilder<'a> {
             let size = naga_type.inner.size(naga_context);
             let ty_name = naga_context.type_to_string(*naga_ty_handle);
             let ty_name = demangle_str(&ty_name);
-            let doc = format!(" size: {size}, offset: 0x{offset:X}, type: `{ty_name}`");
+            let doc = format!("offset: {offset}, size: {size}, type: `{ty_name}`");
 
             generate_doc_comment(&doc)
           } else {

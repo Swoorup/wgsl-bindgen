@@ -356,13 +356,13 @@ pub mod global_bindings {
   #[repr(C, align(8))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct GlobalUniforms {
-    #[doc = " size: 4, offset: 0x0, type: `f32`"]
+    #[doc = "offset: 0, size: 4, type: `f32`"]
     pub time: f32,
-    #[doc = " size: 4, offset: 0x4, type: `f32`"]
+    #[doc = "offset: 4, size: 4, type: `f32`"]
     pub scale_factor: f32,
-    #[doc = " size: 8, offset: 0x8, type: `vec2<f32>`"]
+    #[doc = "offset: 8, size: 8, type: `vec2<f32>`"]
     pub frame_size: glam::Vec2,
-    #[doc = " size: 8, offset: 0x10, type: `vec2<f32>`"]
+    #[doc = "offset: 16, size: 8, type: `vec2<f32>`"]
     pub mouse_pos: glam::Vec2,
   }
   impl GlobalUniforms {
@@ -478,7 +478,7 @@ pub mod fullscreen_effects {
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Uniforms {
-    #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+    #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
     pub color_rgb: glam::Vec4,
   }
   pub const fn Uniforms(color_rgb: glam::Vec4) -> Uniforms {
@@ -511,7 +511,7 @@ pub mod fullscreen_effects {
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct PushConstants {
-    #[doc = " size: 64, offset: 0x0, type: `mat4x4<f32>`"]
+    #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
     pub color_matrix: glam::Mat4,
   }
   pub const fn PushConstants(color_matrix: glam::Mat4) -> PushConstants {
@@ -789,7 +789,7 @@ pub mod simple_array_demo {
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Uniforms {
-    #[doc = " size: 16, offset: 0x0, type: `vec4<f32>`"]
+    #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
     pub color_rgb: glam::Vec4,
   }
   pub const fn Uniforms(color_rgb: glam::Vec4) -> Uniforms {
@@ -822,7 +822,7 @@ pub mod simple_array_demo {
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct PushConstants {
-    #[doc = " size: 64, offset: 0x0, type: `mat4x4<f32>`"]
+    #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
     pub color_matrix: glam::Mat4,
   }
   pub const fn PushConstants(color_matrix: glam::Mat4) -> PushConstants {
@@ -1100,21 +1100,21 @@ pub mod overlay {
   #[repr(C, align(4))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct InfoData {
-    #[doc = " size: 4, offset: 0x0, type: `f32`"]
+    #[doc = "offset: 0, size: 4, type: `f32`"]
     pub demo_index: f32,
-    #[doc = " size: 4, offset: 0x4, type: `f32`"]
+    #[doc = "offset: 4, size: 4, type: `f32`"]
     pub total_demos: f32,
-    #[doc = " size: 4, offset: 0x8, type: `f32`"]
+    #[doc = "offset: 8, size: 4, type: `f32`"]
     pub time: f32,
-    #[doc = " size: 4, offset: 0xC, type: `f32`"]
+    #[doc = "offset: 12, size: 4, type: `f32`"]
     pub scale_factor: f32,
-    #[doc = " size: 4, offset: 0x10, type: `f32`"]
+    #[doc = "offset: 16, size: 4, type: `f32`"]
     pub window_width: f32,
-    #[doc = " size: 4, offset: 0x14, type: `f32`"]
+    #[doc = "offset: 20, size: 4, type: `f32`"]
     pub window_height: f32,
-    #[doc = " size: 4, offset: 0x18, type: `f32`"]
+    #[doc = "offset: 24, size: 4, type: `f32`"]
     pub padding1: f32,
-    #[doc = " size: 4, offset: 0x1C, type: `f32`"]
+    #[doc = "offset: 28, size: 4, type: `f32`"]
     pub padding2: f32,
   }
   impl InfoData {
@@ -1500,15 +1500,15 @@ pub mod compute_demo {
     #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Job {
-      #[doc = " size: 12, offset: 0x0, type: `vec3<f32>`"]
+      #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
       pub position: glam::Vec3,
       pub _pad_position: [u8; 0x4],
-      #[doc = " size: 12, offset: 0x10, type: `vec3<f32>`"]
+      #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
       pub direction: glam::Vec3,
       pub _pad_direction: [u8; 0x4],
-      #[doc = " size: 12, offset: 0x20, type: `vec3<f32>`"]
+      #[doc = "offset: 32, size: 12, type: `vec3<f32>`"]
       pub accum: glam::Vec3,
-      #[doc = " size: 4, offset: 0x2C, type: `u32`"]
+      #[doc = "offset: 44, size: 4, type: `u32`"]
       pub depth: u32,
     }
     impl Job {
@@ -1537,7 +1537,7 @@ pub mod compute_demo {
       pub depth: u32,
     }
     impl JobInit {
-      pub const fn build(&self) -> Job {
+      pub fn build(&self) -> Job {
         Job {
           position: self.position,
           _pad_position: [0; 0x4],
@@ -1556,9 +1556,9 @@ pub mod compute_demo {
     #[repr(C, align(4))]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub struct Params {
-      #[doc = " size: 4, offset: 0x0, type: `f32`"]
+      #[doc = "offset: 0, size: 4, type: `f32`"]
       pub scale: f32,
-      #[doc = " size: 4, offset: 0x4, type: `f32`"]
+      #[doc = "offset: 4, size: 4, type: `f32`"]
       pub damping: f32,
     }
     pub const fn Params(scale: f32, damping: f32) -> Params {
