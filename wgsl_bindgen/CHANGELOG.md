@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.20.0...wgsl_bindgen-v0.20.1) - 2025-07-06
+
+### Added
+
+- Add Init struct generation and improve field documentation
+
+### Fixed
+
+- Generate correct module paths and ShaderEntry variants for nested shader files
+
+### Other
+
+- Added notes to wgsl binding calculation
+
 ## [0.20.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.19.1...wgsl_bindgen-v0.20.0) - 2025-07-03
 
 ### Added
