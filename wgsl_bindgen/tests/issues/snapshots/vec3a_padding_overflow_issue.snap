@@ -1,0 +1,286 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+---
+#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  Vec3aPaddingIssue,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::Vec3aPaddingIssue => vec3a_padding_issue::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::Vec3aPaddingIssue => {
+        vec3a_padding_issue::create_shader_module_embed_source(device)
+      }
+    }
+  }
+}
+mod _root {
+  pub use super::*;
+  pub trait SetBindGroup {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    );
+  }
+  impl SetBindGroup for wgpu::ComputePass<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
+    }
+  }
+}
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+  const VEC3A_PADDING_ISSUE_JOB_ASSERTS: () = {
+    assert!(std::mem::offset_of!(vec3a_padding_issue::Job, position) == 0);
+    assert!(std::mem::offset_of!(vec3a_padding_issue::Job, direction) == 16);
+    assert!(std::mem::offset_of!(vec3a_padding_issue::Job, accum) == 32);
+    assert!(std::mem::offset_of!(vec3a_padding_issue::Job, depth) == 44);
+    assert!(std::mem::size_of::<vec3a_padding_issue::Job>() == 48);
+  };
+}
+pub mod vec3a_padding_issue {
+  use super::{_root, _root::*};
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct Job {
+    #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
+    pub position: glam::Vec3,
+    pub _pad_position: [u8; 0x4],
+    #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
+    pub direction: glam::Vec3,
+    pub _pad_direction: [u8; 0x4],
+    #[doc = "offset: 32, size: 12, type: `vec3<f32>`"]
+    pub accum: glam::Vec3,
+    #[doc = "offset: 44, size: 4, type: `u32`"]
+    pub depth: u32,
+  }
+  impl Job {
+    pub const fn new(
+      position: glam::Vec3,
+      direction: glam::Vec3,
+      accum: glam::Vec3,
+      depth: u32,
+    ) -> Self {
+      Self {
+        position,
+        _pad_position: [0; 0x4],
+        direction,
+        _pad_direction: [0; 0x4],
+        accum,
+        depth,
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct JobInit {
+    pub position: glam::Vec3,
+    pub direction: glam::Vec3,
+    pub accum: glam::Vec3,
+    pub depth: u32,
+  }
+  impl JobInit {
+    pub fn build(&self) -> Job {
+      Job {
+        position: self.position,
+        _pad_position: [0; 0x4],
+        direction: self.direction,
+        _pad_direction: [0; 0x4],
+        accum: self.accum,
+        depth: self.depth,
+      }
+    }
+  }
+  impl From<JobInit> for Job {
+    fn from(data: JobInit) -> Self {
+      data.build()
+    }
+  }
+  pub mod compute {
+    use super::{_root, _root::*};
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+    pub fn create_main_pipeline_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_embed_source(device);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub jobs: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub jobs: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        jobs: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.jobs),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.jobs]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("Vec3aPaddingIssue::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"jobs\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Vec3aPaddingIssue::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("Vec3aPaddingIssue::PipelineLayout"),
+      bind_group_layouts: &[&WgpuBindGroup0::get_bind_group_layout(device)],
+      push_constant_ranges: &[],
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("vec3a_padding_issue.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct Job {
+    position: vec3<f32>,
+    direction: vec3<f32>,
+    accum: vec3<f32>,
+    depth: u32,
+}
+
+@group(0) @binding(0) 
+var<storage, read_write> jobs: array<Job>;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let index = global_id.x;
+    if (index >= arrayLength((&jobs))) {
+        return;
+    }
+    let _e11 = jobs[index].depth;
+    jobs[index].depth = (_e11 + 1u);
+    return;
+}
+"#;
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for vec3a_padding_issue::Job {}
+  unsafe impl bytemuck::Pod for vec3a_padding_issue::Job {}
+}

@@ -1,0 +1,205 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+---
+#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  MultipleVertexShaders,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::MultipleVertexShaders => {
+        multiple_vertex_shaders::create_pipeline_layout(device)
+      }
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::MultipleVertexShaders => {
+        multiple_vertex_shaders::create_shader_module_embed_source(device)
+      }
+    }
+  }
+}
+mod _root {
+  pub use super::*;
+}
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+}
+pub mod multiple_vertex_shaders {
+  use super::{_root, _root::*};
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct VertexInput {
+    pub position: glam::Vec3,
+  }
+  impl VertexInput {
+    pub const fn new(position: glam::Vec3) -> Self {
+      Self { position }
+    }
+  }
+  impl VertexInput {
+    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [wgpu::VertexAttribute {
+      format: wgpu::VertexFormat::Float32x3,
+      offset: std::mem::offset_of!(Self, position) as u64,
+      shader_location: 0,
+    }];
+    pub const fn vertex_buffer_layout(
+      step_mode: wgpu::VertexStepMode,
+    ) -> wgpu::VertexBufferLayout<'static> {
+      wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<Self>() as u64,
+        step_mode,
+        attributes: &Self::VERTEX_ATTRIBUTES,
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct InstanceInput {
+    pub position: glam::Vec3,
+  }
+  impl InstanceInput {
+    pub const fn new(position: glam::Vec3) -> Self {
+      Self { position }
+    }
+  }
+  impl InstanceInput {
+    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [wgpu::VertexAttribute {
+      format: wgpu::VertexFormat::Float32x3,
+      offset: std::mem::offset_of!(Self, position) as u64,
+      shader_location: 1,
+    }];
+    pub const fn vertex_buffer_layout(
+      step_mode: wgpu::VertexStepMode,
+    ) -> wgpu::VertexBufferLayout<'static> {
+      wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<Self>() as u64,
+        step_mode,
+        attributes: &Self::VERTEX_ATTRIBUTES,
+      }
+    }
+  }
+  pub const ENTRY_DUMMY_VERTEX_SHADER: &str = "dummy_vertex_shader";
+  pub const ENTRY_DUMMY_INSTANCED_VERTEX_SHADER: &str = "dummy_instanced_vertex_shader";
+  #[derive(Debug)]
+  pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+  ) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+      module,
+      entry_point: Some(entry.entry_point),
+      buffers: &entry.buffers,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn dummy_vertex_shader_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
+    VertexEntry {
+      entry_point: ENTRY_DUMMY_VERTEX_SHADER,
+      buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
+      constants: Default::default(),
+    }
+  }
+  pub fn dummy_instanced_vertex_shader_entry(
+    vertex_input: wgpu::VertexStepMode,
+    instance_input: wgpu::VertexStepMode,
+  ) -> VertexEntry<2> {
+    VertexEntry {
+      entry_point: ENTRY_DUMMY_INSTANCED_VERTEX_SHADER,
+      buffers: [
+        VertexInput::vertex_buffer_layout(vertex_input),
+        InstanceInput::vertex_buffer_layout(instance_input),
+      ],
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 0],
+    ) -> [wgpu::BindGroupLayout; 0] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("MultipleVertexShaders::PipelineLayout"),
+      bind_group_layouts: &[],
+      push_constant_ranges: &[],
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("multiple_vertex_shaders.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+}
+
+struct InstanceInput {
+    @location(1) position: vec3<f32>,
+}
+
+@vertex 
+fn dummy_vertex_shader(vert_in: VertexInput) -> @builtin(position) vec4<f32> {
+    return vec4<f32>(vert_in.position, 1f);
+}
+
+@vertex 
+fn dummy_instanced_vertex_shader(vert_in_1: VertexInput, instance_in: InstanceInput) -> @builtin(position) vec4<f32> {
+    return vec4<f32>((vert_in_1.position + instance_in.position), 1f);
+}
+"#;
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for multiple_vertex_shaders::VertexInput {}
+  unsafe impl bytemuck::Pod for multiple_vertex_shaders::VertexInput {}
+  unsafe impl bytemuck::Zeroable for multiple_vertex_shaders::InstanceInput {}
+  unsafe impl bytemuck::Pod for multiple_vertex_shaders::InstanceInput {}
+}

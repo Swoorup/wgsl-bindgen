@@ -80,7 +80,7 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
-  const LINESSEGMENT_SEGMENT_DATA_ASSERTS: () = {
+  const LINES_SEGMENT_SEGMENT_DATA_ASSERTS: () = {
     assert!(std::mem::offset_of!(lines::segment::SegmentData, start) == 0);
     assert!(std::mem::offset_of!(lines::segment::SegmentData, end) == 8);
     assert!(std::mem::offset_of!(lines::segment::SegmentData, color) == 16);
