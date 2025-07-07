@@ -187,6 +187,12 @@ impl WGSLBindgen {
 
     if self.options.skip_hash_check || is_hash_changed() {
       let content = self.generate_string()?;
+
+      // Create parent directories if they don't exist
+      if let Some(parent) = out.parent() {
+        std::fs::create_dir_all(parent)?;
+      }
+
       std::fs::File::create(out)?.write_all(content.as_bytes())?
     }
 
