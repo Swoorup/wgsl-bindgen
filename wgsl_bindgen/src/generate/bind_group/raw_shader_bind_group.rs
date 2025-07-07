@@ -106,14 +106,18 @@ impl<'a> RawShadersBindGroups<'a> {
     }
 
     // Remove all the bind groups that are not reusable.
-    common_bind_groups.retain(|_, (_, group)| group.are_all_same_module());
+    common_bind_groups.retain(|&_group_no, (_, group)| group.are_all_same_module());
 
     // Update common bind groups with combined shader stages for correct visibility
     let mut updated_common_bind_groups = BTreeMap::new();
     for (&group_no, (merged_stages, group)) in &common_bind_groups {
       let common_module = group.first_module();
-      let updated_group =
-        group.with_updated_shader_stages(&common_module, self.options, *merged_stages);
+      let updated_group = group.with_updated_shader_stages(
+        &common_module,
+        self.options,
+        *merged_stages,
+        group_no,
+      );
       updated_common_bind_groups.insert(group_no, (merged_stages, updated_group));
     }
 
@@ -122,13 +126,15 @@ impl<'a> RawShadersBindGroups<'a> {
     for (&group_no, (_, group)) in &updated_common_bind_groups {
       let common_module = group.first_module();
 
-      reusable_shader_bind_groups.common_bind_groups.insert(
-        common_module.clone(),
-        CommonShaderBindGroups {
-          containing_module: common_module,
-          bind_group_data: BTreeMap::from([(group_no, group.clone())]),
-        },
-      );
+      reusable_shader_bind_groups
+        .common_bind_groups
+        .entry(common_module.clone())
+        .or_insert_with(|| CommonShaderBindGroups {
+          containing_module: common_module.clone(),
+          bind_group_data: BTreeMap::new(),
+        })
+        .bind_group_data
+        .insert(group_no, group.clone());
     }
 
     // Add the shader entries to the reusable shader bind groups

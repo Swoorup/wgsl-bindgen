@@ -256,13 +256,29 @@ pub(crate) fn rust_type(
   ty: &naga::Type,
   options: &WgslBindgenOption,
 ) -> RustTypeInfo {
-  let t_handle = module.types.get(ty).unwrap();
   let mut layouter = naga::proc::Layouter::default();
-  layouter.update(module.to_ctx()).unwrap();
+  let naga_context = module.to_ctx();
+  layouter.update(naga_context).unwrap();
 
-  let type_layout = layouter[t_handle];
-
-  let alignment = type_layout.alignment;
+  let (type_layout, alignment) = if let Some(t_handle) = module.types.get(ty) {
+    let type_layout = layouter[t_handle];
+    let alignment = type_layout.alignment;
+    (type_layout, alignment)
+  } else {
+    // Type is not in the arena - this happens with shared bind groups across multiple entry points
+    // For dynamic arrays and other synthetic types, we can determine minimal layout info manually
+    // TODO: I am not sure if this is the best way to handle this, but it works for now
+    match &ty.inner {
+      naga::TypeInner::Array { base, .. } => {
+        // For arrays, try to get the base type's alignment
+        let base_layout = layouter[*base];
+        (base_layout, base_layout.alignment)
+      }
+      _ => {
+        panic!("Type {ty:?} not found in module types arena, cannot determine alignment");
+      }
+    }
+  };
 
   match &ty.inner {
     naga::TypeInner::Scalar(scalar) => rust_scalar_type(scalar, alignment),
@@ -311,8 +327,8 @@ pub(crate) fn rust_type(
       size: naga::ArraySize::Constant(size),
       stride,
     } => {
-      let base_type = &module.types[*base];
-      let inner_ty = rust_type(invoking_entry_module, module, base_type, options);
+      let inner_ty =
+        rust_type(invoking_entry_module, module, &module.types[*base], options);
       let count = Index::from(size.get() as usize);
       let total_size = (size.get() as usize) * (*stride as usize);
 

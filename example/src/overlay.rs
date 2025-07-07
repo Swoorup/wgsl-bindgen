@@ -20,7 +20,6 @@ impl OverlayRenderer {
     let shader = overlay::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      crate::shader_bindings::ShaderEntry::Overlay,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )

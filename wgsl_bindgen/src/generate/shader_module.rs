@@ -12,7 +12,9 @@ use syn::{Ident, Index};
 use crate::generate::quote_naga_capabilities;
 use crate::naga_util::module_to_source;
 use crate::quote_gen::create_shader_raw_string_literal;
-use crate::{WgslBindgenOption, WgslEntryResult, WgslShaderSourceType};
+use crate::{
+  sanitize_and_pascal_case, WgslBindgenOption, WgslEntryResult, WgslShaderSourceType,
+};
 
 impl<'a> WgslEntryResult<'a> {
   fn get_label(&self) -> TokenStream {
@@ -155,11 +157,10 @@ impl WgslShaderSourceType {
         let param_defs = quote! {
           device: &wgpu::Device,
           base_dir: &str,
-          entry_point: ShaderEntry,
           shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
           load_file: impl Fn(&str) -> Result<String, std::io::Error>
         };
-        let params = quote!(device, base_dir, entry_point, shader_defs, load_file);
+        let params = quote!(device, base_dir, shader_defs, load_file);
         (param_defs, params)
       }
     }
@@ -301,6 +302,7 @@ struct ComposeShaderModuleBuilder<'a, 'b> {
   output_dir: &'a Path,
   workspace_root: &'a Path,
   source_type: WgslShaderSourceType,
+  shader_defs: crate::FastIndexMap<String, naga_oil::compose::ShaderDefValue>,
 }
 
 impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
@@ -310,8 +312,13 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     output_dir: &'a Path,
     workspace_root: &'a Path,
     source_type: WgslShaderSourceType,
+    shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
   ) -> Self {
     let entry_source_path = entry.source_including_deps.source_file.file_path.as_path();
+
+    // Convert Vec to FastIndexMap for consistent ordering
+    let shader_defs_map: crate::FastIndexMap<String, naga_oil::compose::ShaderDefValue> =
+      shader_defs.iter().cloned().collect();
 
     Self {
       entry,
@@ -320,6 +327,7 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
       workspace_root,
       source_type,
       entry_source_path,
+      shader_defs: shader_defs_map,
     }
   }
 
@@ -413,6 +421,8 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     let create_shader_module_fn = self.create_shader_module_fn_name();
     let load_shader_module_fn_name = self.source_type.load_shader_module_fn_name();
     let shader_label = self.entry.get_label();
+
+    let shader_enum_variant = self.entry.get_shader_variant();
     let return_type = self.source_type.get_return_type(quote!(wgpu::ShaderModule));
     let propagate_operator = self.source_type.get_propagate_operator();
     let return_stmt = self.source_type.wrap_return_stmt(quote! { shader_module });
@@ -437,13 +447,12 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
           pub fn #create_shader_module_fn(
             device: &wgpu::Device,
             base_dir: &str,
-            entry_point: ShaderEntry,
             shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
             load_file: impl Fn(&str) -> Result<String, std::io::Error>,
           ) -> #return_type
           {
             let mut composer = #composer_with_capabilities;
-            let module = load_naga_module_from_path(base_dir, entry_point, &mut composer, shader_defs, load_file).map_err(|e| {
+            let module = ShaderEntry::#shader_enum_variant.load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file).map_err(|e| {
               naga_oil::compose::ComposerError {
                 inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
                 source: naga_oil::compose::ErrSource::Constructing {
@@ -528,8 +537,6 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
     /// # Arguments
     ///
     /// * `base_dir` - The base directory for resolving relative paths
-    /// * `entry_point` - The shader entry point to start traversal from
-    /// * `shader_defs` - Shader defines to be used during processing
     /// * `load_file` - Function to load file contents from a path
     /// * `visitor` - Function called for each file with (file_path, file_content)
     ///
@@ -537,156 +544,166 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
     ///
     /// Returns `Ok(())` if all files were processed successfully, or an error string.
     pub fn visit_shader_files(
+      &self,
       base_dir: &str,
-      entry_point: ShaderEntry,
       load_file: impl Fn(&str) -> Result<String, std::io::Error>,
       mut visitor: impl FnMut(&str, &str),
     ) -> Result<(), String> {
-      fn visit_dependencies_recursive(
-        base_dir: &str,
-        source: &str,
-        current_path: &str,
-        load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
-        visitor: &mut impl FnMut(&str, &str),
-        visited: &mut std::collections::HashSet<String>,
-      ) -> Result<(), String> {
-        // Use naga_oil's preprocessor to get import information
-        let (_, imports, _) = naga_oil::compose::get_preprocessor_data(source);
+        fn visit_dependencies_recursive(
+          base_dir: &str,
+          source: &str,
+          current_path: &str,
+          load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
+          visitor: &mut impl FnMut(&str, &str),
+          visited: &mut std::collections::HashSet<String>,
+        ) -> Result<(), String> {
+          // Use naga_oil's preprocessor to get import information
+          let (_, imports, _) = naga_oil::compose::get_preprocessor_data(source);
 
-        for import in imports {
-          let import_path = if import.import.starts_with('\"') {
-            // Strip quotes from string literals
-            import.import
-              .chars()
-              .skip(1)
-              .take_while(|c| *c != '\"')
-              .collect::<String>()
-          } else {
-            // For module imports like "global_bindings::time", extract just the module name
-            let module_path = if let Some(double_colon_pos) = import.import.find("::") {
-              &import.import[..double_colon_pos]
+          for import in imports {
+            let import_path = if import.import.starts_with('\"') {
+              // Strip quotes from string literals
+              import.import
+                .chars()
+                .skip(1)
+                .take_while(|c| *c != '\"')
+                .collect::<String>()
             } else {
-              &import.import
+              // For module imports like "global_bindings::time", extract just the module name
+              let module_path = import.import.split("::").collect::<Vec<_>>().join(std::path::MAIN_SEPARATOR_STR);
+              format!("{module_path}.wgsl")
             };
-            format!("{module_path}.wgsl")
-          };
 
-          // Resolve import path - simplified to always resolve from base directory
-          // This works for both module imports (global_bindings::time) and relative imports
-          let full_import_path = if import_path.starts_with('/') || import_path.starts_with('\\') {
-            format!("{base_dir}{import_path}")
-          } else {
-            // Use proper path joining for Windows compatibility
-            std::path::Path::new(base_dir).join(import_path).display().to_string()
-          };
+            // Resolve import path - simplified to always resolve from base directory
+            // This works for both module imports (global_bindings::time) and relative imports
+            let full_import_path = if import_path.starts_with('/') || import_path.starts_with('\\') {
+              format!("{base_dir}{import_path}")
+            } else {
+              // Use proper path joining for Windows compatibility
+              std::path::Path::new(base_dir).join(import_path).display().to_string()
+            };
 
-          // Skip if already visited
-          if visited.contains(&full_import_path) {
-            continue;
+            // Skip if already visited
+            if visited.contains(&full_import_path) {
+              continue;
+            }
+
+            visited.insert(full_import_path.clone());
+
+            // Load the imported file
+            let import_source = match load_file(&full_import_path) {
+              Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                continue;
+              }
+              Err(err) => {
+                return Err(format!("Failed to load import file {full_import_path}: {err}"));
+              }
+              Ok(content) => content,
+            };
+
+            // Recursively visit its dependencies
+            visit_dependencies_recursive(
+              base_dir,
+              &import_source,
+              full_import_path.trim_start_matches(&format!("{base_dir}/")),
+              load_file,
+              visitor,
+              visited,
+            )?;
+
+            // Call visitor for the inner most files first
+            visitor(&full_import_path, &import_source);
           }
-          visited.insert(full_import_path.clone());
 
-          // Load the imported file
-          let import_source = load_file(&full_import_path)
-            .map_err(|e| format!("Failed to load {full_import_path}: {e}"))?;
-
-          // Call visitor for this file
-          visitor(&full_import_path, &import_source);
-
-          // Recursively visit its dependencies
-          visit_dependencies_recursive(
-            base_dir,
-            &import_source,
-            full_import_path.trim_start_matches(&format!("{base_dir}/")),
-            load_file,
-            visitor,
-            visited,
-          )?;
+          Ok(())
         }
+
+        // Load entry point source
+        let entry_path = format!("{}/{}", base_dir, self.relative_path());
+        let entry_source = load_file(&entry_path)
+          .map_err(|e| format!("Failed to load entry point {entry_path}: {e}"))?;
+
+        // Call visitor for entry point
+        visitor(&entry_path, &entry_source);
+
+        // Visit all dependencies
+        let mut visited = std::collections::HashSet::new();
+        visit_dependencies_recursive(
+          base_dir,
+          &entry_source,
+          self.relative_path(),
+          &load_file,
+          &mut visitor,
+          &mut visited,
+        )?;
 
         Ok(())
       }
 
-      // Load entry point source
-      let entry_path = format!("{}/{}", base_dir, entry_point.relative_path());
-      let entry_source = load_file(&entry_path)
-        .map_err(|e| format!("Failed to load entry point {entry_path}: {e}"))?;
+      pub fn load_naga_module_from_path_contents(
+        &self,
+        base_dir: &str,
+        composer: &mut naga_oil::compose::Composer,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+        files: Vec<(String, String)>,
+      ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError>
+      {
+        // Process dependency files first (all except entry point)
+        let entry_path = format!("{}/{}", base_dir, self.relative_path());
 
-      // Call visitor for entry point
-      visitor(&entry_path, &entry_source);
+        for (file_path, file_content) in &files {
+          if *file_path == entry_path {
+            continue; // Skip entry point, process it last
+          }
 
-      // Visit all dependencies
-      let mut visited = std::collections::HashSet::new();
-      visit_dependencies_recursive(
-        base_dir,
-        &entry_source,
-        entry_point.relative_path(),
-        &load_file,
-        &mut visitor,
-        &mut visited,
-      )?;
+          // Extract module name from file path (remove .wgsl extension)
+          let relative_path = file_path.trim_start_matches(&format!("{base_dir}/"));
+          let as_name = std::path::Path::new(relative_path)
+            .with_extension("")
+            .with_extension("")
+            .iter()
+            .flat_map(|s| s.to_str())
+            .collect::<Vec<_>>()
+            .join("::")
+            .to_string();
 
-      Ok(())
-    }
-
-    pub fn load_naga_module_from_path(
-      base_dir: &str,
-      entry_point: ShaderEntry,
-      composer: &mut naga_oil::compose::Composer,
-      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-      load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-    ) -> Result<wgpu::naga::Module, String>
-    {
-      // Store file contents for later processing
-      let mut files = std::collections::HashMap::<String, String>::new();
-
-      // Use visit_shader_files to collect all files and their contents
-      visit_shader_files(
-        base_dir,
-        entry_point,
-        &load_file,
-        |file_path, file_content| {
-          files.insert(file_path.to_string(), file_content.to_string());
-        }
-      )?;
-
-      // Process dependency files first (all except entry point)
-      let entry_path = format!("{}/{}", base_dir, entry_point.relative_path());
-
-      for (file_path, file_content) in &files {
-        if *file_path == entry_path {
-          continue; // Skip entry point, process it last
+          composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
+            source: file_content,
+            file_path: relative_path,
+            language: naga_oil::compose::ShaderLanguage::Wgsl,
+            shader_defs: shader_defs.clone(),
+            as_name: Some(as_name),
+            ..Default::default()
+          })?;
         }
 
-        // Extract module name from file path (remove .wgsl extension)
-        let relative_path = file_path.trim_start_matches(&format!("{base_dir}/"));
-        let as_name = std::path::Path::new(relative_path)
-          .file_stem()
-          .and_then(|s| s.to_str())
-          .map(|s| s.to_string());
+        // Get entry point content
+        let (_, entry_source) = &files[0];
 
-        composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-          source: file_content,
-          file_path: relative_path,
-          language: naga_oil::compose::ShaderLanguage::Wgsl,
-          shader_defs: shader_defs.clone(),
-          as_name,
+        // Create the final module
+        composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
+          source: entry_source,
+          file_path: self.relative_path(),
+          shader_defs,
           ..Default::default()
-        }).map_err(|e| format!("Failed to add composable module: {e}"))?;
+        })
       }
 
-      // Get entry point content
-      let entry_source = files.get(&entry_path)
-        .ok_or_else(|| format!("Entry point file not found: {entry_path}"))?;
-
-      // Create the final module
-      composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-        source: entry_source,
-        file_path: entry_point.relative_path(),
-        shader_defs,
-        ..Default::default()
-      }).map_err(|e| format!("Failed to create final module: {e}"))
-    }
+      pub fn load_naga_module_from_path(
+        &self,
+        base_dir: &str,
+        composer: &mut naga_oil::compose::Composer,
+        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+        load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+      ) -> Result<wgpu::naga::Module, String>
+      {
+        let mut files = Vec::<(String, String)>::new();
+        self.visit_shader_files(base_dir, &load_file, |file_path, file_content| {
+          files.push((file_path.to_string(), file_content.to_string()));
+        })?;
+        self.load_naga_module_from_path_contents(base_dir, composer, shader_defs, files)
+          .map_err(|e| format!("{e}"))
+      }
   }
 }
 
@@ -721,6 +738,7 @@ pub(crate) fn shader_module(
       &output_dir,
       &output_dir,
       EmbedWithNagaOilComposer,
+      &options.shader_defs,
     );
     token_stream.append_all(builder.build());
   }
@@ -732,6 +750,7 @@ pub(crate) fn shader_module(
       &output_dir,
       &options.workspace_root,
       ComposerWithRelativePath,
+      &options.shader_defs,
     );
     token_stream.append_all(builder.build());
   }

@@ -32,7 +32,6 @@ impl Demo for GradientTriangleDemo {
     let shader_module = gradient_triangle::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      crate::shader_bindings::ShaderEntry::GradientTriangle,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )

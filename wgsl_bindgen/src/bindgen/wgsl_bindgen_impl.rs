@@ -76,6 +76,7 @@ impl WGSLBindgen {
     ir_capabilities: Option<WgslShaderIrCapabilities>,
     entry: SourceWithFullDependenciesResult<'a>,
     workspace_root: &std::path::Path,
+    shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
   ) -> Result<WgslEntryResult<'a>, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
       let msg = err.emit_to_string(composer);
@@ -92,6 +93,12 @@ impl WGSLBindgen {
     };
     let source = entry.source_file;
 
+    // Convert Vec to HashMap for naga-oil
+    let shader_defs_map: std::collections::HashMap<
+      String,
+      naga_oil::compose::ShaderDefValue,
+    > = shader_defs.iter().cloned().collect();
+
     for dependency in entry.full_dependencies.iter() {
       composer
         .add_composable_module(ComposableModuleDescriptor {
@@ -99,6 +106,7 @@ impl WGSLBindgen {
           file_path: &dependency.file_path.to_string(),
           language: ShaderLanguage::Wgsl,
           as_name: dependency.module_name.as_ref().map(|name| name.to_string()),
+          shader_defs: shader_defs_map.clone(),
           ..Default::default()
         })
         .map(|_| ())
@@ -109,6 +117,7 @@ impl WGSLBindgen {
       .make_naga_module(NagaModuleDescriptor {
         source: &source.content,
         file_path: &source.file_path.to_string(),
+        shader_defs: shader_defs_map,
         ..Default::default()
       })
       .map_err(|err| map_err(&composer, err))?;
@@ -145,6 +154,7 @@ impl WGSLBindgen {
           ir_capabilities,
           it,
           &self.options.workspace_root,
+          &self.options.shader_defs,
         )
       })
       .collect::<Result<Vec<_>, _>>()?;

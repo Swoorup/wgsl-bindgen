@@ -26,7 +26,6 @@ impl Demo for FullscreenEffectsDemo {
     let shader = shader_bindings::fullscreen_effects::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      shader_bindings::ShaderEntry::FullscreenEffects,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )

@@ -167,6 +167,7 @@ use heck::ToPascalCase;
 use proc_macro2::{Span, TokenStream};
 use qs::{format_ident, quote, Ident, Index};
 use quote_gen::RustModBuilder;
+use smallvec::SmallVec;
 use thiserror::Error;
 
 pub mod bevy_util;
@@ -191,6 +192,9 @@ pub use naga::FastIndexMap;
 pub use regex::Regex;
 pub use types::*;
 pub use wgsl_type::*;
+
+// Re-export ShaderDefValue for convenience
+pub use naga_oil::compose::ShaderDefValue;
 
 /// Enum representing the possible serialization strategies for WGSL types.
 ///
@@ -227,6 +231,26 @@ pub(crate) struct WgslEntryResult<'a> {
   source_including_deps: SourceWithFullDependenciesResult<'a>,
 }
 
+impl<'a> WgslEntryResult<'a> {
+  pub fn get_shader_variant(&self) -> TokenStream {
+    let mod_name = sanitize_and_pascal_case(&self.mod_name);
+    let enum_variant = format_ident!("{}", mod_name);
+    quote! { #enum_variant }
+  }
+
+  pub fn get_mod_path(&self) -> TokenStream {
+    let mod_path_parts = self
+      .mod_name
+      .split("::")
+      .map(|part| format_ident!("{}", part))
+      .collect::<SmallVec<[_; 4]>>();
+
+    quote! {
+      #(#mod_path_parts)::*
+    }
+  }
+}
+
 /// Creates Rust bindings from WGSL shader entries
 ///
 /// This function orchestrates the entire code generation process in three main phases:
@@ -244,15 +268,7 @@ fn create_rust_bindings(
     mod_builder.add(MOD_STRUCT_ASSERTIONS, custom_wgsl_type_asserts);
   }
 
-  // Add global load_naga_module_from_path function to _root module if needed
-  if options
-    .shader_source_type
-    .contains(WgslShaderSourceType::ComposerWithRelativePath)
-  {
-    let global_load_function =
-      shader_module::generate_global_load_naga_module_from_path();
-    mod_builder.add("_root", global_load_function);
-  }
+  // Note: global methods are now added directly to ShaderEntry via shader_registry
 
   // === PHASE 1: Generate basic components for each shader ===
   let mut all_shader_bind_groups = RawShadersBindGroups::new(options);
@@ -339,8 +355,7 @@ fn create_rust_bindings(
 
   // === FINAL: Combine everything into the output module ===
   let mod_token_stream = mod_builder.generate();
-  let shader_registry =
-    shader_registry::build_shader_registry(&entries, options.shader_source_type);
+  let shader_registry = shader_registry::build_shader_registry(&entries, options);
 
   let output = quote! {
     #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
@@ -368,11 +383,17 @@ fn sanitize_and_pascal_case(v: &str) -> String {
 }
 
 fn sanitized_upper_snake_case(v: &str) -> String {
-  v.chars()
+  v.replace("::", "_")
+    .chars()
     .filter(|ch| ch.is_alphanumeric() || *ch == '_')
     .collect::<String>()
     .to_snake()
     .to_uppercase()
+    // Normalize multiple consecutive underscores to single underscores
+    .split('_')
+    .filter(|s| !s.is_empty())
+    .collect::<Vec<_>>()
+    .join("_")
 }
 
 pub fn pretty_print(tokens: &TokenStream) -> String {

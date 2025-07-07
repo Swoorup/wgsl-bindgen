@@ -14,14 +14,6 @@ pub(crate) struct RustSourceItemPath {
   pub name: SmolStr,
 }
 
-impl ToTokens for RustSourceItemPath {
-  fn to_tokens(&self, tokens: &mut TokenStream) {
-    let fq_name = self.get_fully_qualified_name();
-    let current = syn::parse_str::<TokenStream>(&fq_name).unwrap();
-    tokens.extend(current)
-  }
-}
-
 impl RustSourceItemPath {
   pub fn get_fully_qualified_name(&self) -> SmolStr {
     if self.module.is_empty() {
@@ -41,6 +33,14 @@ impl RustSourceItemPath {
     } else {
       self.to_token_stream()
     }
+  }
+}
+
+impl ToTokens for RustSourceItemPath {
+  fn to_tokens(&self, tokens: &mut TokenStream) {
+    let fq_name = self.get_fully_qualified_name();
+    let current = syn::parse_str::<TokenStream>(&fq_name).unwrap();
+    tokens.extend(current)
   }
 }
 
