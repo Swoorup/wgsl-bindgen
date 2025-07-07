@@ -129,10 +129,38 @@ impl SingleFileCompileTest {
   pub fn test_compilation(&self) -> Result<bool, Box<dyn std::error::Error>> {
     use std::process::Command;
 
+    // Find the workspace root by looking for Cargo.toml with [workspace]
+    let mut workspace_root =
+      std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+
+    // Walk up the directory tree to find the workspace root
+    loop {
+      let cargo_toml = workspace_root.join("Cargo.toml");
+      if cargo_toml.exists() {
+        // Check if this Cargo.toml contains [workspace]
+        if let Ok(contents) = std::fs::read_to_string(&cargo_toml) {
+          if contents.contains("[workspace]") && !contents.contains("[workspace]\n\n[") {
+            break;
+          }
+        }
+      }
+
+      // Move up one directory
+      if !workspace_root.pop() {
+        // If we can't go up anymore, use current directory
+        workspace_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        break;
+      }
+    }
+
+    let target_dir = workspace_root.join("target");
+
     // Run cargo check on the test workspace with color output
     let output = Command::new("cargo")
       .arg("check")
       .arg("--all-features")
+      .arg("--target-dir")
+      .arg(target_dir.to_str().unwrap())
       .arg("--color=always") // Force colored output
       .current_dir(&self.workspace_dir)
       .env("TERM", "xterm-256color") // Ensure color support
