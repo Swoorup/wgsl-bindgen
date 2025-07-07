@@ -1,0 +1,332 @@
+---
+source: wgsl_bindgen/tests/features/shader_defs.rs
+---
+#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  TestShader,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::TestShader => test_shader::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::TestShader => test_shader::create_shader_module_embed_source(device),
+    }
+  }
+}
+mod _root {
+  pub use super::*;
+  pub trait SetBindGroup {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    );
+  }
+  impl SetBindGroup for wgpu::RenderPass<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
+    }
+  }
+  impl SetBindGroup for wgpu::RenderBundleEncoder<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
+    }
+  }
+}
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+  const TEST_SHADER_UNIFORMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(test_shader::Uniforms, color) == 0);
+    assert!(std::mem::offset_of!(test_shader::Uniforms, time) == 16);
+    assert!(std::mem::offset_of!(test_shader::Uniforms, scale) == 20);
+    assert!(std::mem::size_of::<test_shader::Uniforms>() == 32);
+  };
+}
+pub mod test_shader {
+  use super::{_root, _root::*};
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct Uniforms {
+    #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
+    pub color: glam::Vec4,
+    #[doc = "offset: 16, size: 4, type: `f32`"]
+    pub time: f32,
+    #[doc = "offset: 20, size: 4, type: `f32`"]
+    pub scale: f32,
+    pub _pad_scale: [u8; 0x8],
+  }
+  impl Uniforms {
+    pub const fn new(color: glam::Vec4, time: f32, scale: f32) -> Self {
+      Self {
+        color,
+        time,
+        scale,
+        _pad_scale: [0; 0x8],
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct UniformsInit {
+    pub color: glam::Vec4,
+    pub time: f32,
+    pub scale: f32,
+  }
+  impl UniformsInit {
+    pub fn build(&self) -> Uniforms {
+      Uniforms {
+        color: self.color,
+        time: self.time,
+        scale: self.scale,
+        _pad_scale: [0; 0x8],
+      }
+    }
+  }
+  impl From<UniformsInit> for Uniforms {
+    fn from(data: UniformsInit) -> Self {
+      data.build()
+    }
+  }
+  pub const ENTRY_VS_MAIN: &str = "vs_main";
+  pub const ENTRY_FS_MAIN: &str = "fs_main";
+  #[derive(Debug)]
+  pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+  ) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+      module,
+      entry_point: Some(entry.entry_point),
+      buffers: &entry.buffers,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn vs_main_entry() -> VertexEntry<0> {
+    VertexEntry {
+      entry_point: ENTRY_VS_MAIN,
+      buffers: [],
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct FragmentEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub targets: [Option<wgpu::ColorTargetState>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn fragment_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a FragmentEntry<N>,
+  ) -> wgpu::FragmentState<'a> {
+    wgpu::FragmentState {
+      module,
+      entry_point: Some(entry.entry_point),
+      targets: &entry.targets,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn fs_main_entry(targets: [Option<wgpu::ColorTargetState>; 1]) -> FragmentEntry<1> {
+    FragmentEntry {
+      entry_point: ENTRY_FS_MAIN,
+      targets,
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub uniforms: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub uniforms: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        uniforms: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.uniforms),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.uniforms]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("TestShader::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"uniforms\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::test_shader::Uniforms,
+              >() as _),
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("TestShader::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("TestShader::PipelineLayout"),
+      bind_group_layouts: &[&WgpuBindGroup0::get_bind_group_layout(device)],
+      push_constant_ranges: &[],
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("test_shader.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct Uniforms {
+    color: vec4<f32>,
+    time: f32,
+    scale: f32,
+}
+
+@group(0) @binding(0) 
+var<uniform> uniforms: Uniforms;
+
+@vertex 
+fn vs_main() -> @builtin(position) vec4<f32> {
+    var pos: vec4<f32> = vec4<f32>(0f, 0f, 0f, 1f);
+
+    let _e4 = pos;
+    let _e7 = uniforms.scale;
+    pos = (_e4 * _e7);
+    let _e11 = pos.x;
+    let _e14 = uniforms.time;
+    pos.x = (_e11 + sin(_e14));
+    let _e17 = pos;
+    return _e17;
+}
+
+@fragment 
+fn fs_main() -> @location(0) vec4<f32> {
+    var color: vec4<f32>;
+
+    let _e2 = uniforms.color;
+    color = _e2;
+    color = vec4<f32>(1f, 0f, 0f, 1f);
+    let _e9 = color;
+    return _e9;
+}
+"#;
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for test_shader::Uniforms {}
+  unsafe impl bytemuck::Pod for test_shader::Uniforms {}
+}

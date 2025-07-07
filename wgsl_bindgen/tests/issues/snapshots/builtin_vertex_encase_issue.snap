@@ -1,0 +1,118 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+---
+#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  BuiltinVertexIssue,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::BuiltinVertexIssue => builtin_vertex_issue::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::BuiltinVertexIssue => {
+        builtin_vertex_issue::create_shader_module_embed_source(device)
+      }
+    }
+  }
+}
+mod _root {
+  pub use super::*;
+}
+pub mod builtin_vertex_issue {
+  use super::{_root, _root::*};
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy, encase :: ShaderType)]
+  pub struct VertexInput {}
+  impl VertexInput {
+    pub const fn new() -> Self {
+      Self {}
+    }
+  }
+  impl VertexInput {
+    pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 0] = [];
+    pub const fn vertex_buffer_layout(
+      step_mode: wgpu::VertexStepMode,
+    ) -> wgpu::VertexBufferLayout<'static> {
+      wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<Self>() as u64,
+        step_mode,
+        attributes: &Self::VERTEX_ATTRIBUTES,
+      }
+    }
+  }
+  pub const ENTRY_VS_MAIN: &str = "vs_main";
+  #[derive(Debug)]
+  pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+  ) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+      module,
+      entry_point: Some(entry.entry_point),
+      buffers: &entry.buffers,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn vs_main_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
+    VertexEntry {
+      entry_point: ENTRY_VS_MAIN,
+      buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 0],
+    ) -> [wgpu::BindGroupLayout; 0] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("BuiltinVertexIssue::PipelineLayout"),
+      bind_group_layouts: &[],
+      push_constant_ranges: &[],
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("builtin_vertex_issue.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct VertexInput {
+    @builtin(vertex_index) vertex_index: u32,
+}
+
+@vertex 
+fn vs_main(input: VertexInput) -> @builtin(position) vec4<f32> {
+    return vec4<f32>(0f, 0f, 0f, 1f);
+}
+"#;
+}
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+}

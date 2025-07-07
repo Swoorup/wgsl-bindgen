@@ -80,7 +80,7 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
-  const BEVY_PBRPBRTYPES_STANDARD_MATERIAL_ASSERTS: () = {
+  const BEVY_PBR_PBR_TYPES_STANDARD_MATERIAL_ASSERTS: () = {
     assert!(
       std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, base_color) == 0
     );
@@ -99,7 +99,7 @@ pub mod layout_asserts {
     );
     assert!(std::mem::size_of::<bevy_pbr::pbr::types::StandardMaterial>() == 64);
   };
-  const BEVY_PBRMESH_VIEW_TYPES_VIEW_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_VIEW_ASSERTS: () = {
     assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, view_proj) == 0);
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_view_types::View, inverse_view_proj) == 64
@@ -115,7 +115,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, height) == 400);
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::View>() == 416);
   };
-  const BEVY_PBRMESH_VIEW_TYPES_DIRECTIONAL_LIGHT_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_DIRECTIONAL_LIGHT_ASSERTS: () = {
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_view_types::DirectionalLight, view_projection)
         == 0
@@ -146,7 +146,7 @@ pub mod layout_asserts {
     );
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::DirectionalLight>() == 112);
   };
-  const BEVY_PBRMESH_VIEW_TYPES_LIGHTS_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_LIGHTS_ASSERTS: () = {
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_view_types::Lights, directional_lights) == 0
     );
@@ -171,7 +171,7 @@ pub mod layout_asserts {
     );
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::Lights>() == 176);
   };
-  const BEVY_PBRMESH_VIEW_TYPES_POINT_LIGHT_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_POINT_LIGHT_ASSERTS: () = {
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight, light_custom_data) == 0
     );
@@ -199,11 +199,11 @@ pub mod layout_asserts {
     );
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::PointLight>() == 64);
   };
-  const BEVY_PBRMESH_VIEW_TYPES_POINT_LIGHTS_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_POINT_LIGHTS_ASSERTS: () = {
     assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLights<1>, data) == 0);
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::PointLights<1>>() == 64);
   };
-  const BEVY_PBRMESH_VIEW_TYPES_CLUSTER_LIGHT_INDEX_LISTS_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_CLUSTER_LIGHT_INDEX_LISTS_ASSERTS: () = {
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_view_types::ClusterLightIndexLists<1>, data)
         == 0
@@ -212,7 +212,7 @@ pub mod layout_asserts {
       std::mem::size_of::<bevy_pbr::mesh_view_types::ClusterLightIndexLists<1>>() == 4
     );
   };
-  const BEVY_PBRMESH_VIEW_TYPES_CLUSTER_OFFSETS_AND_COUNTS_ASSERTS: () = {
+  const BEVY_PBR_MESH_VIEW_TYPES_CLUSTER_OFFSETS_AND_COUNTS_ASSERTS: () = {
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<1>, data)
         == 0
@@ -221,7 +221,7 @@ pub mod layout_asserts {
       std::mem::size_of::<bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<1>>() == 16
     );
   };
-  const BEVY_PBRMESH_TYPES_MESH_ASSERTS: () = {
+  const BEVY_PBR_MESH_TYPES_MESH_ASSERTS: () = {
     assert!(std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, model) == 0);
     assert!(
       std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, inverse_transpose_model) == 64

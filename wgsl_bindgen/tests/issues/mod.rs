@@ -5,10 +5,10 @@ use syn::parse_str;
 use wgsl_bindgen::{assert_tokens_snapshot, *};
 
 #[test]
-fn test_issue_35() -> Result<()> {
+fn test_issue_35_short_constructor() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders/issue_35")
-    .add_entry_point("tests/shaders/issue_35/clear.wgsl")
+    .workspace_root("tests/shaders/issues/issue_35")
+    .add_entry_point("tests/shaders/issues/issue_35/clear.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
@@ -17,12 +17,12 @@ fn test_issue_35() -> Result<()> {
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/issue_35.actual.rs")
+    .output("tests/output/issues/issue_35.actual.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
 
-  let actual = read_to_string("tests/output/issue_35.actual.rs").unwrap();
+  let actual = read_to_string("tests/output/issues/issue_35.actual.rs").unwrap();
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
   assert_rust_compilation!(parsed_output);
@@ -32,20 +32,21 @@ fn test_issue_35() -> Result<()> {
 #[test]
 fn test_builtin_vertex_encase_issue() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders")
-    .add_entry_point("tests/shaders/builtin_vertex_issue.wgsl")
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/builtin_vertex_issue.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Encase)
     .type_map(GlamWgslTypeMap)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/builtin_vertex_issue.actual.rs")
+    .output("tests/output/issues/builtin_vertex_encase.actual.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
 
-  let actual = read_to_string("tests/output/builtin_vertex_issue.actual.rs").unwrap();
+  let actual =
+    read_to_string("tests/output/issues/builtin_vertex_encase.actual.rs").unwrap();
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
   // assert_rust_compilation!(parsed_output); // TODO: Fix this test
@@ -55,20 +56,21 @@ fn test_builtin_vertex_encase_issue() -> Result<()> {
 #[test]
 fn test_mixed_builtin_encase_issue() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders")
-    .add_entry_point("tests/shaders/mixed_builtin_issue.wgsl")
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/mixed_builtin_issue.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Encase)
     .type_map(GlamWgslTypeMap)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/mixed_builtin_issue.actual.rs")
+    .output("tests/output/issues/mixed_builtin_encase.actual.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
 
-  let actual = read_to_string("tests/output/mixed_builtin_issue.actual.rs").unwrap();
+  let actual =
+    read_to_string("tests/output/issues/mixed_builtin_encase.actual.rs").unwrap();
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
   // assert_rust_compilation!(parsed_output); // TODO: Fix this test
@@ -78,20 +80,21 @@ fn test_mixed_builtin_encase_issue() -> Result<()> {
 #[test]
 fn test_builtin_vertex_bytemuck_issue() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders")
-    .add_entry_point("tests/shaders/builtin_vertex_bytemuck.wgsl")
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/builtin_vertex_bytemuck.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/builtin_vertex_bytemuck.actual.rs")
+    .output("tests/output/issues/builtin_vertex_bytemuck.actual.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
 
-  let actual = read_to_string("tests/output/builtin_vertex_bytemuck.actual.rs").unwrap();
+  let actual =
+    read_to_string("tests/output/issues/builtin_vertex_bytemuck.actual.rs").unwrap();
 
   // Verify the struct is empty and doesn't have problematic padding bytes
   assert!(actual.contains("pub struct VertexInput {}"));
@@ -105,20 +108,21 @@ fn test_builtin_vertex_bytemuck_issue() -> Result<()> {
 #[test]
 fn test_multiple_vertex_shaders_issue() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders")
-    .add_entry_point("tests/shaders/multiple_vertex_shaders.wgsl")
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/multiple_vertex_shaders.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/multiple_vertex_shaders.actual.rs")
+    .output("tests/output/issues/multiple_vertex_shaders.actual.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
 
-  let actual = read_to_string("tests/output/multiple_vertex_shaders.actual.rs").unwrap();
+  let actual =
+    read_to_string("tests/output/issues/multiple_vertex_shaders.actual.rs").unwrap();
 
   // Verify correct behavior:
   // 1. Both VertexInput and InstanceInput should have VERTEX_ATTRIBUTES implementations
@@ -145,20 +149,21 @@ fn test_multiple_vertex_shaders_issue() -> Result<()> {
 #[test]
 fn test_vec3a_padding_overflow_issue() -> Result<()> {
   WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders")
-    .add_entry_point("tests/shaders/vec3a_padding_issue.wgsl")
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/vec3a_padding_issue.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/vec3a_padding_issue.actual.rs")
+    .output("tests/output/issues/vec3a_padding_overflow.actual.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
 
-  let actual = read_to_string("tests/output/vec3a_padding_issue.actual.rs").unwrap();
+  let actual =
+    read_to_string("tests/output/issues/vec3a_padding_overflow.actual.rs").unwrap();
   let parsed_output = parse_str(&actual).unwrap();
   assert_tokens_snapshot!(parsed_output);
   assert_rust_compilation!(parsed_output);
@@ -172,16 +177,16 @@ fn test_duplicate_import_vertexinput_issue() -> Result<()> {
   println!("Testing duplicate import issue...");
 
   let actual = WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders/duplicate_import_issue")
-    .add_entry_point("tests/shaders/duplicate_import_issue/shader1.wgsl")
-    .add_entry_point("tests/shaders/duplicate_import_issue/shader2.wgsl")
+    .workspace_root("tests/shaders/issues/duplicate_import")
+    .add_entry_point("tests/shaders/issues/duplicate_import/shader1.wgsl")
+    .add_entry_point("tests/shaders/issues/duplicate_import/shader2.wgsl")
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .output("tests/output/duplicate_import_issue.actual.rs")
+    .output("tests/output/issues/duplicate_import.actual.rs")
     .build()
     .unwrap()
     .generate_string()
@@ -195,40 +200,5 @@ fn test_duplicate_import_vertexinput_issue() -> Result<()> {
   let parsed_output = parse_str(&actual).unwrap();
   assert_rust_compilation!(parsed_output);
 
-  Ok(())
-}
-
-#[test]
-fn test_module_path_binding_generation() -> Result<()> {
-  WgslBindgenOptionBuilder::default()
-    .workspace_root("tests/shaders")
-    .add_entry_point("tests/shaders/lines/segment.wgsl")
-    .skip_hash_check(true)
-    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-    .type_map(GlamWgslTypeMap)
-    .derive_serde(false)
-    .emit_rerun_if_change(false)
-    .skip_header_comments(true)
-    .output("tests/output/lines_segment.actual.rs")
-    .build()?
-    .generate()
-    .into_diagnostic()?;
-
-  let actual = read_to_string("tests/output/lines_segment.actual.rs").unwrap();
-
-  // Verify the module path is lines::segment
-  assert!(actual.contains("pub mod lines {"), "Should have lines module");
-  assert!(actual.contains("pub mod segment {"), "Should have segment submodule");
-
-  // Verify ShaderEntry enum variant includes module prefix
-  assert!(actual.contains("LinesSegment,"), "ShaderEntry variant should be LinesSegment");
-  assert!(
-    actual.contains("Self::LinesSegment"),
-    "Should use Self::LinesSegment in match arms"
-  );
-
-  let parsed_output = parse_str(&actual).unwrap();
-  assert_tokens_snapshot!(parsed_output);
-  assert_rust_compilation!(parsed_output);
   Ok(())
 }
