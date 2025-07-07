@@ -171,7 +171,6 @@ impl Demo for ParticleComputeDemo {
     let compute_shader_module = particle_physics::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      shader_bindings::ShaderEntry::ComputeDemoParticlePhysics,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )
@@ -191,7 +190,6 @@ impl Demo for ParticleComputeDemo {
     let render_shader = particle_renderer::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      shader_bindings::ShaderEntry::ComputeDemoParticleRenderer,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )

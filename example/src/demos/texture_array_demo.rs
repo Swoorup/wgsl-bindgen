@@ -24,7 +24,6 @@ impl Demo for TextureArrayDemo {
     let shader = shader_bindings::simple_array_demo::create_shader_module_relative_path(
       device,
       crate::SHADER_DIR,
-      shader_bindings::ShaderEntry::SimpleArrayDemo,
       std::collections::HashMap::new(),
       |path| std::fs::read_to_string(path),
     )

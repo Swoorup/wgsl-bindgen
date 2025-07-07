@@ -3,6 +3,7 @@ use smol_str::ToSmolStr;
 
 use self::quote_gen::RustSourceItemPath;
 use super::*;
+use crate::SamplerType;
 
 #[derive(Constructor)]
 struct BindGroupEntriesStructBuilder<'a> {
@@ -26,6 +27,31 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       _ => panic!("Unsupported array base type: {base_type:?}"),
     }
   }
+
+  /// Determines the resource type from a binding type
+  fn get_resource_type_from_binding(
+    &self,
+    binding_type: &naga::TypeInner,
+  ) -> BindResourceType {
+    // TODO: Support more types.
+    match binding_type {
+      naga::TypeInner::Struct { .. } => BindResourceType::Buffer,
+      naga::TypeInner::Image { .. } => BindResourceType::Texture,
+      naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
+      naga::TypeInner::Array { .. } => BindResourceType::Buffer,
+      naga::TypeInner::Scalar(_) => BindResourceType::Buffer,
+      naga::TypeInner::Vector { .. } => BindResourceType::Buffer,
+      naga::TypeInner::Matrix { .. } => BindResourceType::Buffer,
+      naga::TypeInner::AccelerationStructure { .. } => {
+        BindResourceType::AccelerationStructure
+      }
+      naga::TypeInner::BindingArray { base, .. } => {
+        let base_type = &self.data.naga_module.types[*base].inner;
+        Self::get_array_resource_type(base_type)
+      }
+      unknown => panic!("Unsupported type for binding fields: {unknown:#?}"),
+    }
+  }
   /// Generates a binding entry from a parameter variable and a group binding.
   fn create_entry_from_parameter(
     &self,
@@ -41,29 +67,8 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
     let binding_name = Ident::new(&demangled_name.name, Span::call_site());
     let binding_var = quote!(#binding_var_name.#binding_name);
 
-    match binding.binding_type.inner {
-      naga::TypeInner::Scalar(_)
-      | naga::TypeInner::Struct { .. }
-      | naga::TypeInner::Array { .. } => {
-        entry_cons(binding_index, binding_var, BindResourceType::Buffer)
-      }
-      naga::TypeInner::Image { .. } => {
-        entry_cons(binding_index, binding_var, BindResourceType::Texture)
-      }
-      naga::TypeInner::Sampler { .. } => {
-        entry_cons(binding_index, binding_var, BindResourceType::Sampler)
-      }
-      naga::TypeInner::AccelerationStructure { .. } => {
-        entry_cons(binding_index, binding_var, BindResourceType::AccelerationStructure)
-      }
-      naga::TypeInner::BindingArray { base, .. } => {
-        let base_type = &self.data.naga_module.types[base].inner;
-        let array_resource_type = Self::get_array_resource_type(base_type);
-        entry_cons(binding_index, binding_var, array_resource_type)
-      }
-      // TODO: Better error handling.
-      _ => panic!("Failed to generate BindingType."),
-    }
+    let resource_type = self.get_resource_type_from_binding(&binding.binding_type.inner);
+    entry_cons(binding_index, binding_var, resource_type)
   }
 
   /// Assigns entries for the bind group from the provided parameters.
@@ -98,22 +103,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
     );
     let field_name = format_ident!("{}", &rust_item_path.name.as_str());
 
-    // TODO: Support more types.
-    let resource_type = match binding.binding_type.inner {
-      naga::TypeInner::Struct { .. } => BindResourceType::Buffer,
-      naga::TypeInner::Image { .. } => BindResourceType::Texture,
-      naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
-      naga::TypeInner::Array { .. } => BindResourceType::Buffer,
-      naga::TypeInner::Scalar(_) => BindResourceType::Buffer,
-      naga::TypeInner::AccelerationStructure { .. } => {
-        BindResourceType::AccelerationStructure
-      }
-      naga::TypeInner::BindingArray { base, .. } => {
-        let base_type = &self.data.naga_module.types[base].inner;
-        Self::get_array_resource_type(base_type)
-      }
-      _ => panic!("Unsupported type for binding fields."),
-    };
+    let resource_type = self.get_resource_type_from_binding(&binding.binding_type.inner);
 
     let param_field_type = self.generator.binding_type_map[&resource_type].clone();
     let field_type = self.generator.entry_struct_type.clone();
@@ -356,6 +346,51 @@ impl<'a> SingleBindGroupBuilder<'a> {
   }
 }
 
+/// Helper function to check if a binding should have non-filterable texture
+fn check_texture_filterability(
+  binding_name: &Option<String>,
+  invoking_entry_module: &str,
+  options: &WgslBindgenOption,
+) -> bool {
+  let Some(name) = binding_name else {
+    return true;
+  };
+
+  let fully_qualified_name =
+    demangle_and_fully_qualify_str(name, Some(invoking_entry_module));
+
+  for override_rule in &options.override_texture_filterability {
+    if override_rule.binding_regex.is_match(&fully_qualified_name) {
+      return override_rule.filterable;
+    }
+  }
+
+  // Default to filterable if no override matches
+  true
+}
+
+/// Helper function to check for sampler type overrides
+fn check_sampler_type_override(
+  binding_name: &Option<String>,
+  invoking_entry_module: &str,
+  options: &WgslBindgenOption,
+) -> Option<SamplerType> {
+  let Some(name) = binding_name else {
+    return None;
+  };
+
+  let fully_qualified_name =
+    demangle_and_fully_qualify_str(name, Some(invoking_entry_module));
+
+  for override_rule in &options.override_sampler_type {
+    if override_rule.binding_regex.is_match(&fully_qualified_name) {
+      return Some(override_rule.sampler_type);
+    }
+  }
+
+  None
+}
+
 /// Generates the wgpu BindingType for a given naga Type
 fn generate_binding_type_for_type(
   binding_type: &naga::Type,
@@ -363,6 +398,7 @@ fn generate_binding_type_for_type(
   naga_module: &naga::Module,
   options: &WgslBindgenOption,
   address_space: naga::AddressSpace,
+  binding_name: &Option<String>,
 ) -> TokenStream {
   // TODO: Support more types.
   match &binding_type.inner {
@@ -397,12 +433,13 @@ fn generate_binding_type_for_type(
             naga::ScalarKind::Sint => quote!(wgpu::TextureSampleType::Sint),
             naga::ScalarKind::Uint => quote!(wgpu::TextureSampleType::Uint),
             naga::ScalarKind::Float => {
-              quote!(wgpu::TextureSampleType::Float { filterable: true })
+              let filterable =
+                check_texture_filterability(binding_name, invoking_entry_module, options);
+              quote!(wgpu::TextureSampleType::Float { filterable: #filterable })
             }
             _ => panic!("Unsupported sample type: {kind:#?}"),
           };
 
-          // TODO: Don't assume all textures are filterable.
           quote!(wgpu::BindingType::Texture {
               sample_type: #sample_type,
               view_dimension: #view_dim,
@@ -431,7 +468,15 @@ fn generate_binding_type_for_type(
       }
     }
     naga::TypeInner::Sampler { comparison } => {
-      let sampler_type = if *comparison {
+      let sampler_type = if let Some(override_type) =
+        check_sampler_type_override(binding_name, invoking_entry_module, options)
+      {
+        match override_type {
+          SamplerType::Filtering => quote!(wgpu::SamplerBindingType::Filtering),
+          SamplerType::NonFiltering => quote!(wgpu::SamplerBindingType::NonFiltering),
+          SamplerType::Comparison => quote!(wgpu::SamplerBindingType::Comparison),
+        }
+      } else if *comparison {
         quote!(wgpu::SamplerBindingType::Comparison)
       } else {
         quote!(wgpu::SamplerBindingType::Filtering)
@@ -450,6 +495,7 @@ fn generate_binding_type_for_type(
         naga_module,
         options,
         address_space,
+        binding_name,
       )
     }
     // TODO: Better error handling.
@@ -478,6 +524,7 @@ fn bind_group_layout_entry(
     naga_module,
     options,
     address_space,
+    &name,
   );
 
   let doc = format!(
@@ -548,34 +595,20 @@ impl<'a> SingleBindGroupData<'a> {
     invoking_entry_module: &str,
     options: &WgslBindgenOption,
     shader_stages: wgpu::ShaderStages,
+    group_index: u32,
   ) -> Self {
     let updated_bindings = self
       .bindings
       .iter()
       .map(|binding| {
-        // We need to get the address space from the original global variable
-        // Find the global variable that matches this binding
-        let address_space = self
-          .naga_module
-          .global_variables
-          .iter()
-          .find_map(|(_, global)| {
-            global.binding.as_ref().and_then(|global_binding| {
-              if global_binding.binding == binding.binding_index {
-                Some(global.space)
-              } else {
-                None
-              }
-            })
-          })
-          .unwrap_or(naga::AddressSpace::Handle); // Default fallback
-
+        // Use the stored address space from the binding instead of trying to look it up
+        // This fixes issues with shared bind groups where not all modules contain all bindings
         binding.with_updated_shader_stages(
           invoking_entry_module,
           options,
           self.naga_module,
           shader_stages,
-          address_space,
+          binding.address_space,
         )
       })
       .collect();
@@ -594,6 +627,7 @@ pub struct SingleBindGroupEntry<'a> {
   pub binding_index: u32,
   pub binding_type: &'a naga::Type,
   pub layout_entry_token_stream: TokenStream,
+  pub address_space: naga::AddressSpace,
 }
 
 impl<'a> SingleBindGroupEntry<'a> {
@@ -627,6 +661,7 @@ impl<'a> SingleBindGroupEntry<'a> {
       binding_index,
       binding_type,
       layout_entry_token_stream,
+      address_space,
     }
   }
 
@@ -656,6 +691,7 @@ impl<'a> SingleBindGroupEntry<'a> {
       binding_index: self.binding_index,
       binding_type: self.binding_type,
       layout_entry_token_stream,
+      address_space: self.address_space,
     }
   }
 }

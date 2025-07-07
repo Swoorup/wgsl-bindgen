@@ -1,6 +1,7 @@
 mod bindings;
 mod types;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub use bindings::*;
@@ -176,6 +177,64 @@ impl From<(&str, &str)> for OverrideBindGroupEntryModulePath {
   }
 }
 
+/// Struct for overriding texture filterability for specific bindings
+#[derive(Clone, Debug)]
+pub struct OverrideTextureFilterability {
+  /// Regex to match binding path (e.g., "shared_data::.*texture.*")
+  pub binding_regex: Regex,
+  /// Whether the texture should be filterable
+  pub filterable: bool,
+}
+impl From<(Regex, bool)> for OverrideTextureFilterability {
+  fn from((binding_regex, filterable): (Regex, bool)) -> Self {
+    Self {
+      binding_regex,
+      filterable,
+    }
+  }
+}
+impl From<(&str, bool)> for OverrideTextureFilterability {
+  fn from((binding_regex, filterable): (&str, bool)) -> Self {
+    Self {
+      binding_regex: Regex::new(binding_regex).expect("Failed to create binding regex"),
+      filterable,
+    }
+  }
+}
+
+/// Enum for sampler binding types
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SamplerType {
+  Filtering,
+  NonFiltering,
+  Comparison,
+}
+
+/// Struct for overriding sampler types for specific bindings
+#[derive(Clone, Debug)]
+pub struct OverrideSamplerType {
+  /// Regex to match binding path (e.g., ".*shadow_sampler.*")
+  pub binding_regex: Regex,
+  /// The sampler type to use
+  pub sampler_type: SamplerType,
+}
+impl From<(Regex, SamplerType)> for OverrideSamplerType {
+  fn from((binding_regex, sampler_type): (Regex, SamplerType)) -> Self {
+    Self {
+      binding_regex,
+      sampler_type,
+    }
+  }
+}
+impl From<(&str, SamplerType)> for OverrideSamplerType {
+  fn from((binding_regex, sampler_type): (&str, SamplerType)) -> Self {
+    Self {
+      binding_regex: Regex::new(binding_regex).expect("Failed to create binding regex"),
+      sampler_type,
+    }
+  }
+}
+
 /// An enum representing the visibility of the type generated in the output
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum WgslTypeVisibility {
@@ -299,6 +358,21 @@ pub struct WgslBindgenOption {
   /// This field is used to provide the default generator for WGPU bindings. The generator is represented as a `BindingGenerator`.
   #[builder(default, setter(custom))]
   pub wgpu_binding_generator: BindingGenerator,
+
+  /// A vector of texture filterability overrides for specific bindings.
+  /// Allows specifying which textures should not be filterable.
+  #[builder(default, setter(into))]
+  pub override_texture_filterability: Vec<OverrideTextureFilterability>,
+
+  /// A vector of sampler type overrides for specific bindings.
+  /// Allows specifying the sampler binding type (Filtering, NonFiltering, Comparison).
+  #[builder(default, setter(into))]
+  pub override_sampler_type: Vec<OverrideSamplerType>,
+
+  /// Shader definitions to be passed to naga-oil for conditional compilation.
+  /// These are preprocessor definitions that can be used in WGSL shaders with #ifdef, #ifndef, etc.
+  #[builder(default, setter(into))]
+  pub shader_defs: Vec<(String, naga_oil::compose::ShaderDefValue)>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -321,6 +395,35 @@ impl WgslBindgenOptionBuilder {
       None => self.type_map = Some(map),
     }
 
+    self
+  }
+
+  /// Add a shader definition value
+  pub fn add_shader_def(
+    &mut self,
+    name: impl Into<String>,
+    value: naga_oil::compose::ShaderDefValue,
+  ) -> &mut Self {
+    if self.shader_defs.is_none() {
+      self.shader_defs = Some(Vec::new());
+    }
+    self
+      .shader_defs
+      .as_mut()
+      .unwrap()
+      .push((name.into(), value));
+    self
+  }
+
+  /// Add multiple shader definitions from a Vec
+  pub fn add_shader_defs(
+    &mut self,
+    defs: Vec<(String, naga_oil::compose::ShaderDefValue)>,
+  ) -> &mut Self {
+    match self.shader_defs.as_mut() {
+      Some(existing) => existing.extend(defs),
+      None => self.shader_defs = Some(defs),
+    }
     self
   }
 
