@@ -19,15 +19,12 @@ var texture_sint: texture_2d<i32>;
 var texture_uint: texture_2d<u32>;
 
 @group(0) @binding(4)
-var texture_array_uint: texture_2d_array<u32>;
-
-@group(0) @binding(5)
 var texture_array_float: texture_2d_array<f32>;
 
-@group(0) @binding(6)
+@group(0) @binding(5)
 var texture_array_sint: texture_2d_array<i32>;
 
-@group(0) @binding(7)
+@group(0) @binding(6)
 var texture_array_uint: texture_2d_array<u32>;
 
 var<push_constant> const_style: Style;
