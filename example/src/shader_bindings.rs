@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.21.0
 // Changes made to this file will not be saved.
-// SourceHash: c0b014da1c5741aa46815f51f0883b2ef1c77263b0b1d5ae002ddc5eefea0dcd
+// SourceHash: 82cb0f3508ed747301cbee8f93e2d976ff91e674b25617e3670fdb88f79168f7
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -893,11 +893,13 @@ pub mod simple_array_demo {
   pub struct WgpuBindGroup1EntriesParams<'a> {
     pub texture_array: &'a [&'a wgpu::TextureView],
     pub sampler_array: &'a [&'a wgpu::Sampler],
+    pub texture_array_no_bind: &'a wgpu::TextureView,
   }
   #[derive(Clone, Debug)]
   pub struct WgpuBindGroup1Entries<'a> {
     pub texture_array: wgpu::BindGroupEntry<'a>,
     pub sampler_array: wgpu::BindGroupEntry<'a>,
+    pub texture_array_no_bind: wgpu::BindGroupEntry<'a>,
   }
   impl<'a> WgpuBindGroup1Entries<'a> {
     pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
@@ -910,10 +912,18 @@ pub mod simple_array_demo {
           binding: 1,
           resource: wgpu::BindingResource::SamplerArray(params.sampler_array),
         },
+        texture_array_no_bind: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::TextureView(params.texture_array_no_bind),
+        },
       }
     }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
-      [self.texture_array, self.sampler_array]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
+      [
+        self.texture_array,
+        self.sampler_array,
+        self.texture_array_no_bind,
+      ]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
       self.into_array().into_iter().collect()
@@ -943,6 +953,17 @@ pub mod simple_array_demo {
             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
             ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
             count: Some(std::num::NonZeroU32::new(2u32).unwrap()),
+          },
+          #[doc = " @binding(2): \"texture_array_no_bind\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Float { filterable: true },
+              view_dimension: wgpu::TextureViewDimension::D2Array,
+              multisampled: false,
+            },
+            count: None,
           },
         ],
       };

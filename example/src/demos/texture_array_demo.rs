@@ -59,6 +59,26 @@ impl Demo for TextureArrayDemo {
     let texture_views: Vec<&wgpu::TextureView> = textures.iter().collect();
     let sampler_refs: Vec<&wgpu::Sampler> = samplers.iter().collect();
 
+    let texture_2d_array = device.create_texture_with_data(
+      queue,
+      &wgpu::TextureDescriptor {
+        label: None,
+        size: wgpu::Extent3d {
+          width: 1024,
+          height: 1024,
+          depth_or_array_layers: 2,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+      },
+      wgpu::wgt::TextureDataOrder::LayerMajor,
+      &[0x80; 1024 * 1024 * 2 * 4],
+    );
+
     // Use the generated types with texture arrays
     let bind_group1 = shader_bindings::simple_array_demo::WgpuBindGroup1::from_bindings(
       device,
@@ -66,6 +86,8 @@ impl Demo for TextureArrayDemo {
         shader_bindings::simple_array_demo::WgpuBindGroup1EntriesParams {
           texture_array: &texture_views[..],
           sampler_array: &sampler_refs[..],
+          texture_array_no_bind: &texture_2d_array
+            .create_view(&wgpu::TextureViewDescriptor::default()),
         },
       ),
     );
