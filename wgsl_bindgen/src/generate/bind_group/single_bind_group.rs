@@ -36,6 +36,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
     // TODO: Support more types.
     match binding_type {
       naga::TypeInner::Struct { .. } => BindResourceType::Buffer,
+      naga::TypeInner::Image { arrayed: true, .. } => BindResourceType::TextureArray,
       naga::TypeInner::Image { .. } => BindResourceType::Texture,
       naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
       naga::TypeInner::Array { .. } => BindResourceType::Buffer,
