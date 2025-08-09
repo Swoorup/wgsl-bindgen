@@ -332,6 +332,9 @@ pub mod tests {
             pub texture_float: &'a wgpu::TextureView,
             pub texture_sint: &'a wgpu::TextureView,
             pub texture_uint: &'a wgpu::TextureView,
+            pub texture_array_float: &'a [&'a wgpu::TextureView],
+            pub texture_array_sint: &'a [&'a wgpu::TextureView],
+            pub texture_array_uint: &'a [&'a wgpu::TextureView],
           }
           #[derive(Clone, Debug)]
           pub struct WgpuBindGroup0Entries<'a> {
@@ -339,6 +342,9 @@ pub mod tests {
             pub texture_float: wgpu::BindGroupEntry<'a>,
             pub texture_sint: wgpu::BindGroupEntry<'a>,
             pub texture_uint: wgpu::BindGroupEntry<'a>,
+            pub texture_array_float: wgpu::BindGroupEntry<'a>,
+            pub texture_array_sint: wgpu::BindGroupEntry<'a>,
+            pub texture_array_uint: wgpu::BindGroupEntry<'a>,
           }
           impl<'a> WgpuBindGroup0Entries<'a> {
             pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
@@ -359,14 +365,35 @@ pub mod tests {
                   binding: 3,
                   resource: wgpu::BindingResource::TextureView(params.texture_uint),
                 },
+                texture_array_float: wgpu::BindGroupEntry {
+                  binding: 4,
+                  resource: wgpu::BindingResource::TextureViewArray(
+                    params.texture_array_float,
+                  ),
+                },
+                texture_array_sint: wgpu::BindGroupEntry {
+                  binding: 5,
+                  resource: wgpu::BindingResource::TextureViewArray(
+                    params.texture_array_sint,
+                  ),
+                },
+                texture_array_uint: wgpu::BindGroupEntry {
+                  binding: 6,
+                  resource: wgpu::BindingResource::TextureViewArray(
+                    params.texture_array_uint,
+                  ),
+                },
               }
             }
-            pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
+            pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 7] {
               [
                 self.buffer,
                 self.texture_float,
                 self.texture_sint,
                 self.texture_uint,
+                self.texture_array_float,
+                self.texture_array_sint,
+                self.texture_array_uint,
               ]
             }
             pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
@@ -416,6 +443,39 @@ pub mod tests {
                   #[doc = " @binding(3): \"texture_uint\""]
                   wgpu::BindGroupLayoutEntry {
                     binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Texture {
+                      sample_type: wgpu::TextureSampleType::Uint,
+                      view_dimension: wgpu::TextureViewDimension::D2,
+                      multisampled: false,
+                    },
+                    count: None,
+                  },
+                  #[doc = " @binding(4): \"texture_array_float\""]
+                  wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Texture {
+                      sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                      view_dimension: wgpu::TextureViewDimension::D2,
+                      multisampled: false,
+                    },
+                    count: None,
+                  },
+                  #[doc = " @binding(5): \"texture_array_sint\""]
+                  wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Texture {
+                      sample_type: wgpu::TextureSampleType::Sint,
+                      view_dimension: wgpu::TextureViewDimension::D2,
+                      multisampled: false,
+                    },
+                    count: None,
+                  },
+                  #[doc = " @binding(6): \"texture_array_uint\""]
+                  wgpu::BindGroupLayoutEntry {
+                    binding: 6,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Texture {
                       sample_type: wgpu::TextureSampleType::Uint,
