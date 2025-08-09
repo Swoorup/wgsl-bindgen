@@ -419,12 +419,26 @@ fn generate_binding_type_for_type(
           min_binding_size: #min_binding_size,
       })
     }
-    naga::TypeInner::Image { dim, class, .. } => {
-      let view_dim = match dim {
-        naga::ImageDimension::D1 => quote!(wgpu::TextureViewDimension::D1),
-        naga::ImageDimension::D2 => quote!(wgpu::TextureViewDimension::D2),
-        naga::ImageDimension::D3 => quote!(wgpu::TextureViewDimension::D3),
-        naga::ImageDimension::Cube => quote!(wgpu::TextureViewDimension::Cube),
+    naga::TypeInner::Image {
+      dim,
+      class,
+      arrayed,
+    } => {
+      let view_dim = if *arrayed {
+        match dim {
+          naga::ImageDimension::D2 => quote!(wgpu::TextureViewDimension::D2Array),
+          naga::ImageDimension::Cube => quote!(wgpu::TextureViewDimension::CubeArray),
+          naga::ImageDimension::D1 | naga::ImageDimension::D3 => quote!(compile_error!(
+            "1 Dimensional and 3 Dimensional textures cannot be an array"
+          )),
+        }
+      } else {
+        match dim {
+          naga::ImageDimension::D1 => quote!(wgpu::TextureViewDimension::D1),
+          naga::ImageDimension::D2 => quote!(wgpu::TextureViewDimension::D2),
+          naga::ImageDimension::D3 => quote!(wgpu::TextureViewDimension::D3),
+          naga::ImageDimension::Cube => quote!(wgpu::TextureViewDimension::Cube),
+        }
       };
 
       match class {

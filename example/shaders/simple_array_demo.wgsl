@@ -4,6 +4,7 @@
 
 @group(1) @binding(0) var texture_array: binding_array<texture_2d<f32>, 2>;
 @group(1) @binding(1) var sampler_array: binding_array<sampler, 2>;
+@group(1) @binding(2) var texture_array_no_bind: texture_2d_array<f32>;
 
 struct Uniforms {
   color_rgb: vec4<f32>,
@@ -48,6 +49,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Sample from both textures in the array using different samplers
     let color1 = textureSample(texture_array[0], sampler_array[0], uv1).rgb;
     let color2 = textureSample(texture_array[1], sampler_array[1], uv2).rgb;
+
+    let color1_no_bind = textureSample(texture_array_no_bind, sampler_array[0], uv1, 0).rgb;
+    let color2_no_bind = textureSample(texture_array_no_bind, sampler_array[1], uv2, 1).rgb;
     
     // Create dynamic blend factor based on position and time
     let center = vec2<f32>(0.5, 0.5);
@@ -56,6 +60,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     
     // Blend the textures with a ripple effect
     let blended_color = mix(color1, color2, blend_factor);
+    let blended_color_no_bind = mix(color1_no_bind, color2_no_bind, blended_color);
     
     // Add time-based color modulation
     let color_mod = vec3<f32>(
@@ -68,7 +73,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let ripple = sin(dist * 10.0 - t * 2.5) * 0.25 + 0.75;
     
     // Combine all effects
-    let final_color = blended_color * uniforms.color_rgb.rgb * color_mod * ripple;
+    let final_color = mix(blended_color, blended_color_no_bind, blend_factor) * uniforms.color_rgb.rgb * color_mod * ripple;
     
     // Softer vignette for low-res displays
     let vignette = smoothstep(0.0, 0.9, 1.0 - dist * 1.3);
