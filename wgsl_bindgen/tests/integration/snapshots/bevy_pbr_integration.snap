@@ -751,9 +751,9 @@ pub mod bevy_pbr {
       pub point_lights: wgpu::BufferBinding<'a>,
       pub cluster_light_index_lists: wgpu::BufferBinding<'a>,
       pub cluster_offsets_and_counts: wgpu::BufferBinding<'a>,
-      pub point_shadow_textures: &'a [&'a wgpu::TextureView],
+      pub point_shadow_textures: &'a wgpu::TextureView,
       pub point_shadow_textures_sampler: &'a wgpu::Sampler,
-      pub directional_shadow_textures: &'a [&'a wgpu::TextureView],
+      pub directional_shadow_textures: &'a wgpu::TextureView,
       pub directional_shadow_textures_sampler: &'a wgpu::Sampler,
     }
     #[derive(Clone, Debug)]
@@ -793,9 +793,7 @@ pub mod bevy_pbr {
           },
           point_shadow_textures: wgpu::BindGroupEntry {
             binding: 2,
-            resource: wgpu::BindingResource::TextureViewArray(
-              params.point_shadow_textures,
-            ),
+            resource: wgpu::BindingResource::TextureView(params.point_shadow_textures),
           },
           point_shadow_textures_sampler: wgpu::BindGroupEntry {
             binding: 3,
@@ -805,7 +803,7 @@ pub mod bevy_pbr {
           },
           directional_shadow_textures: wgpu::BindGroupEntry {
             binding: 4,
-            resource: wgpu::BindingResource::TextureViewArray(
+            resource: wgpu::BindingResource::TextureView(
               params.directional_shadow_textures,
             ),
           },
@@ -906,7 +904,7 @@ pub mod bevy_pbr {
               visibility: wgpu::ShaderStages::FRAGMENT,
               ty: wgpu::BindingType::Texture {
                 sample_type: wgpu::TextureSampleType::Depth,
-                view_dimension: wgpu::TextureViewDimension::Cube,
+                view_dimension: wgpu::TextureViewDimension::CubeArray,
                 multisampled: false,
               },
               count: None,
@@ -924,7 +922,7 @@ pub mod bevy_pbr {
               visibility: wgpu::ShaderStages::FRAGMENT,
               ty: wgpu::BindingType::Texture {
                 sample_type: wgpu::TextureSampleType::Depth,
-                view_dimension: wgpu::TextureViewDimension::D2,
+                view_dimension: wgpu::TextureViewDimension::D2Array,
                 multisampled: false,
               },
               count: None,

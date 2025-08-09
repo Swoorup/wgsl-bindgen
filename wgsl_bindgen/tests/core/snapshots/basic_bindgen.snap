@@ -338,9 +338,9 @@ pub mod basic {
       pub texture_float: &'a wgpu::TextureView,
       pub texture_sint: &'a wgpu::TextureView,
       pub texture_uint: &'a wgpu::TextureView,
-      pub texture_array_float: &'a [&'a wgpu::TextureView],
-      pub texture_array_sint: &'a [&'a wgpu::TextureView],
-      pub texture_array_uint: &'a [&'a wgpu::TextureView],
+      pub texture_array_float: &'a wgpu::TextureView,
+      pub texture_array_sint: &'a wgpu::TextureView,
+      pub texture_array_uint: &'a wgpu::TextureView,
     }
     #[derive(Clone, Debug)]
     pub struct WgpuBindGroup0Entries<'a> {
@@ -373,15 +373,15 @@ pub mod basic {
           },
           texture_array_float: wgpu::BindGroupEntry {
             binding: 4,
-            resource: wgpu::BindingResource::TextureViewArray(params.texture_array_float),
+            resource: wgpu::BindingResource::TextureView(params.texture_array_float),
           },
           texture_array_sint: wgpu::BindGroupEntry {
             binding: 5,
-            resource: wgpu::BindingResource::TextureViewArray(params.texture_array_sint),
+            resource: wgpu::BindingResource::TextureView(params.texture_array_sint),
           },
           texture_array_uint: wgpu::BindGroupEntry {
             binding: 6,
-            resource: wgpu::BindingResource::TextureViewArray(params.texture_array_uint),
+            resource: wgpu::BindingResource::TextureView(params.texture_array_uint),
           },
         }
       }
@@ -457,7 +457,7 @@ pub mod basic {
               visibility: wgpu::ShaderStages::COMPUTE,
               ty: wgpu::BindingType::Texture {
                 sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                view_dimension: wgpu::TextureViewDimension::D2,
+                view_dimension: wgpu::TextureViewDimension::D2Array,
                 multisampled: false,
               },
               count: None,
@@ -468,7 +468,7 @@ pub mod basic {
               visibility: wgpu::ShaderStages::COMPUTE,
               ty: wgpu::BindingType::Texture {
                 sample_type: wgpu::TextureSampleType::Sint,
-                view_dimension: wgpu::TextureViewDimension::D2,
+                view_dimension: wgpu::TextureViewDimension::D2Array,
                 multisampled: false,
               },
               count: None,
@@ -479,7 +479,7 @@ pub mod basic {
               visibility: wgpu::ShaderStages::COMPUTE,
               ty: wgpu::BindingType::Texture {
                 sample_type: wgpu::TextureSampleType::Uint,
-                view_dimension: wgpu::TextureViewDimension::D2,
+                view_dimension: wgpu::TextureViewDimension::D2Array,
                 multisampled: false,
               },
               count: None,
