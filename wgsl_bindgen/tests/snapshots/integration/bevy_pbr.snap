@@ -751,9 +751,9 @@ pub mod bevy_pbr {
       pub point_lights: wgpu::BufferBinding<'a>,
       pub cluster_light_index_lists: wgpu::BufferBinding<'a>,
       pub cluster_offsets_and_counts: wgpu::BufferBinding<'a>,
-      pub point_shadow_textures: &'a wgpu::TextureView,
+      pub point_shadow_textures: &'a [&'a wgpu::TextureView],
       pub point_shadow_textures_sampler: &'a wgpu::Sampler,
-      pub directional_shadow_textures: &'a wgpu::TextureView,
+      pub directional_shadow_textures: &'a [&'a wgpu::TextureView],
       pub directional_shadow_textures_sampler: &'a wgpu::Sampler,
     }
     #[derive(Clone, Debug)]
