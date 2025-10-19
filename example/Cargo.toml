@@ -10,7 +10,7 @@ winit.workspace = true
 wgpu = { workspace = true, features = ["naga-ir"] }
 futures.workspace = true
 bytemuck = { workspace = true, features = ["derive"] }
-encase = { workspace = true, features = ["glam"] }
+encase = { workspace = true }
 glam = { workspace = true, features = ["bytemuck"] }
 naga_oil.workspace = true
 include_absolute_path.workspace = true
