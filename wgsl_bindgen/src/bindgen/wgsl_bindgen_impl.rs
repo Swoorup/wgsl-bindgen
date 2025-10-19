@@ -41,7 +41,7 @@ impl WGSLBindgen {
 
     if options.emit_rerun_if_change {
       for file in Self::iter_files_to_watch(&dependency_tree) {
-        println!("cargo:rerun-if-changed={file}");
+        println!("cargo::rerun-if-changed={file}");
       }
     }
 
