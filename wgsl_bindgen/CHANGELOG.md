@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.1...wgsl_bindgen-v0.21.2) - 2025-10-19
+
+### Other
+
+- Fix rerun-if-changed directive syntax to use double colon ([#82](https://github.com/Swoorup/wgsl-bindgen/pull/82))
+
 ## [0.21.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.0...wgsl_bindgen-v0.21.1) - 2025-08-10
 
 ### Fixed
