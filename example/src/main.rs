@@ -200,7 +200,7 @@ impl State {
     static mut COUNTER: u32 = 0;
     unsafe {
       COUNTER += 1;
-      if COUNTER % 60 == 0 {
+      if COUNTER.is_multiple_of(60) {
         // Print every 60 mouse moves
         println!(
           "Mouse: physical=({:.0}, {:.0}) window_size=({}, {}) normalized=({:.2}, {:.2})",
@@ -233,7 +233,7 @@ impl State {
     static mut RENDER_COUNTER: u32 = 0;
     unsafe {
       RENDER_COUNTER += 1;
-      if RENDER_COUNTER % 180 == 0 {
+      if RENDER_COUNTER.is_multiple_of(180) {
         // Print every 3 seconds at 60fps
         println!(
           "GPU uniforms: mouse=({:.2}, {:.2}) frame_size=({:.0}, {:.0})",
@@ -267,6 +267,7 @@ impl State {
       label: Some("Render Pass"),
       color_attachments: &[Some(wgpu::RenderPassColorAttachment {
         view: &output_view,
+        depth_slice: None,
         resolve_target: None,
         ops: wgpu::Operations {
           load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
