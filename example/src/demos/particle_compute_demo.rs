@@ -370,7 +370,7 @@ impl Demo for ParticleComputeDemo {
     });
 
     // Poll the device to complete the mapping
-    let _ = device.poll(wgpu::PollType::Wait).unwrap();
+    let _ = device.poll(wgpu::PollType::Wait { submission_index: None, timeout: None }).unwrap();
 
     // Process the mapped data
     if let Ok(Ok(())) = futures::executor::block_on(rx) {
