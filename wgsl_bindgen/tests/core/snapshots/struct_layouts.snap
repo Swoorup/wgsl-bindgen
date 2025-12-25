@@ -134,6 +134,11 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(layouts::Uniforms, scalars) == 16);
     assert!(std::mem::size_of::<layouts::Uniforms>() == 32);
   };
+  const LAYOUTS_ATOMICS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(layouts::Atomics, num) == 0);
+    assert!(std::mem::offset_of!(layouts::Atomics, numi) == 4);
+    assert!(std::mem::size_of::<layouts::Atomics>() == 8);
+  };
 }
 pub mod layouts {
   use super::{_root, _root::*};
@@ -485,6 +490,19 @@ pub mod layouts {
       Self { color_rgb, scalars }
     }
   }
+  #[repr(C, align(4))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct Atomics {
+    #[doc = "offset: 0, size: 4, type: `atomic<u32>`"]
+    pub num: u32,
+    #[doc = "offset: 4, size: 4, type: `atomic<i32>`"]
+    pub numi: i32,
+  }
+  impl Atomics {
+    pub const fn new(num: u32, numi: i32) -> Self {
+      Self { num, numi }
+    }
+  }
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct VertexIn {
@@ -572,10 +590,16 @@ pub mod layouts {
   #[derive(Debug)]
   pub struct WgpuBindGroup1EntriesParams<'a> {
     pub uniforms: wgpu::BufferBinding<'a>,
+    pub atomics: wgpu::BufferBinding<'a>,
+    pub atomic_raw_i32: wgpu::BufferBinding<'a>,
+    pub atomic_raw_u32: wgpu::BufferBinding<'a>,
   }
   #[derive(Clone, Debug)]
   pub struct WgpuBindGroup1Entries<'a> {
     pub uniforms: wgpu::BindGroupEntry<'a>,
+    pub atomics: wgpu::BindGroupEntry<'a>,
+    pub atomic_raw_i32: wgpu::BindGroupEntry<'a>,
+    pub atomic_raw_u32: wgpu::BindGroupEntry<'a>,
   }
   impl<'a> WgpuBindGroup1Entries<'a> {
     pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
@@ -584,10 +608,27 @@ pub mod layouts {
           binding: 0,
           resource: wgpu::BindingResource::Buffer(params.uniforms),
         },
+        atomics: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(params.atomics),
+        },
+        atomic_raw_i32: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::Buffer(params.atomic_raw_i32),
+        },
+        atomic_raw_u32: wgpu::BindGroupEntry {
+          binding: 3,
+          resource: wgpu::BindingResource::Buffer(params.atomic_raw_u32),
+        },
       }
     }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-      [self.uniforms]
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
+      [
+        self.uniforms,
+        self.atomics,
+        self.atomic_raw_i32,
+        self.atomic_raw_u32,
+      ]
     }
     pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
       self.into_array().into_iter().collect()
@@ -610,6 +651,41 @@ pub mod layouts {
               min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
                 _root::layouts::Uniforms,
               >() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"atomics\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::layouts::Atomics,
+              >() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"atomic_raw_i32\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<i32>() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(3): \"atomic_raw_u32\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 3,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<u32>() as _),
             },
             count: None,
           },
@@ -911,6 +987,11 @@ struct Uniforms {
     scalars: Scalars,
 }
 
+struct Atomics {
+    num: atomic<u32>,
+    numi: atomic<i32>,
+}
+
 struct VertexIn {
     @location(0) position: vec4<f32>,
 }
@@ -925,6 +1006,12 @@ var color_texture: texture_2d<f32>;
 var color_sampler: sampler;
 @group(1) @binding(0) 
 var<uniform> uniforms: Uniforms;
+@group(1) @binding(1) 
+var<storage, read_write> atomics: Atomics;
+@group(1) @binding(2) 
+var<storage, read_write> atomic_raw_i32_: atomic<i32>;
+@group(1) @binding(3) 
+var<storage, read_write> atomic_raw_u32_: atomic<u32>;
 @group(2) @binding(2) 
 var<storage> a: Scalars;
 @group(2) @binding(3) 
@@ -973,6 +1060,8 @@ pub mod bytemuck_impls {
   unsafe impl bytemuck::Pod for layouts::Nested {}
   unsafe impl bytemuck::Zeroable for layouts::Uniforms {}
   unsafe impl bytemuck::Pod for layouts::Uniforms {}
+  unsafe impl bytemuck::Zeroable for layouts::Atomics {}
+  unsafe impl bytemuck::Pod for layouts::Atomics {}
   unsafe impl bytemuck::Zeroable for layouts::VertexIn {}
   unsafe impl bytemuck::Pod for layouts::VertexIn {}
 }

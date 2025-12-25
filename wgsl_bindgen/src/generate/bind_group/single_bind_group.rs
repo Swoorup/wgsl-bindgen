@@ -40,6 +40,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
       naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
       naga::TypeInner::Array { .. } => BindResourceType::Buffer,
       naga::TypeInner::Scalar(_) => BindResourceType::Buffer,
+      naga::TypeInner::Atomic(_) => BindResourceType::Buffer,
       naga::TypeInner::Vector { .. } => BindResourceType::Buffer,
       naga::TypeInner::Matrix { .. } => BindResourceType::Buffer,
       naga::TypeInner::AccelerationStructure { .. } => {
@@ -403,6 +404,7 @@ fn generate_binding_type_for_type(
   // TODO: Support more types.
   match &binding_type.inner {
     naga::TypeInner::Scalar(_)
+    | naga::TypeInner::Atomic(_)
     | naga::TypeInner::Struct { .. }
     | naga::TypeInner::Array { .. }
     | naga::TypeInner::Vector { .. }
