@@ -267,6 +267,8 @@ mod tests {
                 numi: atomic<i32>,
             };
             var <storage, read_write> atomics: Atomics;
+            var <storage, read_write> atomic_raw_i32: atomic<i32>;
+            var <storage, read_write> atomic_raw_u32: atomic<u32>;
 
             @fragment
             fn main() {}

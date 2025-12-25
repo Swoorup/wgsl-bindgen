@@ -53,10 +53,18 @@ struct Uniforms {
   scalars: Scalars
 }
 
+struct Atomics {
+    num: atomic<u32>,
+    numi: atomic<i32>,
+};
+
 @group(0) @binding(0) var color_texture: texture_2d<f32>;
 @group(0) @binding(1) var color_sampler: sampler;
 
 @group(1) @binding(0) var<uniform> uniforms: Uniforms;
+@group(1) @binding(1) var<storage, read_write> atomics: Atomics;
+@group(1) @binding(2) var<storage, read_write> atomic_raw_i32: atomic<i32>;
+@group(1) @binding(3) var<storage, read_write> atomic_raw_u32: atomic<u32>;
 
 @group(2) @binding(2) var<storage> a: Scalars;
 @group(2) @binding(3) var<storage> b: VectorsU32;
