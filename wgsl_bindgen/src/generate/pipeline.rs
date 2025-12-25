@@ -131,7 +131,7 @@ pub fn create_pipeline_layout_fn(
               bind_group_layouts: &[
                   #(&#bind_group_layouts),*
               ],
-              push_constant_ranges: &[#push_constant_range],
+              immediate_size: 0,
           })
       }
   }
