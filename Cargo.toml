@@ -30,7 +30,7 @@ include_absolute_path = "0.1"
 indexmap = "2.7"
 indoc = "2.0"
 miette = "7.5"
-naga = { version = "26", features = ["wgsl-in", "wgsl-out"] }
+naga = { version = "27", features = ["wgsl-in", "wgsl-out"] }
 naga_oil = "0.19"
 pathdiff = "0.2"
 pretty_assertions = "1.4"
@@ -45,9 +45,13 @@ strum = "0.27"
 strum_macros = "0.27"
 syn = "2.0"
 thiserror = "2.0"
-wgpu = "26"
-wgpu-types = "26"
+wgpu = "27"
+wgpu-types = "27"
 winit = "0.30"
 insta = "1.43"
 stdext = "0.3.1"
 toml = "0.9"
+
+
+[patch.crates-io]
+naga_oil = { git = "https://github.com/sytherax/naga_oil", branch = "update-deps" }
