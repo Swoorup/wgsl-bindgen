@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.3](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.2...wgsl_bindgen-v0.21.3) - 2025-12-26
+
+### Other
+
+- Add atomics support
+
 ## [0.21.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.1...wgsl_bindgen-v0.21.2) - 2025-10-19
 
 ### Other
