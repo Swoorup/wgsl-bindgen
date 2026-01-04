@@ -472,16 +472,19 @@ fn generate_binding_type_for_type(
           })
         }
         naga::ImageClass::Storage { format, access } => {
-          // TODO: Will the debug implementation always work with the macro?
-          // Assume texture format variants are the same as storage formats.
-          let format = syn::Ident::new(&format!("{format:?}"), Span::call_site());
-          let storage_access = storage_access(*access);
+        // TODO: Will the debug implementation always work with the macro?
+        // Assume texture format variants are the same as storage formats.
+        let format = syn::Ident::new(&format!("{format:?}"), Span::call_site());
+        let storage_access = storage_access(*access);
 
-          quote!(wgpu::BindingType::StorageTexture {
-              access: #storage_access,
-              format: wgpu::TextureFormat::#format,
-              view_dimension: #view_dim,
-          })
+        quote!(wgpu::BindingType::StorageTexture {
+        access: #storage_access,
+        format: wgpu::TextureFormat::#format,
+        view_dimension: #view_dim,
+        })
+        }
+        naga::ImageClass::External => {
+          quote!(wgpu::BindingType::ExternalTexture)
         }
       }
     }
