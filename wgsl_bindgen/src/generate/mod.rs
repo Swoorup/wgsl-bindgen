@@ -19,8 +19,8 @@ pub(crate) fn quote_naga_capabilities(
     caps if caps == naga::valid::Capabilities::all() => {
       quote!(wgpu::naga::valid::Capabilities::all())
     }
-    caps if caps == naga::valid::Capabilities::PUSH_CONSTANT => {
-      quote!(wgpu::naga::valid::Capabilities::PUSH_CONSTANT)
+    caps if caps == naga::valid::Capabilities::IMMEDIATES => {
+      quote!(wgpu::naga::valid::Capabilities::IMMEDIATES)
     }
     _ => {
       // For complex combinations or unknown capabilities, use from_bits_retain to preserve all information

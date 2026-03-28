@@ -166,7 +166,7 @@ pub mod multiple_vertex_shaders {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("MultipleVertexShaders::PipelineLayout"),
       bind_group_layouts: &[],
-      push_constant_ranges: &[],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {

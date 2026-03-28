@@ -47,7 +47,7 @@ impl Demo for TextureArrayDemo {
       primitive: wgpu::PrimitiveState::default(),
       depth_stencil: None,
       multisample: wgpu::MultisampleState::default(),
-      multiview: None,
+      multiview_mask: None,
       cache: Default::default(),
     });
 
@@ -157,15 +157,11 @@ impl Demo for TextureArrayDemo {
     render_pass.set_pipeline(&self.pipeline);
 
     // Push constant data also needs to follow alignment rules.
-    let push_constant = shader_bindings::simple_array_demo::PushConstants {
+    let push_constant = shader_bindings::simple_array_demo::Immediates {
       color_matrix: glam::Mat4::IDENTITY,
     };
 
-    render_pass.set_push_constants(
-      wgpu::ShaderStages::VERTEX_FRAGMENT,
-      0,
-      bytemuck::cast_slice(&[push_constant]),
-    );
+    render_pass.set_immediates(0, bytemuck::cast_slice(&[push_constant]));
 
     // Global bind group is already set by main.rs, only set shader-specific bind groups
     self.bind_group1.set(render_pass);

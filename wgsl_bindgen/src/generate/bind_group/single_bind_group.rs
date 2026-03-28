@@ -483,6 +483,9 @@ fn generate_binding_type_for_type(
               view_dimension: #view_dim,
           })
         }
+        naga::ImageClass::External => {
+          quote!(wgpu::BindingType::ExternalTexture)
+        }
       }
     }
     naga::TypeInner::Sampler { comparison } => {

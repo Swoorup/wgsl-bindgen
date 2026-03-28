@@ -251,7 +251,7 @@ impl Demo for ParticleComputeDemo {
           mask: !0,
           alpha_to_coverage_enabled: false,
         },
-        multiview: None,
+        multiview_mask: None,
         cache: None,
       });
 
@@ -370,7 +370,12 @@ impl Demo for ParticleComputeDemo {
     });
 
     // Poll the device to complete the mapping
-    let _ = device.poll(wgpu::PollType::Wait).unwrap();
+    let _ = device
+      .poll(wgpu::PollType::Wait {
+        submission_index: None,
+        timeout: None,
+      })
+      .unwrap();
 
     // Process the mapped data
     if let Ok(Ok(())) = futures::executor::block_on(rx) {

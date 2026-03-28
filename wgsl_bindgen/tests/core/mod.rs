@@ -18,7 +18,7 @@ fn test_basic_bindgen() -> Result<()> {
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .ir_capabilities(naga::valid::Capabilities::PUSH_CONSTANT)
+    .ir_capabilities(naga::valid::Capabilities::IMMEDIATES)
     .shader_source_type(
       WgslShaderSourceType::EmbedSource | WgslShaderSourceType::ComposerWithRelativePath,
     )
@@ -112,7 +112,7 @@ fn test_relative_path_composer() -> Result<()> {
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
-    .ir_capabilities(naga::valid::Capabilities::PUSH_CONSTANT)
+    .ir_capabilities(naga::valid::Capabilities::IMMEDIATES)
     .shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)
     .output("tests/output/core/relative_path_composer.actual.rs".to_string())
     .build()?

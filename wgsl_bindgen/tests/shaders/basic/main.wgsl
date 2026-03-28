@@ -27,7 +27,7 @@ var texture_array_sint: texture_2d_array<i32>;
 @group(0) @binding(6)
 var texture_array_uint: texture_2d_array<u32>;
 
-var<push_constant> const_style: Style;
+var<immediate> const_style: Style;
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {

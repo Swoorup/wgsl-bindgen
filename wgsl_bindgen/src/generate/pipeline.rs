@@ -42,34 +42,6 @@ impl<'a> PipelineLayoutDataEntriesBuilder<'a> {
   }
 }
 
-fn push_constant_range(
-  module: &naga::Module,
-  shader_stages: wgpu::ShaderStages,
-) -> Option<TokenStream> {
-  // Assume only one variable is used with var<push_constant> in WGSL.
-  let push_constant_size = module.global_variables.iter().find_map(|g| {
-    if g.1.space == naga::AddressSpace::PushConstant {
-      Some(module.types[g.1.ty].inner.size(module.to_ctx()))
-    } else {
-      None
-    }
-  });
-
-  let stages = quote_shader_stages(shader_stages);
-
-  // Use a single push constant range for all shader stages.
-  // This allows easily setting push constants in a single call with offset 0.
-  push_constant_size.map(|size| {
-    let size = Index::from(size as usize);
-    quote! {
-        wgpu::PushConstantRange {
-            stages: #stages,
-            range: 0..#size
-        }
-    }
-  })
-}
-
 pub fn create_pipeline_layout_fn(
   entry_name: &str,
   naga_module: &naga::Module,
@@ -117,8 +89,17 @@ pub fn create_pipeline_layout_fn(
       quote!()
     };
 
-  let push_constant_range =
-    push_constant_range(naga_module, shader_entry_bind_groups.shader_stages);
+  let immediate_size = naga_module
+    .global_variables
+    .iter()
+    .find_map(|g| {
+      if g.1.space == naga::AddressSpace::Immediate {
+        Some(naga_module.types[g.1.ty].inner.size(naga_module.to_ctx()))
+      } else {
+        None
+      }
+    })
+    .unwrap_or(0);
 
   let pipeline_layout_name = format!("{entry_name}::PipelineLayout");
 
@@ -129,9 +110,9 @@ pub fn create_pipeline_layout_fn(
           device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
               label: Some(#pipeline_layout_name),
               bind_group_layouts: &[
-                  #(&#bind_group_layouts),*
+                  #(Some(&#bind_group_layouts)),*
               ],
-              push_constant_ranges: &[#push_constant_range],
+              immediate_size: #immediate_size,
           })
       }
   }

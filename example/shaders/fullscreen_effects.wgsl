@@ -32,11 +32,11 @@ fn vs_main(in: VertexInput) -> VertexOutput {
   return out;
 }
 
-struct PushConstants {
+struct Immediates {
     color_matrix: mat4x4<f32>
 }
 
-var<push_constant> constants: PushConstants;
+var<immediate> constants: Immediates;
 
 // wgsl outputs with pipeline constants are not supported.
 // https://github.com/gfx-rs/wgpu/blob/abba12ae4e5488b08d9e189fc37dab5e1755b443/naga/src/back/wgsl/writer.rs#L108-L113

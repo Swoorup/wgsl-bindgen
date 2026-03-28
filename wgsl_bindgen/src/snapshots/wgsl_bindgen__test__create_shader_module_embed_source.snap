@@ -1,5 +1,6 @@
 ---
 source: wgsl_bindgen/src/lib.rs
+assertion_line: 513
 expression: actual
 ---
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
@@ -68,10 +69,7 @@ pub mod test {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Test::PipelineLayout"),
       bind_group_layouts: &[],
-      push_constant_ranges: &[wgpu::PushConstantRange {
-        stages: wgpu::ShaderStages::FRAGMENT,
-        range: 0..16,
-      }],
+      immediate_size: 16u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
@@ -82,7 +80,7 @@ pub mod test {
     })
   }
   pub const SHADER_STRING: &str = r#"
-var<push_constant> consts: vec4<f32>;
+var<immediate> consts: vec4<f32>;
 
 @fragment 
 fn fs_main() {

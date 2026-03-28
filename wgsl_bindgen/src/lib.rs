@@ -495,7 +495,7 @@ mod test {
   #[test]
   fn create_shader_module_embed_source() {
     let source = indoc! {r#"
-      var<push_constant> consts: vec4<f32>;
+      var<immediate> consts: vec4<f32>;
 
       @fragment
       fn fs_main() {}

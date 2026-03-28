@@ -241,11 +241,11 @@ edition = "2021"
         let wgpu_version = workspace_deps
           .get("wgpu")
           .map(|s| s.as_str())
-          .unwrap_or("25.0");
+          .unwrap_or("29.0");
         let naga_version = workspace_deps
           .get("naga")
           .map(|s| s.as_str())
-          .unwrap_or("25.0");
+          .unwrap_or("29.0");
         cargo_toml.push_str(&format!("wgpu = {{ version = \"{wgpu_version}\", features = [\"wgsl\", \"naga-ir\"] }}\nnaga = {{ version = \"{naga_version}\", features = [\"wgsl-out\"] }}\n"));
       }
       "glam" => {
@@ -275,7 +275,7 @@ edition = "2021"
         let version = workspace_deps
           .get("naga_oil")
           .map(|s| s.as_str())
-          .unwrap_or("0.18");
+          .unwrap_or("0.22");
         cargo_toml.push_str(&format!("naga_oil = \"{version}\"\n"));
       }
       _ => {}

@@ -278,8 +278,8 @@ pub mod test_shader {
   pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("TestShader::PipelineLayout"),
-      bind_group_layouts: &[&WgpuBindGroup0::get_bind_group_layout(device)],
-      push_constant_ranges: &[],
+      bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {

@@ -917,11 +917,11 @@ pub mod layouts {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Layouts::PipelineLayout"),
       bind_group_layouts: &[
-        &bindings::WgpuBindGroup0::get_bind_group_layout(device),
-        &WgpuBindGroup1::get_bind_group_layout(device),
-        &WgpuBindGroup2::get_bind_group_layout(device),
+        Some(&bindings::WgpuBindGroup0::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup1::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup2::get_bind_group_layout(device)),
       ],
-      push_constant_ranges: &[],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {

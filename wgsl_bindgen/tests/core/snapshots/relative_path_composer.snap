@@ -532,13 +532,10 @@ pub mod tests {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
               label: Some("TestsShadersCoreBasicMain::PipelineLayout"),
               bind_group_layouts: &[
-                &WgpuBindGroup0::get_bind_group_layout(device),
-                &bindings::WgpuBindGroup1::get_bind_group_layout(device),
+                Some(&WgpuBindGroup0::get_bind_group_layout(device)),
+                Some(&bindings::WgpuBindGroup1::get_bind_group_layout(device)),
               ],
-              push_constant_ranges: &[wgpu::PushConstantRange {
-                stages: wgpu::ShaderStages::COMPUTE,
-                range: 0..32,
-              }],
+              immediate_size: 32u32,
             })
           }
           pub const SHADER_ENTRY_PATH: &str = "../basic/main.wgsl";
@@ -552,7 +549,7 @@ pub mod tests {
             load_file: impl Fn(&str) -> Result<String, std::io::Error>,
           ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
             let mut composer = naga_oil::compose::Composer::default()
-              .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
+              .with_capabilities(wgpu::naga::valid::Capabilities::IMMEDIATES);
             let module = ShaderEntry::TestsShadersCoreBasicMain
               .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
               .map_err(|e| naga_oil::compose::ComposerError {

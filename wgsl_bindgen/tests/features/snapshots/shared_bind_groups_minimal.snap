@@ -507,10 +507,10 @@ pub mod shader_a {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("ShaderA::PipelineLayout"),
       bind_group_layouts: &[
-        &shared_data::WgpuBindGroup0::get_bind_group_layout(device),
-        &shared_data::WgpuBindGroup1::get_bind_group_layout(device),
+        Some(&shared_data::WgpuBindGroup0::get_bind_group_layout(device)),
+        Some(&shared_data::WgpuBindGroup1::get_bind_group_layout(device)),
       ],
-      push_constant_ranges: &[],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
@@ -613,10 +613,10 @@ pub mod shader_b {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("ShaderB::PipelineLayout"),
       bind_group_layouts: &[
-        &shared_data::WgpuBindGroup0::get_bind_group_layout(device),
-        &shared_data::WgpuBindGroup1::get_bind_group_layout(device),
+        Some(&shared_data::WgpuBindGroup0::get_bind_group_layout(device)),
+        Some(&shared_data::WgpuBindGroup1::get_bind_group_layout(device)),
       ],
-      push_constant_ranges: &[],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
@@ -650,13 +650,21 @@ var<storage, read_write> output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<f
 
 @compute @workgroup_size(1, 1, 1) 
 fn cs_main() {
+    var local: bool;
+
     let matrix = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.view_matrix;
     let current_time = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.time;
     let vertex_count = arrayLength((&vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX));
     let scale_factor = compute_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.x;
     let _e13 = compute_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.y;
     let iterations = u32(_e13);
-    if ((vertex_count > 0u) && (iterations > 0u)) {
+    if (vertex_count > 0u) {
+        local = (iterations > 0u);
+    } else {
+        local = false;
+    }
+    let _e22 = local;
+    if _e22 {
         let first_vertex = vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[0];
         let tex_dims = textureDimensions(shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX);
         if (arrayLength((&output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX)) > 0u) {

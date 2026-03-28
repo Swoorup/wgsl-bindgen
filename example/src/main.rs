@@ -6,7 +6,7 @@ use std::time::Instant;
 use futures::executor::block_on;
 use winit::application::ApplicationHandler;
 use winit::event::*;
-use winit::event_loop::EventLoop;
+use winit::event_loop::{EventLoop, OwnedDisplayHandle};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
@@ -37,6 +37,7 @@ struct State {
   surface: wgpu::Surface<'static>,
   device: wgpu::Device,
   queue: wgpu::Queue,
+  instance: wgpu::Instance,
   size: winit::dpi::PhysicalSize<u32>,
   config: wgpu::SurfaceConfiguration,
   demo_manager: DemoManager,
@@ -50,12 +51,11 @@ struct State {
 }
 
 impl State {
-  async fn new(window: Window) -> Self {
+  async fn new(display: OwnedDisplayHandle, window: Window) -> Self {
     let window = Arc::new(window);
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-      backends: wgpu::Backends::all(),
-      ..Default::default()
-    });
+    let instance = wgpu::Instance::new(
+      wgpu::InstanceDescriptor::new_with_display_handle_from_env(Box::new(display)),
+    );
     let surface = instance.create_surface(window.clone()).unwrap();
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
@@ -82,10 +82,10 @@ impl State {
       .request_device(&wgpu::DeviceDescriptor {
         label: None,
         required_features: wgpu::Features::TEXTURE_COMPRESSION_BC
-          | wgpu::Features::PUSH_CONSTANTS
+          | wgpu::Features::IMMEDIATES
           | wgpu::Features::TEXTURE_BINDING_ARRAY,
         required_limits: wgpu::Limits {
-          max_push_constant_size: 128,
+          max_immediate_size: 128,
           max_binding_array_elements_per_shader_stage: 4,
           max_binding_array_sampler_elements_per_shader_stage: 4,
           ..Default::default()
@@ -151,6 +151,7 @@ impl State {
       window,
       device,
       queue,
+      instance,
       size,
       config,
       demo_manager,
@@ -210,8 +211,26 @@ impl State {
     }
   }
 
-  fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-    let output = self.surface.get_current_texture()?;
+  fn render(&mut self) {
+    let output = match self.surface.get_current_texture() {
+      wgpu::CurrentSurfaceTexture::Success(texture) => texture,
+      wgpu::CurrentSurfaceTexture::Occluded | wgpu::CurrentSurfaceTexture::Timeout => {
+        return
+      }
+      wgpu::CurrentSurfaceTexture::Suboptimal(_)
+      | wgpu::CurrentSurfaceTexture::Outdated => {
+        self.resize(self.size);
+        return;
+      }
+      wgpu::CurrentSurfaceTexture::Validation => {
+        unreachable!("No error scope registered, so validation errors will panic")
+      }
+      wgpu::CurrentSurfaceTexture::Lost => {
+        self.surface = self.instance.create_surface(self.window.clone()).unwrap();
+        self.resize(self.size);
+        return;
+      }
+    };
     let output_view = output
       .texture
       .create_view(&wgpu::TextureViewDescriptor::default());
@@ -277,6 +296,7 @@ impl State {
       depth_stencil_attachment: None,
       timestamp_writes: None,
       occlusion_query_set: None,
+      multiview_mask: None,
     });
 
     // Get info before borrowing for render
@@ -318,8 +338,6 @@ impl State {
 
     // Actually draw the frame.
     output.present();
-
-    Ok(())
   }
 }
 
@@ -348,7 +366,7 @@ impl ApplicationHandler<()> for App {
       )
       .unwrap();
 
-    self.state = Some(block_on(State::new(window)));
+    self.state = Some(block_on(State::new(event_loop.owned_display_handle(), window)));
   }
 
   fn window_event(
@@ -421,12 +439,7 @@ impl ApplicationHandler<()> for App {
         }
         WindowEvent::ScaleFactorChanged { .. } => {}
         WindowEvent::RedrawRequested => {
-          match state.render() {
-            Ok(_) => {}
-            Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-            Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
-            Err(e) => eprintln!("{e:?}"),
-          }
+          state.render();
           state.window.request_redraw();
         }
         _ => {

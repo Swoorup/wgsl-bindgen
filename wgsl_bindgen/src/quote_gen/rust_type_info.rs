@@ -416,5 +416,6 @@ pub(crate) fn rust_type(
     naga::TypeInner::BindingArray { base: _, size: _ } => todo!(),
     naga::TypeInner::AccelerationStructure { .. } => todo!(),
     naga::TypeInner::RayQuery { .. } => todo!(),
+    naga::TypeInner::CooperativeMatrix { .. } => todo!(),
   }
 }

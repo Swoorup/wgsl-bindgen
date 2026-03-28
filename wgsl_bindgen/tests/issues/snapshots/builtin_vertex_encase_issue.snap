@@ -89,7 +89,7 @@ pub mod builtin_vertex_issue {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("BuiltinVertexIssue::PipelineLayout"),
       bind_group_layouts: &[],
-      push_constant_ranges: &[],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {

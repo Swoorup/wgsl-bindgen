@@ -31,11 +31,11 @@ fn vs_main(in: VertexInput) -> VertexOutput {
   return out;
 }
 
-struct PushConstants {
+struct Immediates {
     color_matrix: mat4x4<f32>
 }
 
-var<push_constant> push_constants: PushConstants;
+var<immediate> push_constants: Immediates;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {

@@ -1129,11 +1129,13 @@ pub mod pbr {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Pbr::PipelineLayout"),
       bind_group_layouts: &[
-        &bevy_pbr::mesh_view_bindings::WgpuBindGroup0::get_bind_group_layout(device),
-        &bevy_pbr::pbr::bindings::WgpuBindGroup1::get_bind_group_layout(device),
-        &bevy_pbr::mesh_bindings::WgpuBindGroup2::get_bind_group_layout(device),
+        Some(&bevy_pbr::mesh_view_bindings::WgpuBindGroup0::get_bind_group_layout(
+          device,
+        )),
+        Some(&bevy_pbr::pbr::bindings::WgpuBindGroup1::get_bind_group_layout(device)),
+        Some(&bevy_pbr::mesh_bindings::WgpuBindGroup2::get_bind_group_layout(device)),
       ],
-      push_constant_ranges: &[],
+      immediate_size: 0u32,
     })
   }
   pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
@@ -1510,7 +1512,7 @@ fn fetch_point_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_id: u32
 
 fn fetch_spot_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_id_1: u32, frag_position_1: vec4<f32>, surface_normal_1: vec3<f32>) -> f32 {
     var spot_dir_1: vec3<f32>;
-    var sign: f32 = -1f;
+    var sign_: f32 = -1f;
 
     let light_4 = point_lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.data[light_id_1];
     let surface_to_light_1 = (light_4.position_radius.xyz - frag_position_1.xyz);
@@ -1529,16 +1531,16 @@ fn fetch_spot_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_id_1: u3
     let distance_to_light_1 = dot(fwd, surface_to_light_1);
     let offset_position_1 = ((-(surface_to_light_1) + (light_4.shadow_depth_bias * normalize(surface_to_light_1))) + ((surface_normal_1.xyz * light_4.shadow_normal_bias) * distance_to_light_1));
     if (fwd.z >= 0f) {
-        sign = 1f;
+        sign_ = 1f;
     }
-    let _e62 = sign;
+    let _e62 = sign_;
     let a_1 = (-1f / (fwd.z + _e62));
     let b = ((fwd.x * fwd.y) * a_1);
-    let _e70 = sign;
-    let _e78 = sign;
-    let _e80 = sign;
+    let _e70 = sign_;
+    let _e78 = sign_;
+    let _e80 = sign_;
     let up_dir = vec3<f32>((1f + (((_e70 * fwd.x) * fwd.x) * a_1)), (_e78 * b), (-(_e80) * fwd.x));
-    let _e86 = sign;
+    let _e86 = sign_;
     let right_dir = vec3<f32>(-(b), (-(_e86) - ((fwd.y * fwd.y) * a_1)), fwd.y);
     let light_inv_rot = mat3x3<f32>(right_dir, up_dir, fwd);
     let projected_position = (offset_position_1 * light_inv_rot);
@@ -1552,6 +1554,9 @@ fn fetch_spot_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_id_1: u3
 }
 
 fn fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_id_2: u32, frag_position_2: vec4<f32>, surface_normal_2: vec3<f32>) -> f32 {
+    var local: bool;
+    var local_1: bool;
+
     let light_5 = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.directional_lights[light_id_2];
     let normal_offset_1 = (light_5.shadow_normal_bias * surface_normal_2.xyz);
     let depth_offset_1 = (light_5.shadow_depth_bias * light_5.direction_to_light.xyz);
@@ -1561,14 +1566,26 @@ fn fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(light_i
         return 1f;
     }
     let offset_position_ndc = (offset_position_clip.xyz / vec3(offset_position_clip.w));
-    if ((any((offset_position_ndc.xy < vec2(-1f))) || (offset_position_ndc.z < 0f)) || any((offset_position_ndc > vec3(1f)))) {
+    if !(any((offset_position_ndc.xy < vec2(-1f)))) {
+        local = (offset_position_ndc.z < 0f);
+    } else {
+        local = true;
+    }
+    let _e41 = local;
+    if !(_e41) {
+        local_1 = any((offset_position_ndc > vec3(1f)));
+    } else {
+        local_1 = true;
+    }
+    let _e50 = local_1;
+    if _e50 {
         return 1f;
     }
     let flip_correction = vec2<f32>(0.5f, -0.5f);
     let light_local = ((offset_position_ndc.xy * flip_correction) + vec2<f32>(0.5f, 0.5f));
     let depth_2 = offset_position_ndc.z;
-    let _e57 = textureSampleCompareLevel(directional_shadow_texturesX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, directional_shadow_textures_samplerX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, light_local, i32(light_id_2), depth_2);
-    return _e57;
+    let _e65 = textureSampleCompareLevel(directional_shadow_texturesX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, directional_shadow_textures_samplerX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX, light_local, i32(light_id_2), depth_2);
+    return _e65;
 }
 
 fn prepare_normalX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(standard_material_flags: u32, world_normal: vec3<f32>, is_front_1: bool) -> vec3<f32> {
@@ -1606,10 +1623,13 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
     var light_accum: vec3<f32> = vec3(0f);
     var i: u32;
     var shadow: f32;
+    var local_2: bool;
     var i_1: u32;
     var shadow_1: f32;
+    var local_3: bool;
     var i_2: u32 = 0u;
     var shadow_2: f32;
+    var local_4: bool;
 
     output_color_2 = in.material.base_color;
     let emissive_1 = in.material.emissive;
@@ -1656,86 +1676,104 @@ fn pbrX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in: PbrInputX_nag
             let light_6 = point_lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.data[_e99];
             shadow = 1f;
             let _e108 = meshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7MJUW4ZDJNZTXGX.flags;
-            if (((_e108 & MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX) != 0u) && ((light_6.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX) != 0u)) {
-                let _e121 = fetch_point_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e99, in.world_position, in.world_normal);
-                shadow = _e121;
+            if ((_e108 & MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX) != 0u) {
+                local_2 = ((light_6.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX) != 0u);
+            } else {
+                local_2 = false;
             }
-            let _e126 = point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_6, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
-            let _e128 = light_accum;
-            let _e129 = shadow;
-            light_accum = (_e128 + (_e126 * _e129));
+            let _e121 = local_2;
+            if _e121 {
+                let _e124 = fetch_point_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e99, in.world_position, in.world_normal);
+                shadow = _e124;
+            }
+            let _e129 = point_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_6, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
+            let _e131 = light_accum;
+            let _e132 = shadow;
+            light_accum = (_e131 + (_e129 * _e132));
         }
         continuing {
-            let _e132 = i;
-            i = (_e132 + 1u);
+            let _e135 = i;
+            i = (_e135 + 1u);
         }
     }
     i_1 = (_e90.x + _e90.y);
     loop {
-        let _e139 = i_1;
-        if (_e139 < ((_e90.x + _e90.y) + _e90.z)) {
+        let _e142 = i_1;
+        if (_e142 < ((_e90.x + _e90.y) + _e90.z)) {
         } else {
             break;
         }
         {
-            let _e146 = i_1;
-            let _e147 = get_light_idX_naga_oil_mod_XMJSXM6K7OBRHEOR2MNWHK43UMVZGKZC7MZXXE53BOJSAX(_e146);
-            let light_7 = point_lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.data[_e147];
+            let _e149 = i_1;
+            let _e150 = get_light_idX_naga_oil_mod_XMJSXM6K7OBRHEOR2MNWHK43UMVZGKZC7MZXXE53BOJSAX(_e149);
+            let light_7 = point_lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.data[_e150];
             shadow_1 = 1f;
-            let _e156 = meshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7MJUW4ZDJNZTXGX.flags;
-            if (((_e156 & MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX) != 0u) && ((light_7.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX) != 0u)) {
-                let _e169 = fetch_spot_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e147, in.world_position, in.world_normal);
-                shadow_1 = _e169;
+            let _e159 = meshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7MJUW4ZDJNZTXGX.flags;
+            if ((_e159 & MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX) != 0u) {
+                local_3 = ((light_7.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX) != 0u);
+            } else {
+                local_3 = false;
             }
-            let _e174 = spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_7, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
-            let _e175 = light_accum;
-            let _e176 = shadow_1;
-            light_accum = (_e175 + (_e174 * _e176));
+            let _e172 = local_3;
+            if _e172 {
+                let _e175 = fetch_spot_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e150, in.world_position, in.world_normal);
+                shadow_1 = _e175;
+            }
+            let _e180 = spot_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(in.world_position.xyz, light_7, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
+            let _e181 = light_accum;
+            let _e182 = shadow_1;
+            light_accum = (_e181 + (_e180 * _e182));
         }
         continuing {
-            let _e179 = i_1;
-            i_1 = (_e179 + 1u);
+            let _e185 = i_1;
+            i_1 = (_e185 + 1u);
         }
     }
     let n_directional_lights = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.n_directional_lights;
     loop {
-        let _e186 = i_2;
-        if (_e186 < n_directional_lights) {
+        let _e192 = i_2;
+        if (_e192 < n_directional_lights) {
         } else {
             break;
         }
         {
-            let _e190 = i_2;
-            let light_8 = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.directional_lights[_e190];
+            let _e196 = i_2;
+            let light_8 = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.directional_lights[_e196];
             shadow_2 = 1f;
-            let _e197 = meshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7MJUW4ZDJNZTXGX.flags;
-            if (((_e197 & MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX) != 0u) && ((light_8.flags & DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX) != 0u)) {
-                let _e208 = i_2;
-                let _e211 = fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e208, in.world_position, in.world_normal);
-                shadow_2 = _e211;
+            let _e203 = meshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7MJUW4ZDJNZTXGX.flags;
+            if ((_e203 & MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX) != 0u) {
+                local_4 = ((light_8.flags & DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX) != 0u);
+            } else {
+                local_4 = false;
             }
-            let _e214 = directional_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(light_8, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
-            let _e215 = light_accum;
-            let _e216 = shadow_2;
-            light_accum = (_e215 + (_e214 * _e216));
+            let _e216 = local_4;
+            if _e216 {
+                let _e217 = i_2;
+                let _e220 = fetch_directional_shadowX_naga_oil_mod_XMJSXM6K7OBRHEOR2ONUGCZDPO5ZQX(_e217, in.world_position, in.world_normal);
+                shadow_2 = _e220;
+            }
+            let _e223 = directional_lightX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(light_8, _e13, NdotV_3, in.N, in.V, R_3, F0_3, diffuse_color);
+            let _e224 = light_accum;
+            let _e225 = shadow_2;
+            light_accum = (_e224 + (_e223 * _e225));
         }
         continuing {
-            let _e219 = i_2;
-            i_2 = (_e219 + 1u);
+            let _e228 = i_2;
+            i_2 = (_e228 + 1u);
         }
     }
-    let _e223 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(diffuse_color, 1f, NdotV_3);
-    let _e224 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(F0_3, perceptual_roughness_2, NdotV_3);
-    let _e225 = light_accum;
-    let _e229 = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.ambient_color;
-    let _e236 = output_color_2.w;
-    let _e240 = output_color_2.w;
-    output_color_2 = vec4<f32>(((_e225 + (((_e223 + _e224) * _e229.xyz) * occlusion_1)) + (emissive_1.xyz * _e236)), _e240);
-    let _e242 = output_color_2;
-    let _e244 = cluster_debug_visualizationX_naga_oil_mod_XMJSXM6K7OBRHEOR2MNWHK43UMVZGKZC7MZXXE53BOJSAX(_e242, view_z_3, in.is_orthographic, _e90, _e89);
-    output_color_2 = _e244;
-    let _e245 = output_color_2;
-    return _e245;
+    let _e232 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(diffuse_color, 1f, NdotV_3);
+    let _e233 = EnvBRDFApproxX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2NRUWO2DUNFXGOX(F0_3, perceptual_roughness_2, NdotV_3);
+    let _e234 = light_accum;
+    let _e238 = lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX.ambient_color;
+    let _e245 = output_color_2.w;
+    let _e249 = output_color_2.w;
+    output_color_2 = vec4<f32>(((_e234 + (((_e232 + _e233) * _e238.xyz) * occlusion_1)) + (emissive_1.xyz * _e245)), _e249);
+    let _e251 = output_color_2;
+    let _e253 = cluster_debug_visualizationX_naga_oil_mod_XMJSXM6K7OBRHEOR2MNWHK43UMVZGKZC7MZXXE53BOJSAX(_e251, view_z_3, in.is_orthographic, _e90, _e89);
+    output_color_2 = _e253;
+    let _e254 = output_color_2;
+    return _e254;
 }
 
 fn tone_mappingX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in_1: vec4<f32>) -> vec4<f32> {

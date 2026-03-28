@@ -49,7 +49,7 @@ impl Demo for FullscreenEffectsDemo {
       primitive: wgpu::PrimitiveState::default(),
       depth_stencil: None,
       multisample: wgpu::MultisampleState::default(),
-      multiview: None,
+      multiview_mask: None,
       cache: Default::default(),
     });
 
@@ -190,14 +190,10 @@ impl FullscreenEffectsDemo {
       bundle_encoder.set_pipeline(&self.pipeline);
 
       // Set push constants
-      let push_constant = shader_bindings::fullscreen_effects::PushConstants {
+      let push_constant = shader_bindings::fullscreen_effects::Immediates {
         color_matrix: glam::Mat4::IDENTITY,
       };
-      bundle_encoder.set_push_constants(
-        wgpu::ShaderStages::VERTEX_FRAGMENT,
-        0,
-        bytemuck::cast_slice(&[push_constant]),
-      );
+      bundle_encoder.set_immediates(0, bytemuck::cast_slice(&[push_constant]));
 
       // Include global bind group in the render bundle for fullscreen effects
       // The bind group reference stays the same, we just update the buffer contents

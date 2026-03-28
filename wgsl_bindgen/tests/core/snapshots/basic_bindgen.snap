@@ -536,13 +536,10 @@ pub mod basic {
       device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("BasicMain::PipelineLayout"),
         bind_group_layouts: &[
-          &WgpuBindGroup0::get_bind_group_layout(device),
-          &bindings::WgpuBindGroup1::get_bind_group_layout(device),
+          Some(&WgpuBindGroup0::get_bind_group_layout(device)),
+          Some(&bindings::WgpuBindGroup1::get_bind_group_layout(device)),
         ],
-        push_constant_ranges: &[wgpu::PushConstantRange {
-          stages: wgpu::ShaderStages::COMPUTE,
-          range: 0..32,
-        }],
+        immediate_size: 32u32,
       })
     }
     pub fn create_shader_module_embed_source(
@@ -576,15 +573,15 @@ var texture_array_float: texture_2d_array<f32>;
 var texture_array_sint: texture_2d_array<i32>;
 @group(0) @binding(6) 
 var texture_array_uint: texture_2d_array<u32>;
-var<push_constant> const_style: Style;
+var<immediate> const_style: Style;
 
 @compute @workgroup_size(1, 1, 1) 
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
-    let _e11 = const_style.color.w;
-    let _e15 = const_style.width;
-    let _e17 = buffer[id.x];
-    buffer[id.x] = (_e17 * (((2f * _e5) * _e11) * _e15));
+    let _e4 = buffer[id.x];
+    let _e6 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
+    let _e12 = const_style.color.w;
+    let _e16 = const_style.width;
+    buffer[id.x] = (_e4 * (((2f * _e6) * _e12) * _e16));
     return;
 }
 "#;
@@ -596,7 +593,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
       load_file: impl Fn(&str) -> Result<String, std::io::Error>,
     ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
       let mut composer = naga_oil::compose::Composer::default()
-        .with_capabilities(wgpu::naga::valid::Capabilities::PUSH_CONSTANT);
+        .with_capabilities(wgpu::naga::valid::Capabilities::IMMEDIATES);
       let module = ShaderEntry::BasicMain
         .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
         .map_err(|e| naga_oil::compose::ComposerError {

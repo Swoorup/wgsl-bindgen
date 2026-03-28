@@ -16,7 +16,10 @@ fn main() -> Result<()> {
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
-    .ir_capabilities(WgslShaderIrCapabilities::PUSH_CONSTANT)
+    .ir_capabilities(
+      WgslShaderIrCapabilities::IMMEDIATES
+        | WgslShaderIrCapabilities::TEXTURE_AND_SAMPLER_BINDING_ARRAY,
+    )
     .add_custom_padding_field_regexp(Regex::new("_pad.*").unwrap())
     .short_constructor(2)
     .shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)

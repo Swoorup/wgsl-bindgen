@@ -536,6 +536,8 @@ mod tests {
   fn bind_groups_module_acceleration_structure() {
     // Test AccelerationStructure binding type.
     let source = indoc! {r#"
+            enable wgpu_ray_query;
+            
             struct Transforms {};
 
             @group(0) @binding(0) var<uniform> transforms: Transforms;
