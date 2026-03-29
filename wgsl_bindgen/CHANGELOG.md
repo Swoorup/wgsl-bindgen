@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.21.4](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.3...wgsl_bindgen-v0.21.4) - 2026-03-29
+## [0.22.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.3...wgsl_bindgen-v0.22.0) - 2026-03-29
 
 ### Other
 
