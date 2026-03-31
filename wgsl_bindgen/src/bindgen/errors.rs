@@ -25,6 +25,15 @@ pub enum WgslBindgenError {
     inner: naga_oil::compose::ComposerErrorInner,
   },
 
+  #[error("Failed to compile WESL shader `{entry}`: {msg}")]
+  WeslCompileError { entry: String, msg: String },
+
+  #[error(
+    "The `wesl` crate feature is required to use `WgslShaderSourceType::EmbedWithWesl`. \
+     Enable it in your Cargo.toml: wgsl_bindgen = {{ features = [\"wesl\"] }}"
+  )]
+  WeslFeatureNotEnabled,
+
   #[error(transparent)]
   ModuleCreationError(#[from] CreateModuleError),
 

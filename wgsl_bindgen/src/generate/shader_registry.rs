@@ -110,7 +110,12 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
         quote!()
       }
       WgslShaderSourceType::ComposerWithRelativePath => {
-        // For ComposerWithRelativePath, we reference the global function directly
+        // For ComposerWithRelativePath, no per-entry load function is needed here because
+        // the global `load_naga_module_from_path` method on ShaderEntry handles all entries.
+        quote!()
+      }
+      WgslShaderSourceType::EmbedWithWesl => {
+        // EmbedWithWesl bakes the compiled WGSL at build time; no composer is needed at runtime
         quote!()
       }
       _ => {

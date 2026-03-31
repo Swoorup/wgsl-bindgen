@@ -78,6 +78,47 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 
     The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems and hot reloading.
 
+-   **WESL support** (opt-in via the `wesl` crate feature): Use `WgslShaderSourceType::EmbedWithWesl`
+    to compile shaders written in [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) — a
+    community-driven superset of WGSL that provides standardised module imports
+    (`import package::module::item;`) and conditional translation (`@if`/`@elif`/`@else`
+    attributes). The compiled WGSL is embedded at build time so **no WESL dependency is
+    needed at runtime**.
+
+    ```toml
+    # Cargo.toml
+    [build-dependencies]
+    wgsl_bindgen = { version = "0.22", features = ["wesl"] }
+    ```
+
+    ```rust
+    // build.rs
+    WgslBindgenOptionBuilder::default()
+        .workspace_root("shaders")
+        .add_entry_point("shaders/my_shader.wgsl")
+        .shader_source_type(WgslShaderSourceType::EmbedWithWesl)
+        .output("src/shader_bindings.rs")
+        .build()?.generate()?;
+    ```
+
+    WESL shaders use a different import syntax than naga-oil shaders:
+
+    ```wgsl
+    // WESL import syntax (instead of naga-oil's `#import`)
+    import package::utils::my_function;
+
+    // Conditional translation (instead of naga-oil's `#ifdef`)
+    @if(USE_FEATURE)
+    @group(0) @binding(1) var optional_texture: texture_2d<f32>;
+    ```
+
+    > **Note:** WESL uses boolean feature flags via `shader_defs` (only `ShaderDefValue::Bool`
+    > is supported). Integer defs are silently ignored when using `EmbedWithWesl`.
+    > 
+    > **Note:** The WESL compiler first looks for `.wesl` files, then falls back to `.wgsl`,
+    > so both extensions are supported. You can write WESL import syntax in `.wgsl` files
+    > without renaming them.
+
 -   **File Visitor Pattern**: The `visit_shader_files` function allows custom processing of all shader files in a dependency tree. This enables advanced use cases like:
     - **Hot reloading**: Watch for file changes and rebuild shaders automatically
     - **Caching**: Store processed shader content for faster rebuilds

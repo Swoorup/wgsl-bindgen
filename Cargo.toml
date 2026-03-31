@@ -32,6 +32,7 @@ indoc = "2.0"
 miette = "7.5"
 naga = { version = "29", features = ["wgsl-in", "wgsl-out"] }
 naga_oil = "0.22"
+wesl = "0.3"
 pathdiff = "0.2"
 pretty_assertions = "1.4"
 prettyplease = "0.2"

@@ -229,6 +229,9 @@ pub(crate) struct WgslEntryResult<'a> {
   mod_name: String,
   naga_module: naga::Module,
   source_including_deps: SourceWithFullDependenciesResult<'a>,
+  /// Pre-compiled WGSL source from the WESL compiler, present when
+  /// `WgslShaderSourceType::EmbedWithWesl` is in the selected source types.
+  wesl_compiled_source: Option<String>,
 }
 
 impl<'a> WgslEntryResult<'a> {
@@ -487,6 +490,7 @@ mod test {
         full_dependencies: Default::default(),
         source_file: &dummy_source,
       },
+      wesl_compiled_source: None,
     };
 
     create_rust_bindings(vec![entry], &options)

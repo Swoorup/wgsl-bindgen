@@ -41,6 +41,7 @@ impl WgslShaderSourceType {
       EmbedSource => "create_shader_module_embed_source",
       EmbedWithNagaOilComposer => "create_shader_module_embedded",
       ComposerWithRelativePath => "create_shader_module_relative_path",
+      EmbedWithWesl => "create_shader_module_embed_wesl",
     }
   }
 
@@ -62,13 +63,14 @@ impl WgslShaderSourceType {
       ComposerWithRelativePath => {
         format_ident!("create_{}_pipeline_relative_path", name)
       }
+      EmbedWithWesl => format_ident!("create_{}_pipeline_embed_wesl", name),
     }
   }
 
   pub(crate) fn get_return_type(&self, type_to_return: TokenStream) -> TokenStream {
     use WgslShaderSourceType::*;
     match self {
-      EmbedSource => type_to_return,
+      EmbedSource | EmbedWithWesl => type_to_return,
       EmbedWithNagaOilComposer | ComposerWithRelativePath => {
         quote!(Result<#type_to_return, naga_oil::compose::ComposerError>)
       }
@@ -141,6 +143,11 @@ impl WgslShaderSourceType {
     use WgslShaderSourceType::*;
     match self {
       EmbedSource => {
+        let param_defs = quote!(device: &wgpu::Device);
+        let params = quote!(device);
+        (param_defs, params)
+      }
+      EmbedWithWesl => {
         let param_defs = quote!(device: &wgpu::Device);
         let params = quote!(device);
         (param_defs, params)
@@ -292,6 +299,40 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
   quote! {
     #create_shader_module
     #shader_str_def
+  }
+}
+
+/// Generate a `create_shader_module_embed_wesl` function that embeds the
+/// pre-compiled WGSL produced by the WESL compiler at build time.
+fn generate_shader_module_embed_wesl(entry: &WgslEntryResult) -> TokenStream {
+  let wesl_source = match &entry.wesl_compiled_source {
+    Some(src) => src.as_str(),
+    None => {
+      // This branch should be unreachable: EmbedWithWesl is only selected when the `wesl`
+      // feature is enabled, in which case `wesl_compiled_source` is always populated by
+      // `generate_naga_module_for_entry_wesl`. Return empty tokens defensively.
+      return quote! {};
+    }
+  };
+
+  let create_shader_module_fn =
+    format_ident!("{}", WgslShaderSourceType::EmbedWithWesl.create_shader_module_fn_name());
+  let shader_literal = create_shader_raw_string_literal(wesl_source);
+  let shader_label = entry.get_label();
+
+  quote! {
+    /// Create a shader module from the WGSL compiled by the WESL compiler at build time.
+    /// The WESL features and imports were resolved at build time; no WESL dependency
+    /// is required at runtime.
+    pub fn #create_shader_module_fn(device: &wgpu::Device) -> wgpu::ShaderModule {
+        let source = std::borrow::Cow::Borrowed(WESL_SHADER_STRING);
+        device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: #shader_label,
+            source: wgpu::ShaderSource::Wgsl(source)
+        })
+    }
+
+    pub const WESL_SHADER_STRING: &str = #shader_literal;
   }
 }
 
@@ -727,6 +768,10 @@ pub(crate) fn shader_module(
 
   if source_type.contains(EmbedSource) {
     token_stream.append_all(generate_shader_module_embedded(entry));
+  }
+
+  if source_type.contains(EmbedWithWesl) {
+    token_stream.append_all(generate_shader_module_embed_wesl(entry));
   }
 
   let capabilities = options.ir_capabilities;

@@ -151,6 +151,113 @@ impl WGSLBindgen {
       mod_name: source.file_path.module_path(workspace_root),
       naga_module: module,
       source_including_deps: entry,
+      wesl_compiled_source: None,
+    })
+  }
+
+  /// Compile a WESL entry point and return a `WgslEntryResult`.
+  ///
+  /// Uses the WESL compiler to resolve imports and conditional compilation,
+  /// then parses the resulting WGSL with naga to produce the IR module used
+  /// for binding generation.
+  ///
+  /// Requires the `wesl` crate feature.
+  #[cfg(feature = "wesl")]
+  fn generate_naga_module_for_entry_wesl<'a>(
+    ir_capabilities: Option<WgslShaderIrCapabilities>,
+    entry: SourceWithFullDependenciesResult<'a>,
+    workspace_root: &std::path::Path,
+    shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
+  ) -> Result<WgslEntryResult<'a>, WgslBindgenError> {
+    let source = entry.source_file;
+    let entry_path = source.file_path.as_path();
+
+    // Derive the WESL module path from the entry point's path relative to the workspace root.
+    // e.g. `shaders/effects/glow.wgsl` with root `shaders/` → `package::effects::glow`
+    let relative = entry_path
+      .strip_prefix(workspace_root)
+      .unwrap_or(entry_path);
+
+    // Remove the file extension and convert path separators to `::` components.
+    let without_ext = relative.with_extension("");
+    let module_components: Vec<String> = without_ext
+      .components()
+      .map(|c| c.as_os_str().to_string_lossy().into_owned())
+      .collect();
+    let module_path_str = format!("package::{}", module_components.join("::"));
+    let module_path: wesl::syntax::ModulePath = module_path_str.parse().map_err(|e| {
+      WgslBindgenError::WeslCompileError {
+        entry: entry_path.display().to_string(),
+        msg: format!("failed to parse WESL module path `{module_path_str}`: {e}"),
+      }
+    })?;
+
+    // Set up the WESL compiler with the workspace root as the file resolver base.
+    // `Wesl::new` uses StandardResolver which tries .wesl extension first, then falls
+    // back to .wgsl — making it compatible with standard WGSL shader files that use
+    // WESL import syntax.
+    let mut compiler = wesl::Wesl::new(workspace_root);
+
+    // Convert naga-oil ShaderDefValue::Bool defs into WESL feature flags.
+    // Integer and unsigned integer defs are not supported by WESL's conditional
+    // translation and are silently ignored.
+    for (name, def) in shader_defs {
+      if let naga_oil::compose::ShaderDefValue::Bool(enabled) = def {
+        compiler.set_feature(name, *enabled);
+      }
+    }
+
+    let compile_result = compiler.compile(&module_path).map_err(|e| {
+      WgslBindgenError::WeslCompileError {
+        entry: entry_path.display().to_string(),
+        msg: e.to_string(),
+      }
+    })?;
+
+    let wgsl_source = compile_result.to_string();
+
+    // Parse the compiled WGSL with naga to get the IR module for binding generation.
+    let mut module = naga::front::wgsl::parse_str(&wgsl_source).map_err(|e| {
+      WgslBindgenError::WeslCompileError {
+        entry: entry_path.display().to_string(),
+        msg: format!("naga failed to parse WESL-compiled WGSL: {e}"),
+      }
+    })?;
+
+    if let Some(capabilities) = ir_capabilities {
+      let mut validator = naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        capabilities,
+      );
+      validator.validate(&module).map_err(|e| {
+        WgslBindgenError::WeslCompileError {
+          entry: entry_path.display().to_string(),
+          msg: format!("naga validation failed: {e}"),
+        }
+      })?;
+    }
+
+    // Inject explicit @id attributes for pipeline overrides so they survive the naga
+    // WGSL round-trip (same logic as in the naga-oil path).
+    let mut next_id = module
+      .overrides
+      .iter()
+      .filter_map(|(_, o)| o.id)
+      .max()
+      .unwrap_or(0)
+      + 1;
+    for (_, o) in module.overrides.iter_mut() {
+      if o.id.is_none() {
+        o.id = Some(next_id);
+        next_id += 1;
+      }
+    }
+
+    Ok(WgslEntryResult {
+      mod_name: source.file_path.module_path(workspace_root),
+      naga_module: module,
+      source_including_deps: entry,
+      wesl_compiled_source: Some(wgsl_source),
     })
   }
 
@@ -170,21 +277,44 @@ impl WGSLBindgen {
 
   fn generate_output(&self) -> Result<String, WgslBindgenError> {
     let ir_capabilities = self.options.ir_capabilities;
+    let use_wesl = self
+      .options
+      .shader_source_type
+      .contains(crate::WgslShaderSourceType::EmbedWithWesl);
+    let add_override_ids = self
+      .options
+      .shader_source_type
+      .contains(crate::WgslShaderSourceType::EmbedSource);
+
     let entry_results = self
       .dependency_tree
       .get_source_files_with_full_dependencies()
       .into_iter()
       .map(|it| {
-        Self::generate_naga_module_for_entry(
-          ir_capabilities,
-          it,
-          &self.options.workspace_root,
-          &self.options.shader_defs,
-          self
-            .options
-            .shader_source_type
-            .contains(crate::WgslShaderSourceType::EmbedSource),
-        )
+        if use_wesl {
+          #[cfg(feature = "wesl")]
+          {
+            Self::generate_naga_module_for_entry_wesl(
+              ir_capabilities,
+              it,
+              &self.options.workspace_root,
+              &self.options.shader_defs,
+            )
+          }
+          #[cfg(not(feature = "wesl"))]
+          {
+            let _ = it;
+            Err(WgslBindgenError::WeslFeatureNotEnabled)
+          }
+        } else {
+          Self::generate_naga_module_for_entry(
+            ir_capabilities,
+            it,
+            &self.options.workspace_root,
+            &self.options.shader_defs,
+            add_override_ids,
+          )
+        }
       })
       .collect::<Result<Vec<_>, _>>()?;
 

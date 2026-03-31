@@ -40,10 +40,12 @@ enumflags2.workspace = true
 heck.workspace = true
 glam = { workspace = true, optional = true }
 nalgebra = { version = "0.33", optional = true }
+wesl = { workspace = true, optional = true }
 
 [features]
 minify = []
 default = ["glam"]
+wesl = ["dep:wesl"]
 
 # Note: wgsl-minifier currently has version conflicts with naga
 # [dependencies.wgsl-minifier]

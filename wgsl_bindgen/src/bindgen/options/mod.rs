@@ -33,6 +33,23 @@ pub enum WgslShaderSourceType {
   /// Use Composer with relative paths and user-provided file loading
   /// This option allows shader defines and custom IO without requiring nightly Rust.
   ComposerWithRelativePath,
+
+  /// Use the [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) compiler to compile
+  /// shaders at build time and embed the resulting WGSL in the output.
+  ///
+  /// WESL is a community-driven superset of WGSL that provides standardized import
+  /// syntax (`import package::module::item;`) and conditional translation (`@if` attributes).
+  /// Unlike naga-oil's `#import` preprocessor, WESL imports follow an emerging standard
+  /// tracked at <https://github.com/wgsl-tooling-wg/wesl-spec>.
+  ///
+  /// This option:
+  /// - Uses WESL import syntax instead of naga-oil's `#import` syntax
+  /// - Supports conditional compilation via `@if` feature attributes
+  /// - Embeds the pre-compiled WGSL string — no WESL dependency at runtime
+  /// - Does not support runtime shader defines (features are resolved at build time)
+  ///
+  /// Requires the `wesl` crate feature to be enabled.
+  EmbedWithWesl,
 }
 
 /// A struct representing a directory to scan for additional source files.
