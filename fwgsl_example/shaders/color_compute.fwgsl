@@ -1,0 +1,32 @@
+-- Color compute shader — algebraic data types in fwgsl
+-- Written in fwgsl (https://github.com/ubugeeei/fwgsl)
+--
+-- This shader demonstrates algebraic data types (ADTs) in fwgsl.
+-- The `Color` ADT compiles to `u32` discriminant values in WGSL:
+--   Red = 0, Green = 1, Blue = 2
+--
+-- The build.rs for this crate extracts the ADT information from the
+-- fwgsl semantic analyzer and passes it to wgsl-bindgen so it can emit
+-- a matching Rust enum alongside the usual struct/bind-group bindings.
+
+data Color = Red | Green | Blue
+
+-- Decode a Color tag to its RGB f32 components (R, G, B channels).
+-- The channel values here are simple placeholder intensities.
+color_to_r : Color -> F32
+color_to_r c = match c
+  | Red   -> 1.0
+  | Green -> 0.0
+  | Blue  -> 0.0
+
+color_to_g : Color -> F32
+color_to_g c = match c
+  | Red   -> 0.0
+  | Green -> 1.0
+  | Blue  -> 0.0
+
+color_to_b : Color -> F32
+color_to_b c = match c
+  | Red   -> 0.0
+  | Green -> 0.0
+  | Blue  -> 1.0

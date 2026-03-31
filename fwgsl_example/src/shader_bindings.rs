@@ -2,17 +2,19 @@
 //
 // ^ wgsl_bindgen version 0.22.2
 // Changes made to this file will not be saved.
-// SourceHash: 76f53ca8e3659062aa0bec13ed4a58c717ce831dd23734b64d99ca0528a4e5aa
+// SourceHash: 4e4960fb3e5fbe340e570e5ebe016f08b06fd4f65e7e4eaf72a0e26358259dac
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
   ScaleBiasCompute,
+  ColorCompute,
 }
 impl ShaderEntry {
   pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
     match self {
       Self::ScaleBiasCompute => scale_bias_compute::create_pipeline_layout(device),
+      Self::ColorCompute => color_compute::create_pipeline_layout(device),
     }
   }
   pub fn create_shader_module_embed_source(
@@ -23,9 +25,42 @@ impl ShaderEntry {
       Self::ScaleBiasCompute => {
         scale_bias_compute::create_shader_module_embed_source(device)
       }
+      Self::ColorCompute => color_compute::create_shader_module_embed_source(device),
     }
   }
 }
+#[doc = r" Rust mirror of the fwgsl algebraic data type (ADT) of the same name."]
+#[doc = r""]
+#[doc = r" Each variant corresponds to a `u32` constructor tag in the generated WGSL."]
+#[doc = r" Use [`TryFrom<u32>`] to convert a raw WGSL value back to this enum, and"]
+#[doc = r" [`From<Self> for u32`] to write the enum into a WGSL-compatible buffer."]
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Color {
+  Red = 0u32,
+  Green = 1u32,
+  Blue = 2u32,
+}
+impl ::core::convert::TryFrom<u32> for Color {
+  type Error = u32;
+  #[inline]
+  fn try_from(v: u32) -> ::core::result::Result<Self, u32> {
+    match v {
+      0u32 => ::core::result::Result::Ok(Self::Red),
+      1u32 => ::core::result::Result::Ok(Self::Green),
+      2u32 => ::core::result::Result::Ok(Self::Blue),
+      other => ::core::result::Result::Err(other),
+    }
+  }
+}
+impl ::core::convert::From<Color> for u32 {
+  #[inline]
+  fn from(e: Color) -> u32 {
+    e as u32
+  }
+}
+unsafe impl ::bytemuck::Zeroable for Color {}
+unsafe impl ::bytemuck::Pod for Color {}
 mod _root {
   pub use super::*;
   pub trait SetBindGroup {
@@ -54,6 +89,10 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(scale_bias_compute::ScaleBiasParams, scale) == 0);
     assert!(std::mem::offset_of!(scale_bias_compute::ScaleBiasParams, bias) == 4);
     assert!(std::mem::size_of::<scale_bias_compute::ScaleBiasParams>() == 8);
+  };
+  const COLOR_COMPUTE_COLOR_PARAMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(color_compute::ColorParams, color_tag) == 0);
+    assert!(std::mem::size_of::<color_compute::ColorParams>() == 4);
   };
 }
 pub mod scale_bias_compute {
@@ -269,4 +308,236 @@ pub mod bytemuck_impls {
   use super::{_root, _root::*};
   unsafe impl bytemuck::Zeroable for scale_bias_compute::ScaleBiasParams {}
   unsafe impl bytemuck::Pod for scale_bias_compute::ScaleBiasParams {}
+  unsafe impl bytemuck::Zeroable for color_compute::ColorParams {}
+  unsafe impl bytemuck::Pod for color_compute::ColorParams {}
+}
+pub mod color_compute {
+  use super::{_root, _root::*};
+  #[repr(C, align(4))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct ColorParams {
+    #[doc = "offset: 0, size: 4, type: `u32`"]
+    pub color_tag: u32,
+  }
+  impl ColorParams {
+    pub const fn new(color_tag: u32) -> Self {
+      Self { color_tag }
+    }
+  }
+  pub mod compute {
+    use super::{_root, _root::*};
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+    pub fn create_main_pipeline_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_embed_source(device);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub output: wgpu::BufferBinding<'a>,
+    pub params: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub output: wgpu::BindGroupEntry<'a>,
+    pub params: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        output: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.output),
+        },
+        params: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(params.params),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+      [self.output, self.params]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("ColorCompute::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"output\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(
+                std::mem::size_of::<[f32; 4]>() as _,
+              ),
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"params\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::color_compute::ColorParams,
+              >() as _),
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("ColorCompute::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("ColorCompute::PipelineLayout"),
+      bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
+      immediate_size: 0u32,
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("color_compute.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct ColorParams {
+    color_tag: u32,
+}
+
+@group(0) @binding(0) 
+var<storage, read_write> output: array<f32, 4>;
+@group(0) @binding(1) 
+var<uniform> params: ColorParams;
+
+fn color_to_r(c: u32) -> f32 {
+    var _case_tmp_705_: f32 = 0f;
+
+    if (c == 0u) {
+        _case_tmp_705_ = 1f;
+    } else {
+        if (c == 1u) {
+            _case_tmp_705_ = 0f;
+        } else {
+            if (c == 2u) {
+                _case_tmp_705_ = 0f;
+            }
+        }
+    }
+    let _e12 = _case_tmp_705_;
+    return _e12;
+}
+
+fn color_to_g(c_1: u32) -> f32 {
+    var _case_tmp_806_: f32 = 0f;
+
+    if (c_1 == 0u) {
+        _case_tmp_806_ = 0f;
+    } else {
+        if (c_1 == 1u) {
+            _case_tmp_806_ = 1f;
+        } else {
+            if (c_1 == 2u) {
+                _case_tmp_806_ = 0f;
+            }
+        }
+    }
+    let _e12 = _case_tmp_806_;
+    return _e12;
+}
+
+fn color_to_b(c_2: u32) -> f32 {
+    var _case_tmp_907_: f32 = 0f;
+
+    if (c_2 == 0u) {
+        _case_tmp_907_ = 0f;
+    } else {
+        if (c_2 == 1u) {
+            _case_tmp_907_ = 0f;
+        } else {
+            if (c_2 == 2u) {
+                _case_tmp_907_ = 1f;
+            }
+        }
+    }
+    let _e12 = _case_tmp_907_;
+    return _e12;
+}
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {
+    let selected_color = params.color_tag;
+    let _e5 = color_to_r(selected_color);
+    output[0] = _e5;
+    let _e8 = color_to_g(selected_color);
+    output[1] = _e8;
+    let _e11 = color_to_b(selected_color);
+    output[2] = _e11;
+    output[3] = 1f;
+    return;
+}
+"#;
 }

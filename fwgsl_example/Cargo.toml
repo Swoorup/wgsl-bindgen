@@ -19,6 +19,7 @@ wgpu = { workspace = true }
 # here to the same new commit hash.
 fwgsl_parser = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
 fwgsl_semantic = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_typechecker = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
 fwgsl_ast_lowering = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
 fwgsl_mir = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
 fwgsl_wgsl_codegen = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }

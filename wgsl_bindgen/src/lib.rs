@@ -357,10 +357,15 @@ fn create_rust_bindings(
   let mod_token_stream = mod_builder.generate();
   let shader_registry = shader_registry::build_shader_registry(&entries, options);
 
+  // === CUSTOM ENUMS: Emit #[repr(u32)] enums from fwgsl ADT metadata ===
+  // These are placed at the top level (alongside the shader_registry), not in a sub-module.
+  let custom_enum_tokens = structs::enum_tokens(options);
+
   let output = quote! {
     #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
     #shader_registry
+    #custom_enum_tokens
     #mod_token_stream
   };
 
