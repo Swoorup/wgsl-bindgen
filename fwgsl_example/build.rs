@@ -1,34 +1,50 @@
 //! Build script for the fwgsl_example crate.
 //!
 //! This build script demonstrates integrating fwgsl (https://github.com/ubugeeei/fwgsl)
-//! with wgsl-bindgen. The pipeline is:
+//! with wgsl-bindgen.  The pipeline is:
 //!
 //!   1. Read `.fwgsl` source files (pure functional shader language)
 //!   2. Compile them to WGSL using the fwgsl compiler library
-//!   3. Extract ADT (algebraic data type) metadata from the fwgsl semantic analysis
-//!   4. Combine the generated WGSL helper functions with hand-written bind group
-//!      declarations and a compute entry point
-//!   5. Run wgsl-bindgen on the combined WGSL to generate type-safe Rust bindings,
-//!      passing the extracted ADT info so it can also emit Rust enums
+//!   3. Inject `// @fwgsl-adt:` annotation comments derived from the fwgsl HIR
+//!   4. Combine the annotated WGSL with hand-written bind group declarations
+//!      and compute entry points
+//!   5. Run wgsl-bindgen on the combined WGSL
+//!
+//! **Automatic ADT extraction** — the key difference from the previous
+//! `WgslEnumDefinition` approach is that the ADT metadata is embedded directly into
+//! the WGSL source as structured comment annotations.  wgsl-bindgen detects and
+//! processes these annotations automatically; no manual `WgslEnumDefinition` objects
+//! are needed in the build script.
 
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 use miette::{IntoDiagnostic, Result};
-use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslEnumDefinition, WgslEnumVariant, WgslTypeSerializeStrategy};
+use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslTypeSerializeStrategy};
 
-/// The result of compiling a `.fwgsl` file.
+// ─────────────────────────────────────────────────────────────────
+// fwgsl compile pipeline
+// ─────────────────────────────────────────────────────────────────
+
+/// The result of compiling a `.fwgsl` source file.
 struct FwgslOutput {
-  /// The generated WGSL source text (helper functions only; no entry points).
+  /// Complete WGSL source text, with `// @fwgsl-adt:` annotations injected at
+  /// the top for every user-defined algebraic data type found in the HIR.
   wgsl: String,
-  /// Simple (no-field) algebraic data types extracted from the semantic analysis.
-  /// Each entry is `(type_name, [(constructor_name, discriminant), ...])`.
-  enums: Vec<WgslEnumDefinition>,
 }
 
-/// Compile a fwgsl source string to WGSL using the fwgsl compiler pipeline.
-/// Also returns the ADT enum metadata so callers can pass it to wgsl-bindgen.
+/// Compile a `.fwgsl` source string to annotated WGSL.
+///
+/// The returned [`FwgslOutput::wgsl`] string contains:
+/// * One `// @fwgsl-adt:` comment per user-defined ADT, encoding variant names,
+///   discriminant tags, and (for data-carrying constructors) the WGSL struct name.
+/// * The regular WGSL helper functions and struct definitions produced by the
+///   fwgsl compiler.
+///
+/// wgsl-bindgen automatically parses the `// @fwgsl-adt:` lines and emits
+/// matching Rust `#[repr(u32)]` enums or data-carrying Rust enums — no
+/// `WgslEnumDefinition` is required.
 fn compile_fwgsl(source: &str) -> Result<FwgslOutput> {
   // Phase 1: Parse
   let mut parser = fwgsl_parser::parser::Parser::new(source);
@@ -44,7 +60,7 @@ fn compile_fwgsl(source: &str) -> Result<FwgslOutput> {
     return Err(miette::miette!("fwgsl parse errors: {}", errors.join(", ")));
   }
 
-  // Phase 2: Semantic analysis — also captures data type / constructor info
+  // Phase 2: Semantic analysis — populates constructor / data-type tables
   let mut analyzer = fwgsl_semantic::SemanticAnalyzer::new();
   analyzer.analyze(&program);
 
@@ -55,67 +71,10 @@ fn compile_fwgsl(source: &str) -> Result<FwgslOutput> {
       .filter(|d| d.severity == fwgsl_diagnostics::Severity::Error)
       .map(|d| d.message.clone())
       .collect();
-    return Err(miette::miette!(
-      "fwgsl semantic errors: {}",
-      errors.join(", ")
-    ));
+    return Err(miette::miette!("fwgsl semantic errors: {}", errors.join(", ")));
   }
 
-  // Extract simple enum ADTs (constructors with no fields) before we lose the analyzer.
-  //
-  // fwgsl lowers simple enums to bare `u32` discriminant values in WGSL — there is no
-  // type alias or struct emitted for them.  We collect the names and tags here so that:
-  //   a) we can emit `alias <Name> = u32;` in the WGSL to make it valid for naga, and
-  //   b) we can pass them to wgsl-bindgen so it emits matching Rust #[repr(u32)] enums.
-  let mut enums: Vec<WgslEnumDefinition> = Vec::new();
-
-  for (type_name, data_info) in &analyzer.data_types {
-    // Skip built-in ADTs such as Option / Result / Pair — they are not user-defined.
-    let builtin_names = ["Option", "Result", "Pair"];
-    if builtin_names.contains(&type_name.as_str()) {
-      continue;
-    }
-
-    // Only process simple enums: all constructors must have no fields.
-    let all_empty = data_info
-      .constructors
-      .iter()
-      .all(|con_name| {
-        analyzer
-          .constructors
-          .get(con_name)
-          .is_some_and(|ci| matches!(ci.fields, fwgsl_typechecker::ConstructorFields::Empty))
-      });
-
-    if !all_empty {
-      continue;
-    }
-
-    let mut variants: Vec<WgslEnumVariant> = data_info
-      .constructors
-      .iter()
-      .filter_map(|con_name| {
-        let ci = analyzer.constructors.get(con_name)?;
-        Some(WgslEnumVariant {
-          name: con_name.clone(),
-          discriminant: ci.tag,
-        })
-      })
-      .collect();
-
-    // Sort by discriminant so the output is deterministic.
-    variants.sort_by_key(|v| v.discriminant);
-
-    enums.push(WgslEnumDefinition {
-      name: type_name.clone(),
-      variants,
-    });
-  }
-
-  // Sort enums by name for deterministic output.
-  enums.sort_by(|a, b| a.name.cmp(&b.name));
-
-  // Phase 3: AST -> HIR lowering
+  // Phase 3: AST → HIR
   let mut lowering = fwgsl_ast_lowering::AstLowering::new(&analyzer);
   let hir = lowering.lower_program(&program);
 
@@ -129,35 +88,98 @@ fn compile_fwgsl(source: &str) -> Result<FwgslOutput> {
     return Err(miette::miette!("fwgsl lowering errors: {}", errors.join(", ")));
   }
 
-  // Phase 4: HIR -> MIR lowering
+  // Phase 4: HIR → MIR
   let mir = fwgsl_mir::lower::lower_hir_to_mir(&hir)
     .map_err(|errors| miette::miette!("fwgsl MIR errors: {:?}", errors))?;
 
-  // Phase 5: MIR -> WGSL text
-  let wgsl = fwgsl_wgsl_codegen::emit_wgsl(&mir);
+  // Phase 5: MIR → WGSL text
+  let raw_wgsl = fwgsl_wgsl_codegen::emit_wgsl(&mir);
 
-  Ok(FwgslOutput { wgsl, enums })
+  // Phase 6: Inject `// @fwgsl-adt:` annotations derived from the HIR.
+  //
+  // These annotations encode the ADT type names, variant names, discriminant
+  // tags, and (for data-carrying constructors) the names of the corresponding
+  // WGSL structs.  wgsl-bindgen parses them automatically — the user does not
+  // need to configure anything.
+  let annotated_wgsl = inject_adt_annotations(&raw_wgsl, &hir);
+
+  Ok(FwgslOutput { wgsl: annotated_wgsl })
 }
 
-/// Build the WGSL source for the scale_bias compute shader.
+/// Prepend `// @fwgsl-adt:` comment lines to the WGSL source for every
+/// user-defined algebraic data type found in the HIR.
 ///
-/// Combines the fwgsl-generated helper functions with hand-written bind group
-/// declarations and a compute entry point.
-fn build_scale_bias_wgsl(manifest_dir: &std::path::Path) -> Result<(String, Vec<WgslEnumDefinition>)> {
+/// Line format:
+/// ```text
+/// // @fwgsl-adt: TypeName Variant0:tag0 Variant1:tag1 Variant2:tag2:StructName2
+/// ```
+/// * `Variant:tag` — tag-only (simple enum) constructor, no struct payload
+/// * `Variant:tag:StructName` — data-carrying constructor; the WGSL struct
+///   that holds the payload has the same name as the constructor in fwgsl
+fn inject_adt_annotations(wgsl: &str, hir: &fwgsl_hir::HirProgram) -> String {
+  // Built-in ADTs shipped with fwgsl — we don't emit annotations for these.
+  const BUILTIN_ADT_NAMES: &[&str] = &["Option", "Result", "Pair"];
+
+  let mut annotations = String::new();
+
+  // Sort data types by name for deterministic output
+  let mut data_types: Vec<&fwgsl_hir::HirDataType> = hir.data_types.iter().collect();
+  data_types.sort_by(|a, b| a.name.cmp(&b.name));
+
+  for dt in data_types {
+    if BUILTIN_ADT_NAMES.contains(&dt.name.as_str()) {
+      continue;
+    }
+
+    // Build the space-separated list of `VarName:tag` or `VarName:tag:StructName` tokens
+    let mut variant_tokens: Vec<String> = dt
+      .constructors
+      .iter()
+      .map(|c| {
+        if c.fields.is_empty() {
+          // Tag-only variant (simple enum constructor)
+          format!("{}:{}", c.name, c.tag)
+        } else {
+          // Data-carrying variant: struct name = constructor name (fwgsl convention)
+          format!("{}:{}:{}", c.name, c.tag, c.name)
+        }
+      })
+      .collect();
+
+    // Sort by tag so the output order is deterministic.
+    // Each token is "VarName:tag" or "VarName:tag:StructName"; the tag is the second field.
+    fn parse_token_tag(tok: &str) -> u32 {
+      tok.split(':').nth(1).and_then(|s| s.parse().ok()).unwrap_or(u32::MAX)
+    }
+    variant_tokens.sort_by_key(|tok: &String| parse_token_tag(tok));
+
+    annotations.push_str(&format!(
+      "// @fwgsl-adt: {} {}\n",
+      dt.name,
+      variant_tokens.join(" ")
+    ));
+  }
+
+  format!("{}{}", annotations, wgsl)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Per-shader build helpers
+// ─────────────────────────────────────────────────────────────────
+
+/// Build the combined WGSL for the scale_bias compute shader.
+fn build_scale_bias_wgsl(manifest_dir: &Path) -> Result<String> {
   let fwgsl_path = manifest_dir.join("shaders/scale_bias.fwgsl");
   println!("cargo::rerun-if-changed={}", fwgsl_path.display());
 
   let source = fs::read_to_string(&fwgsl_path).into_diagnostic()?;
   let out = compile_fwgsl(&source)?;
-  let generated_fns = out.wgsl;
 
-  let full_wgsl = format!(
+  Ok(format!(
     r#"// Combined WGSL for the scale_bias compute shader.
 //
 // Helper functions (scale_val, bias_val, scale_bias, saturate) are generated
 // from shaders/scale_bias.fwgsl via the fwgsl compiler.
-// The struct, bindings, and entry point below are hand-written because fwgsl
-// does not yet emit @group/@binding annotations.
 
 struct ScaleBiasParams {{
     scale: f32,
@@ -168,7 +190,7 @@ struct ScaleBiasParams {{
 @group(0) @binding(1) var<uniform> params: ScaleBiasParams;
 
 // --- fwgsl-generated helper functions ---
-{generated_fns}
+{}
 // --- end fwgsl-generated code ---
 
 @compute @workgroup_size(64, 1, 1)
@@ -179,67 +201,46 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
     data[idx] = scale_bias(params.scale, params.bias, data[idx]);
 }}
-"#
-  );
-
-  Ok((full_wgsl, out.enums))
+"#,
+    out.wgsl
+  ))
 }
 
-/// Build the WGSL source for the color compute shader.
-///
-/// This shader uses fwgsl algebraic data types (ADTs).  The build step:
-///  1. Compiles the fwgsl source to get the WGSL helper functions.
-///  2. Emits `alias <EnumName> = u32;` declarations so naga can validate the WGSL.
-///  3. Returns the enum metadata so wgsl-bindgen can emit Rust `#[repr(u32)]` enums.
-fn build_color_wgsl(manifest_dir: &std::path::Path) -> Result<(String, Vec<WgslEnumDefinition>)> {
+/// Build the combined WGSL for the color compute shader (simple enum ADT).
+fn build_color_wgsl(manifest_dir: &Path) -> Result<String> {
   let fwgsl_path = manifest_dir.join("shaders/color_compute.fwgsl");
   println!("cargo::rerun-if-changed={}", fwgsl_path.display());
 
   let source = fs::read_to_string(&fwgsl_path).into_diagnostic()?;
   let out = compile_fwgsl(&source)?;
 
-  // Build `alias <EnumName> = u32;` declarations so the generated WGSL is valid.
-  // fwgsl lowering keeps the ADT type names in function signatures (e.g. `c: Color`)
-  // but does not emit the corresponding type definition — we need to do that here.
-  let alias_decls: String = out
-    .enums
-    .iter()
-    .map(|e| format!("alias {} = u32;\n", e.name))
-    .collect::<Vec<_>>()
-    .join("");
+  // Build `alias <EnumName> = u32;` so naga can validate function signatures
+  // that reference the ADT type name (fwgsl does not emit these automatically).
+  let alias_decls = alias_decls_from_annotations(&out.wgsl);
 
-  let generated_fns = out.wgsl;
-
-  let full_wgsl = format!(
+  let wgsl_body = out.wgsl;
+  Ok(format!(
     r#"// Combined WGSL for the color_compute shader.
 //
-// The color_to_r / color_to_g / color_to_b helper functions are generated from
-// shaders/color_compute.fwgsl via the fwgsl compiler.
-//
-// The `Color` ADT is a simple enum in fwgsl, which compiles to `u32` discriminant
-// values (Red=0, Green=1, Blue=2).  The `alias Color = u32;` below makes the WGSL
-// valid for naga.  The corresponding Rust `#[repr(u32)] enum Color` is emitted by
-// wgsl-bindgen using the ADT metadata extracted from the fwgsl semantic analyzer.
+// The `Color` ADT (Red=0, Green=1, Blue=2) is a simple enum in fwgsl.
+// The `// @fwgsl-adt:` annotation below is injected by build.rs from the HIR;
+// wgsl-bindgen automatically generates a Rust `#[repr(u32)] enum Color`.
+// No WgslEnumDefinition is required.
 
-// Type aliases for fwgsl ADTs (simple enums → u32)
+// Type aliases for fwgsl simple enums (→ u32 in WGSL)
 {alias_decls}
 struct ColorParams {{
-    /// The selected Color variant (0=Red, 1=Green, 2=Blue).
     color_tag: u32,
 }}
 
-/// Output buffer: will hold the decoded [R, G, B, A] components.
 @group(0) @binding(0) var<storage, read_write> output: array<f32, 4>;
-/// Uniform buffer holding the color selector.
 @group(0) @binding(1) var<uniform> params: ColorParams;
 
-// --- fwgsl-generated helper functions ---
-{generated_fns}
+// --- fwgsl-generated helper functions (with @fwgsl-adt: annotation) ---
+{wgsl_body}
 // --- end fwgsl-generated code ---
 
-// Workgroup size of 1 is intentional: this shader decodes a single Color tag
-// into [R, G, B, A] components. A real production shader would batch many
-// elements and use a larger workgroup size for GPU efficiency.
+// Workgroup size of 1 is intentional: decodes a single Color tag → [R, G, B, A].
 @compute @workgroup_size(1, 1, 1)
 fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {{
     let selected_color: Color = params.color_tag;
@@ -248,45 +249,136 @@ fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {{
     output[2] = color_to_b(selected_color);
     output[3] = 1.0;
 }}
-"#
-  );
-
-  Ok((full_wgsl, out.enums))
+"#,
+  ))
 }
 
+/// Build the combined WGSL for the shape compute shader (data-carrying ADT).
+///
+/// `data Shape = Circle F32 | Rect F32 F32` produces two WGSL structs:
+///   `struct Circle { field0: f32 }` and `struct Rect { field0: f32, field1: f32 }`
+///
+/// The `// @fwgsl-adt:` annotation is injected by build.rs so wgsl-bindgen
+/// automatically generates `pub enum Shape { Circle(Circle), Rect(Rect) }`.
+fn build_shape_wgsl(manifest_dir: &Path) -> Result<String> {
+  let fwgsl_path = manifest_dir.join("shaders/shape_compute.fwgsl");
+  println!("cargo::rerun-if-changed={}", fwgsl_path.display());
+
+  let source = fs::read_to_string(&fwgsl_path).into_diagnostic()?;
+  let out = compile_fwgsl(&source)?;
+
+  let wgsl_body = out.wgsl;
+  Ok(format!(
+    r#"// Combined WGSL for the shape_compute shader.
+//
+// `data Shape = Circle F32 | Rect F32 F32` produces WGSL structs Circle and Rect.
+// The `// @fwgsl-adt:` annotation is injected by build.rs; wgsl-bindgen generates:
+//   pub enum Shape {{ Circle(Circle), Rect(Rect) }}
+// with a `.tag() -> u32` method.  No WgslEnumDefinition is required.
+
+// --- fwgsl-generated structs (with @fwgsl-adt: annotation) ---
+{wgsl_body}
+// --- end fwgsl-generated code ---
+
+// Uniform holding either a Circle or Rect's fields plus a tag.
+// CPU code populates the appropriate fields using the generated Rust enum.
+struct ShapeParams {{
+    // Shape tag: 0 = Circle, 1 = Rect
+    tag: u32,
+    // Circle field: radius (used when tag == 0)
+    field0: f32,
+    // Rect fields: width and height (used when tag == 1)
+    field1: f32,
+    // padding
+    _pad: f32,
+}}
+
+/// Output: computed "area" for the given shape
+@group(0) @binding(0) var<storage, read_write> output: array<f32, 1>;
+@group(0) @binding(1) var<uniform> params: ShapeParams;
+
+@compute @workgroup_size(1, 1, 1)
+fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {{
+    var area: f32 = 0.0;
+    if params.tag == 0u {{
+        // Circle: area = field0 * field0  (r*r; skip pi for simplicity)
+        area = params.field0 * params.field0;
+    }} else {{
+        // Rect: area = field0 * field1  (w*h)
+        area = params.field0 * params.field1;
+    }}
+    output[0] = area;
+}}
+"#,
+  ))
+}
+
+/// Extract `alias X = u32;` declarations from the `// @fwgsl-adt:` annotations
+/// embedded in the WGSL for every *simple* (tag-only) ADT.
+///
+/// fwgsl does not emit these aliases automatically, but they are needed so naga
+/// can validate function signatures like `fn color_to_r(c: Color) -> f32`.
+fn alias_decls_from_annotations(wgsl: &str) -> String {
+  const PREFIX: &str = "// @fwgsl-adt:";
+  let mut aliases = String::new();
+
+  for line in wgsl.lines() {
+    let line = line.trim();
+    if !line.starts_with(PREFIX) {
+      continue;
+    }
+    let rest = line[PREFIX.len()..].trim();
+    let mut tokens = rest.split_whitespace();
+    let type_name = match tokens.next() {
+      Some(n) if !n.is_empty() => n,
+      _ => continue,
+    };
+    // Only emit alias for simple enums (no `:StructName` in any variant token)
+    let is_simple = tokens.all(|tok| tok.matches(':').count() < 2);
+    if is_simple {
+      aliases.push_str(&format!("alias {} = u32;\n", type_name));
+    }
+  }
+  aliases
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Main entry point
+// ─────────────────────────────────────────────────────────────────
+
 fn main() -> Result<()> {
-  let out_dir = PathBuf::from(env::var("OUT_DIR").into_diagnostic()?);
-  let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").into_diagnostic()?);
+  let out_dir = std::path::PathBuf::from(env::var("OUT_DIR").into_diagnostic()?);
+  let manifest_dir = std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR").into_diagnostic()?);
 
-  // Build both shaders
-  let (scale_bias_wgsl, scale_bias_enums) = build_scale_bias_wgsl(&manifest_dir)?;
-  let (color_wgsl, color_enums) = build_color_wgsl(&manifest_dir)?;
+  // Build all three shaders
+  let scale_bias_wgsl = build_scale_bias_wgsl(&manifest_dir)?;
+  let color_wgsl = build_color_wgsl(&manifest_dir)?;
+  let shape_wgsl = build_shape_wgsl(&manifest_dir)?;
 
-  // Write the combined WGSL files to the build output directory
+  // Write combined WGSL files to build output directory
   let scale_bias_path = out_dir.join("scale_bias_compute.wgsl");
   let color_path = out_dir.join("color_compute.wgsl");
+  let shape_path = out_dir.join("shape_compute.wgsl");
   fs::write(&scale_bias_path, &scale_bias_wgsl).into_diagnostic()?;
   fs::write(&color_path, &color_wgsl).into_diagnostic()?;
+  fs::write(&shape_path, &shape_wgsl).into_diagnostic()?;
 
-  // Run wgsl-bindgen on both shaders together.
-  // The Color enum metadata from the color shader is passed as a custom enum so that
-  // wgsl-bindgen emits a matching Rust #[repr(u32)] enum in the output file.
-  let mut builder = WgslBindgenOptionBuilder::default();
-  builder
-    .workspace_root(out_dir.clone())
+  // Run wgsl-bindgen on all three shaders.
+  //
+  // ADT enums are generated automatically from the `// @fwgsl-adt:` annotations
+  // embedded in each WGSL file — no WgslEnumDefinition is required.
+  WgslBindgenOptionBuilder::default()
+    .workspace_root(out_dir)
     .add_entry_point(scale_bias_path.to_str().unwrap())
     .add_entry_point(color_path.to_str().unwrap())
+    .add_entry_point(shape_path.to_str().unwrap())
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
-    .output(manifest_dir.join("src/shader_bindings.rs"));
-
-  // Register all extracted enums from both shaders
-  for e in scale_bias_enums.into_iter().chain(color_enums) {
-    builder.add_custom_enum(e);
-  }
-
-  builder.build().into_diagnostic()?.generate().into_diagnostic()?;
+    .output(manifest_dir.join("src/shader_bindings.rs"))
+    .build()
+    .into_diagnostic()?
+    .generate()
+    .into_diagnostic()?;
 
   Ok(())
 }
-

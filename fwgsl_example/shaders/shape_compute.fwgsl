@@ -1,0 +1,27 @@
+-- Shape compute shader — data-carrying algebraic data type in fwgsl
+-- Written in fwgsl (https://github.com/ubugeeei/fwgsl)
+--
+-- This shader demonstrates *data-carrying* algebraic data types (ADTs) in fwgsl.
+--
+-- `data Shape = Circle F32 | Rect F32 F32` defines:
+--   Circle — a circle described by one F32 field (radius)
+--   Rect   — a rectangle described by two F32 fields (width, height)
+--
+-- The fwgsl compiler lowers each constructor to a WGSL struct:
+--
+--   struct Circle { field0: f32 }            -- radius
+--   struct Rect   { field0: f32, field1: f32 } -- width, height
+--
+-- The build.rs for this crate extracts the ADT metadata from the fwgsl HIR and
+-- injects a `// @fwgsl-adt:` annotation into the combined WGSL source.
+-- wgsl-bindgen automatically parses this annotation and generates:
+--
+--   pub enum Shape {
+--       Circle(Circle),  -- Shape::Circle carries a Circle struct
+--       Rect(Rect),      -- Shape::Rect carries a Rect struct
+--   }
+--
+-- with a `.tag() -> u32` method that returns the WGSL discriminant.
+-- No WgslEnumDefinition is needed — extraction is fully automatic.
+
+data Shape = Circle F32 | Rect F32 F32

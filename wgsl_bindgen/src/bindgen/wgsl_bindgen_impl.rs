@@ -5,6 +5,7 @@ use naga_oil::compose::{
   ShaderLanguage,
 };
 
+use crate::adt;
 use crate::bevy_util::source_file::SourceFile;
 use crate::bevy_util::DependencyTree;
 use crate::{
@@ -150,6 +151,10 @@ impl WGSLBindgen {
     Ok(WgslEntryResult {
       mod_name: source.file_path.module_path(workspace_root),
       naga_module: module,
+      // Parse `// @fwgsl-adt:` annotations from the raw WGSL source before naga
+      // consumes it.  This is the automatic extraction mechanism: no user
+      // configuration of WgslEnumDefinition is needed.
+      adt_types: adt::parse_fwgsl_adt_annotations(&source.content),
       source_including_deps: entry,
     })
   }

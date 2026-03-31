@@ -156,6 +156,8 @@
 #![allow(dead_code, unused)]
 extern crate wgpu_types as wgpu;
 
+use std::collections::HashSet;
+
 use crate::quote_gen::{custom_vector_matrix_assertions, MOD_STRUCT_ASSERTIONS};
 use bevy_util::SourceWithFullDependenciesResult;
 use case::CaseExt;
@@ -171,6 +173,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 pub mod bevy_util;
+mod adt;
 mod bindgen;
 mod generate;
 mod naga_util;
@@ -229,6 +232,8 @@ pub(crate) struct WgslEntryResult<'a> {
   mod_name: String,
   naga_module: naga::Module,
   source_including_deps: SourceWithFullDependenciesResult<'a>,
+  /// ADT types automatically parsed from `// @fwgsl-adt:` annotations in the WGSL source.
+  adt_types: Vec<adt::FwgslAdtType>,
 }
 
 impl<'a> WgslEntryResult<'a> {
@@ -278,11 +283,21 @@ fn create_rust_bindings(
     let WgslEntryResult {
       mod_name,
       naga_module,
+      adt_types,
       ..
     } = entry;
 
+    // Collect the set of WGSL struct names that are referenced as ADT constructor
+    // payloads.  These must be emitted even if they are not used in global variables,
+    // so that the data-carrying Rust enum variants can reference them.
+    let adt_struct_names: HashSet<&str> = adt_types
+      .iter()
+      .flat_map(|adt| adt.variants.iter())
+      .filter_map(|v| v.struct_name.as_deref())
+      .collect();
+
     // Generate core Rust types and constants from WGSL
-    mod_builder.add_items(structs::structs_items(mod_name, naga_module, options))?;
+    mod_builder.add_items(structs::structs_items(mod_name, naga_module, options, &adt_struct_names))?;
     mod_builder.add_items(consts::consts_items(mod_name, naga_module))?;
     mod_builder
       .add(mod_name, consts::pipeline_overridable_constants(naga_module, options));
@@ -357,14 +372,31 @@ fn create_rust_bindings(
   let mod_token_stream = mod_builder.generate();
   let shader_registry = shader_registry::build_shader_registry(&entries, options);
 
-  // === CUSTOM ENUMS: Emit #[repr(u32)] enums from fwgsl ADT metadata ===
-  // These are placed at the top level (alongside the shader_registry), not in a sub-module.
+  // === ADT ENUMS: Automatically emit Rust enums from `// @fwgsl-adt:` annotations ===
+  // These are placed at the top level alongside ShaderEntry.
+  // ADTs are deduplicated across all shader entries so the same type is only emitted once.
+  let mut seen_adt_names = std::collections::HashSet::new();
+  let adt_tokens: Vec<TokenStream> = entries
+    .iter()
+    .map(|e| {
+      adt::adt_enum_tokens_dedup(
+        &e.adt_types,
+        &e.mod_name,
+        &mut seen_adt_names,
+        options.serialization_strategy,
+      )
+    })
+    .collect();
+  let adt_enum_tokens = quote! { #(#adt_tokens)* };
+
+  // === LEGACY: custom_enums from WgslEnumDefinition (manual override, kept for compat) ===
   let custom_enum_tokens = structs::enum_tokens(options);
 
   let output = quote! {
     #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
     #shader_registry
+    #adt_enum_tokens
     #custom_enum_tokens
     #mod_token_stream
   };
@@ -488,6 +520,7 @@ mod test {
     let entry = WgslEntryResult {
       mod_name: "test".into(),
       naga_module,
+      adt_types: Vec::new(),
       source_including_deps: SourceWithFullDependenciesResult {
         full_dependencies: Default::default(),
         source_file: &dummy_source,

@@ -2,49 +2,73 @@
 
 This crate demonstrates integrating [fwgsl](https://github.com/ubugeeei/fwgsl) with
 [wgsl-bindgen](https://github.com/Swoorup/wgsl-bindgen) for a fully type-safe GPU shader
-pipeline that starts from a pure functional source language — including **Rust algebraic
-enums that mirror fwgsl algebraic data types (ADTs)**.
+pipeline — including **automatic** Rust enum generation from fwgsl algebraic data types
+(ADTs), with support for both **simple enums** and **data-carrying enums**.
+
+## Automatic ADT Extraction
+
+The key feature is that Rust enums are generated **automatically** from structured
+`// @fwgsl-adt:` annotation comments injected into the WGSL source by `build.rs`.
+**No `WgslEnumDefinition` objects are needed** — wgsl-bindgen detects the annotations
+and emits matching Rust types without any manual configuration.
+
+### Annotation format
+
+```text
+// @fwgsl-adt: TypeName Variant0:tag0 Variant1:tag1 Variant2:tag2:StructName2
+```
+
+* `Variant:tag` — tag-only variant (simple enum constructor, no payload)
+* `Variant:tag:StructName` — data-carrying variant; `StructName` is the WGSL struct
+  that holds the constructor's payload
 
 ## Pipeline
 
 ```text
-shaders/scale_bias.fwgsl       (fwgsl source — functional helper functions)
-shaders/color_compute.fwgsl    (fwgsl source — includes ADT: `data Color = Red | Green | Blue`)
+shaders/scale_bias.fwgsl   — functional helpers (scale, bias, saturate)
+shaders/color_compute.fwgsl — simple ADT: data Color = Red | Green | Blue
+shaders/shape_compute.fwgsl — data-carrying: data Shape = Circle F32 | Rect F32 F32
     │  fwgsl compiler (build.rs)
     ▼
-WGSL helper functions + ADT metadata (Color: Red=0, Green=1, Blue=2)
-    │
-    ├─ alias Color = u32;   added so WGSL is valid for naga
-    ▼  combined with hand-written @group/@binding declarations
-scale_bias_compute.wgsl  +  color_compute.wgsl
-    │  wgsl-bindgen (build.rs) — receives WgslEnumDefinition for Color
+WGSL helper functions + structs + ADT metadata from HIR
+    │  build.rs injects annotations (no WgslEnumDefinition needed)
     ▼
-src/shader_bindings.rs   (type-safe Rust bindings, including a Rust Color enum)
+// @fwgsl-adt: Color Red:0 Green:1 Blue:2
+// @fwgsl-adt: Shape Circle:0:Circle Rect:1:Rect
+    │  wgsl-bindgen (auto-detects annotations)
+    ▼
+src/shader_bindings.rs:
+  pub enum Color { Red, Green, Blue }              ← #[repr(u32)] simple enum
+  pub enum Shape { Circle(Circle), Rect(Rect) }   ← data-carrying enum
 ```
 
-## Algebraic Enum Binding
+## Generated Types
 
-The key feature demonstrated by this example is the **round-trip of ADT types**:
-
-1. **fwgsl source** — defines `data Color = Red | Green | Blue`
-2. **fwgsl compiler** — lowers this to bare `u32` discriminant values in WGSL
-3. **build.rs** — extracts the ADT metadata from `fwgsl_semantic::SemanticAnalyzer`
-   and passes it to wgsl-bindgen as a `WgslEnumDefinition`
-4. **wgsl-bindgen** — emits a `#[repr(u32)]` Rust enum:
+### Simple enum (`Color`)
 
 ```rust
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Color {
-    Red   = 0,
-    Green = 1,
-    Blue  = 2,
-}
+pub enum Color { Red = 0, Green = 1, Blue = 2 }
 
-impl TryFrom<u32> for Color { ... }  // convert raw WGSL tag → Rust enum
-impl From<Color> for u32 { ... }     // convert Rust enum → WGSL-compatible u32
+impl TryFrom<u32> for Color { ... }   // WGSL discriminant → Rust enum
+impl From<Color> for u32 { ... }      // Rust enum → WGSL-compatible u32
 unsafe impl bytemuck::Zeroable for Color {}
 unsafe impl bytemuck::Pod for Color {}
+```
+
+### Data-carrying enum (`Shape`)
+
+```rust
+#[derive(Debug, Clone, Copy)]
+pub enum Shape {
+    Circle(shape_compute::Circle),  // Circle { field0: f32 }  ← radius
+    Rect(shape_compute::Rect),      // Rect   { field0: f32, field1: f32 }  ← width, height
+}
+
+impl Shape {
+    pub fn tag(&self) -> u32 { ... }  // returns the WGSL discriminant
+}
 ```
 
 ## What is fwgsl?
@@ -54,21 +78,21 @@ compiles to WGSL. It provides:
 
 - **Pure functional syntax** with Hindley-Milner type inference
 - **Algebraic data types** and pattern matching
-- **Dimension-carrying tensor types** such as `Tensor 16 F32`, `Vector 3 F32`
+- **Dimension-carrying tensor types**
 - **Expression-oriented** `let`, `if`, and `match`
-- **Shader entry-point attributes** (`@compute`, `@vertex`, `@fragment`)
 
-## Current Integration Limitations
+## Current Integration Notes
 
-fwgsl is an early-stage project. The current integration has two design notes:
+fwgsl is an early-stage project. Two bridging steps are done in `build.rs`:
 
-- **Bind group declarations** (`@group`, `@binding`): fwgsl does not yet emit these
-  annotations, so they are added by hand in `build.rs`. As fwgsl matures this will
-  become unnecessary.
+- **`@group`/`@binding` annotations** — fwgsl does not yet emit these, so they are
+  added by hand alongside the fwgsl-generated helpers.
 
-- **ADT `alias` declarations**: fwgsl simple enums are lowered to `u32` values in WGSL
-  without emitting a type alias. `build.rs` adds `alias Color = u32;` so naga can
-  validate the WGSL. Once fwgsl emits these automatically this bridge will shrink.
+- **`alias Color = u32;`** — for simple enum ADTs, fwgsl uses bare `u32` discriminants
+  but does not emit a type alias. `build.rs` adds these so naga can validate the WGSL.
+
+- **ADT annotation injection** — after compiling fwgsl, `build.rs` walks the HIR and
+  prepends `// @fwgsl-adt:` lines so wgsl-bindgen can auto-detect the enum types.
 
 ## Running the Example
 
@@ -80,8 +104,9 @@ cargo run -p fwgsl_example
 
 | File | Description |
 |------|-------------|
-| `shaders/scale_bias.fwgsl` | fwgsl source: helper functions for scale/bias transformation |
-| `shaders/color_compute.fwgsl` | fwgsl source: ADT (`data Color = Red \| Green \| Blue`) with color decoding helpers |
-| `build.rs` | Compiles fwgsl → WGSL, extracts ADT metadata, passes to wgsl-bindgen |
-| `src/main.rs` | Demonstrates using the generated bindings including the Color enum |
-| `src/shader_bindings.rs` | Auto-generated by `build.rs`; do not edit manually |
+| `shaders/scale_bias.fwgsl` | Functional helpers: scale/bias/saturate |
+| `shaders/color_compute.fwgsl` | Simple ADT: `data Color = Red \| Green \| Blue` |
+| `shaders/shape_compute.fwgsl` | Data-carrying ADT: `data Shape = Circle F32 \| Rect F32 F32` |
+| `build.rs` | Compiles fwgsl → WGSL, injects `// @fwgsl-adt:` annotations, runs wgsl-bindgen |
+| `src/main.rs` | Demonstrates Color (simple) and Shape (data-carrying) generated enums |
+| `src/shader_bindings.rs` | Auto-generated; do not edit manually |

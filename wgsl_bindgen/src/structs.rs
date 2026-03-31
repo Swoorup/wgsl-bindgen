@@ -7,10 +7,16 @@ use proc_macro2::TokenStream;
 use crate::qs::{format_ident, quote};
 
 /// Returns a list of Rust structs that represent the WGSL structs in the module.
+///
+/// `extra_struct_names` is an optional set of WGSL struct names that should be emitted
+/// even if they are not referenced from global variables or entry point arguments.
+/// This is used to force-emit structs that are referenced in `// @fwgsl-adt:` annotations
+/// (e.g. the `Circle` and `Rect` structs for a `data Shape = Circle F32 | Rect F32 F32`).
 pub fn structs_items(
   invoking_entry_module: &str,
   module: &naga::Module,
   options: &WgslBindgenOption,
+  extra_struct_names: &HashSet<&str>,
 ) -> Vec<RustSourceItem> {
   // Initialize the layout calculator provided by naga.
   let mut layouter = naga::proc::Layouter::default();
@@ -26,20 +32,24 @@ pub fn structs_items(
   module
     .types
     .iter()
-    .filter(|(h, _)| {
+    .filter(|(h, ty)| {
+      // Struct is needed if it is referenced in global variables or entry point arguments,
+      // OR if it is explicitly requested via `extra_struct_names` (e.g. ADT payloads).
+      let name_matches = ty.name.as_deref().is_some_and(|n| extra_struct_names.contains(n));
       // Check if the struct will need to be used by the user from Rust.
       // This includes function inputs like vertex attributes and global variables.
       // Shader stage function outputs will not be accessible from Rust.
       // Skipping internal structs helps avoid issues deriving encase or bytemuck.
-      !module
-        .entry_points
-        .iter()
-        .any(|e| e.function.result.as_ref().map(|r| r.ty) == Some(*h))
-        && module
+      name_matches
+        || (!module
           .entry_points
           .iter()
-          .any(|e| e.function.arguments.iter().any(|a| a.ty == *h))
-        || global_variable_types.contains(h)
+          .any(|e| e.function.result.as_ref().map(|r| r.ty) == Some(*h))
+          && module
+            .entry_points
+            .iter()
+            .any(|e| e.function.arguments.iter().any(|a| a.ty == *h))
+          || global_variable_types.contains(h))
     })
     .flat_map(|(t_handle, ty)| {
       if let naga::TypeInner::Struct { members, .. } = &ty.inner {
@@ -259,7 +269,7 @@ mod tests {
   };
 
   pub fn structs(module: &naga::Module, options: &WgslBindgenOption) -> Vec<TokenStream> {
-    structs_items("", module, options)
+    structs_items("", module, options, &HashSet::new())
       .into_iter()
       .map(|s| s.tokenstream)
       .collect()
