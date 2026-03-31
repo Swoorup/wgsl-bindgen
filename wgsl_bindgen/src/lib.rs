@@ -4,8 +4,15 @@
 //!
 //! wgsl_bindgen transforms your WGSL shader development workflow by automatically generating
 //! Rust types, constants, and boilerplate code that perfectly match your shaders.
-//! Powered by [naga-oil](https://github.com/bevyengine/naga_oil), it integrates seamlessly
-//! into your build process to catch shader-related errors at compile time rather than runtime.
+//! It integrates seamlessly into your build process to catch shader-related errors at
+//! compile time rather than runtime.
+//!
+//! Supports two shader import / preprocessing backends:
+//! - **naga-oil** (default): uses naga-oil's `#import` preprocessor syntax.
+//! - **WESL** (opt-in via the `wesl` crate feature): uses the
+//!   [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) compiler, which implements
+//!   a standardised `import package::module;` syntax and `@if` conditional translation.
+//!   Compiled WGSL is embedded at build time; no WESL dependency is needed at runtime.
 //!
 //! ## 🎯 Key Benefits
 //!
@@ -192,9 +199,6 @@ pub use naga::FastIndexMap;
 pub use regex::Regex;
 pub use types::*;
 pub use wgsl_type::*;
-
-// Re-export ShaderDefValue for convenience
-pub use naga_oil::compose::ShaderDefValue;
 
 /// Enum representing the possible serialization strategies for WGSL types.
 ///

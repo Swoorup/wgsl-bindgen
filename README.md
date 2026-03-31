@@ -73,7 +73,7 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 
 ### Shader Handling:
 
--   Supports import syntax and many more features from naga oil flavour.
+-   Supports naga-oil import syntax (`#import`) and many more features from the naga-oil flavour.
 -   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer` or `WgslShaderSourceType::ComposerWithRelativePath` source output type.
 
     The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems and hot reloading.
@@ -118,6 +118,14 @@ bind_group.set(&mut render_pass); // Simple, safe usage
     > **Note:** The WESL compiler first looks for `.wesl` files, then falls back to `.wgsl`,
     > so both extensions are supported. You can write WESL import syntax in `.wgsl` files
     > without renaming them.
+    >
+    > **Note:** Dependency tracking (`cargo::rerun-if-changed`) for WESL `import` statements
+    > is handled automatically — wgsl_bindgen uses the WESL compiler's own module list to
+    > watch all transitive imports, so hot reloading works correctly without extra configuration.
+
+-   The `ShaderDefValue` type (`Bool`, `Int`, `UInt`) is now defined by wgsl_bindgen itself,
+    so your `build.rs` does **not** need to add naga-oil as a direct dependency when using
+    only `EmbedWithWesl` or `EmbedSource`.
 
 -   **File Visitor Pattern**: The `visit_shader_files` function allows custom processing of all shader files in a dependency tree. This enables advanced use cases like:
     - **Hot reloading**: Watch for file changes and rebuild shaders automatically

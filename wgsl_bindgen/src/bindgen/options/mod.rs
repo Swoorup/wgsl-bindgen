@@ -14,7 +14,8 @@ use regex::Regex;
 pub use types::*;
 
 use crate::{
-  FastIndexMap, WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy,
+  FastIndexMap, ShaderDefValue, WGSLBindgen, WgslBindgenError, WgslType,
+  WgslTypeSerializeStrategy,
 };
 
 /// An enum representing the source type that will be generated for the output.
@@ -386,10 +387,16 @@ pub struct WgslBindgenOption {
   #[builder(default, setter(into))]
   pub override_sampler_type: Vec<OverrideSamplerType>,
 
-  /// Shader definitions to be passed to naga-oil for conditional compilation.
-  /// These are preprocessor definitions that can be used in WGSL shaders with #ifdef, #ifndef, etc.
+  /// Shader definitions for conditional compilation.
+  ///
+  /// These definitions are consumed by the shader compilation backend:
+  /// - For naga-oil source types (`EmbedWithNagaOilComposer`, `ComposerWithRelativePath`)
+  ///   `Bool`, `Int` and `UInt` values are all supported.
+  /// - For [`WgslShaderSourceType::EmbedWithWesl`] only `Bool` values are used;
+  ///   `Int` and `UInt` values are silently ignored because WESL's conditional
+  ///   translation only supports boolean feature flags.
   #[builder(default, setter(into))]
-  pub shader_defs: Vec<(String, naga_oil::compose::ShaderDefValue)>,
+  pub shader_defs: Vec<(String, ShaderDefValue)>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -415,11 +422,11 @@ impl WgslBindgenOptionBuilder {
     self
   }
 
-  /// Add a shader definition value
+  /// Add a single shader definition value.
   pub fn add_shader_def(
     &mut self,
     name: impl Into<String>,
-    value: naga_oil::compose::ShaderDefValue,
+    value: ShaderDefValue,
   ) -> &mut Self {
     if self.shader_defs.is_none() {
       self.shader_defs = Some(Vec::new());
@@ -432,10 +439,10 @@ impl WgslBindgenOptionBuilder {
     self
   }
 
-  /// Add multiple shader definitions from a Vec
+  /// Add multiple shader definitions.
   pub fn add_shader_defs(
     &mut self,
-    defs: Vec<(String, naga_oil::compose::ShaderDefValue)>,
+    defs: Vec<(String, ShaderDefValue)>,
   ) -> &mut Self {
     match self.shader_defs.as_mut() {
       Some(existing) => existing.extend(defs),

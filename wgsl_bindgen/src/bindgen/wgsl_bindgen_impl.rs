@@ -5,10 +5,11 @@ use naga_oil::compose::{
   ShaderLanguage,
 };
 
+use crate::bevy_util::parse_imports::WESL_PACKAGE_PREFIX;
 use crate::bevy_util::source_file::SourceFile;
 use crate::bevy_util::DependencyTree;
 use crate::{
-  create_rust_bindings, SourceFilePath, SourceWithFullDependenciesResult,
+  create_rust_bindings, ShaderDefValue, SourceFilePath, SourceWithFullDependenciesResult,
   WgslBindgenError, WgslBindgenOption, WgslEntryResult, WgslShaderIrCapabilities,
 };
 
@@ -76,7 +77,7 @@ impl WGSLBindgen {
     ir_capabilities: Option<WgslShaderIrCapabilities>,
     entry: SourceWithFullDependenciesResult<'a>,
     workspace_root: &std::path::Path,
-    shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
+    shader_defs: &[(String, ShaderDefValue)],
     add_override_ids: bool,
   ) -> Result<WgslEntryResult<'a>, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
@@ -94,11 +95,14 @@ impl WGSLBindgen {
     };
     let source = entry.source_file;
 
-    // Convert Vec to HashMap for naga-oil
+    // Convert our ShaderDefValue to naga-oil's for the Composer.
     let shader_defs_map: std::collections::HashMap<
       String,
       naga_oil::compose::ShaderDefValue,
-    > = shader_defs.iter().cloned().collect();
+    > = shader_defs
+      .iter()
+      .map(|(k, v)| (k.clone(), (*v).into()))
+      .collect();
 
     for dependency in entry.full_dependencies.iter() {
       composer
@@ -161,13 +165,17 @@ impl WGSLBindgen {
   /// then parses the resulting WGSL with naga to produce the IR module used
   /// for binding generation.
   ///
+  /// Emits `cargo::rerun-if-changed` for all shader files the WESL compiler
+  /// loaded when `emit_rerun_if_change` is `true`.
+  ///
   /// Requires the `wesl` crate feature.
   #[cfg(feature = "wesl")]
   fn generate_naga_module_for_entry_wesl<'a>(
     ir_capabilities: Option<WgslShaderIrCapabilities>,
     entry: SourceWithFullDependenciesResult<'a>,
     workspace_root: &std::path::Path,
-    shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
+    shader_defs: &[(String, ShaderDefValue)],
+    emit_rerun_if_change: bool,
   ) -> Result<WgslEntryResult<'a>, WgslBindgenError> {
     let source = entry.source_file;
     let entry_path = source.file_path.as_path();
@@ -184,7 +192,7 @@ impl WGSLBindgen {
       .components()
       .map(|c| c.as_os_str().to_string_lossy().into_owned())
       .collect();
-    let module_path_str = format!("package::{}", module_components.join("::"));
+    let module_path_str = format!("{}{}", WESL_PACKAGE_PREFIX, module_components.join("::"));
     let module_path: wesl::syntax::ModulePath = module_path_str.parse().map_err(|e| {
       WgslBindgenError::WeslCompileError {
         entry: entry_path.display().to_string(),
@@ -198,11 +206,10 @@ impl WGSLBindgen {
     // WESL import syntax.
     let mut compiler = wesl::Wesl::new(workspace_root);
 
-    // Convert naga-oil ShaderDefValue::Bool defs into WESL feature flags.
-    // Integer and unsigned integer defs are not supported by WESL's conditional
-    // translation and are silently ignored.
+    // Convert our ShaderDefValue::Bool defs into WESL feature flags.
+    // Int and UInt defs are not supported by WESL's conditional translation and are silently ignored.
     for (name, def) in shader_defs {
-      if let naga_oil::compose::ShaderDefValue::Bool(enabled) = def {
+      if let ShaderDefValue::Bool(enabled) = def {
         compiler.set_feature(name, *enabled);
       }
     }
@@ -213,6 +220,13 @@ impl WGSLBindgen {
         msg: e.to_string(),
       }
     })?;
+
+    // Emit `cargo::rerun-if-changed` for every file the WESL compiler loaded,
+    // including transitive imports. This replaces the naga-oil dependency-tree
+    // watching for WESL-syntax shaders.
+    if emit_rerun_if_change {
+      wesl::emit_rerun_if_changed(&compile_result.modules, compiler.resolver());
+    }
 
     let wgsl_source = compile_result.to_string();
 
@@ -285,6 +299,7 @@ impl WGSLBindgen {
       .options
       .shader_source_type
       .contains(crate::WgslShaderSourceType::EmbedSource);
+    let emit_rerun_if_change = self.options.emit_rerun_if_change;
 
     let entry_results = self
       .dependency_tree
@@ -299,6 +314,7 @@ impl WGSLBindgen {
               it,
               &self.options.workspace_root,
               &self.options.shader_defs,
+              emit_rerun_if_change,
             )
           }
           #[cfg(not(feature = "wesl"))]

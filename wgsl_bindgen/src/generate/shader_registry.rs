@@ -203,14 +203,16 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
         .iter()
         .map(|(key, value)| {
           let key_lit = proc_macro2::Literal::string(key);
+          // Generate naga-oil ShaderDefValue literals in the output code (the generated
+          // code uses naga-oil at runtime for these source types).
           let value_expr = match value {
-            naga_oil::compose::ShaderDefValue::Bool(b) => {
+            crate::ShaderDefValue::Bool(b) => {
               quote!(naga_oil::compose::ShaderDefValue::Bool(#b))
             }
-            naga_oil::compose::ShaderDefValue::Int(i) => {
+            crate::ShaderDefValue::Int(i) => {
               quote!(naga_oil::compose::ShaderDefValue::Int(#i))
             }
-            naga_oil::compose::ShaderDefValue::UInt(u) => {
+            crate::ShaderDefValue::UInt(u) => {
               quote!(naga_oil::compose::ShaderDefValue::UInt(#u))
             }
           };

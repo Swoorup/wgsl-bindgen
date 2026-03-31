@@ -311,7 +311,10 @@ fn generate_shader_module_embed_wesl(entry: &WgslEntryResult) -> TokenStream {
       // This branch should be unreachable: EmbedWithWesl is only selected when the `wesl`
       // feature is enabled, in which case `wesl_compiled_source` is always populated by
       // `generate_naga_module_for_entry_wesl`. Return empty tokens defensively.
-      return quote! {};
+      unreachable!(
+        "EmbedWithWesl selected but `wesl_compiled_source` is None — \
+         this indicates a logic error in the WESL compilation path"
+      );
     }
   };
 
@@ -353,13 +356,16 @@ impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
     output_dir: &'a Path,
     workspace_root: &'a Path,
     source_type: WgslShaderSourceType,
-    shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
+    shader_defs: &[(String, crate::ShaderDefValue)],
   ) -> Self {
     let entry_source_path = entry.source_including_deps.source_file.file_path.as_path();
 
-    // Convert Vec to FastIndexMap for consistent ordering
+    // Convert our ShaderDefValue to naga-oil's and store in a FastIndexMap for consistent ordering
     let shader_defs_map: crate::FastIndexMap<String, naga_oil::compose::ShaderDefValue> =
-      shader_defs.iter().cloned().collect();
+      shader_defs
+        .iter()
+        .map(|(k, v)| (k.clone(), (*v).into()))
+        .collect();
 
     Self {
       entry,
