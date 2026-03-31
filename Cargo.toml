@@ -1,7 +1,7 @@
 [workspace]
 # wgpu requires the newer resolver
 resolver = "2"
-members = ["wgsl_bindgen", "example"]
+members = ["wgsl_bindgen", "example", "fwgsl_example"]
 
 [workspace.package]
 version = "0.22.2"

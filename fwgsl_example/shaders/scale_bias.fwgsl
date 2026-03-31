@@ -1,0 +1,24 @@
+-- Scale and bias data transformation shader
+-- Written in fwgsl (https://github.com/ubugeeei/fwgsl)
+-- Demonstrates writing GPU shader helpers in a pure functional style.
+--
+-- fwgsl compiles this to WGSL, which is then processed by wgsl-bindgen
+-- to generate type-safe Rust bindings.
+
+-- Apply a scale factor to a value
+scale_val : F32 -> F32 -> F32
+scale_val s x = x * s
+
+-- Apply a bias (offset) to a value
+bias_val : F32 -> F32 -> F32
+bias_val b x = x + b
+
+-- Combined scale and bias transformation (linear: x * s + b)
+scale_bias : F32 -> F32 -> F32 -> F32
+scale_bias s b x = x * s + b
+
+-- Clamp a float to [0, 1] range using conditional arithmetic
+saturate : F32 -> F32
+saturate x =
+  let a = if x > 0.0 then x else 0.0
+  in if a < 1.0 then a else 1.0

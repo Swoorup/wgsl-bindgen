@@ -1,0 +1,28 @@
+[package]
+name = "fwgsl_example"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Example demonstrating fwgsl integration with wgsl-bindgen"
+publish = false
+
+[dependencies]
+bytemuck = { workspace = true, features = ["derive"] }
+wgpu = { workspace = true }
+
+[build-dependencies]
+# fwgsl compiler crates (https://github.com/ubugeeei/fwgsl)
+# These are used at build time to compile .fwgsl source files to WGSL.
+#
+# All fwgsl crates must be pinned to the same commit so the internal crate
+# interfaces remain consistent. When upgrading fwgsl, update all `rev` values
+# here to the same new commit hash.
+fwgsl_parser = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_semantic = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_ast_lowering = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_mir = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_wgsl_codegen = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_diagnostics = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+# wgsl-bindgen generates type-safe Rust bindings from the compiled WGSL
+wgsl_bindgen = { path = "../wgsl_bindgen" }
+miette = { workspace = true, features = ["fancy"] }

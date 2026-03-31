@@ -246,6 +246,8 @@ fn setup_bind_group(device: &wgpu::Device, texture_view: &wgpu::TextureView, sam
 
 > 📚 **See the [example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/example) for a complete working demo with multiple shaders, including advanced features like texture arrays and overlay rendering.**
 
+> 🔬 **See the [fwgsl_example project](https://github.com/Swoorup/wgsl-bindgen/tree/main/fwgsl_example) for a demonstration of integrating [fwgsl](https://github.com/ubugeeei/fwgsl) — a pure functional language that compiles to WGSL — with wgsl-bindgen.**
+
 ## 🔧 Advanced Configuration
 
 ### Serialization Strategies
