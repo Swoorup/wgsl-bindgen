@@ -42,11 +42,14 @@ provided by naga-oil's custom preprocessor (`#import`, `#ifdef`, etc.).
 
 * **naga-oil removed** — `wgsl_bindgen` no longer depends on `naga_oil`. All shader
   compilation at build time is now done by the WESL compiler.
-* `WgslShaderSourceType` simplified to a single variant `EmbedSource`: compiles WESL
-  shaders at build time using the WESL compiler and embeds the resulting WGSL — no WESL
-  or naga-oil dependency needed at runtime.
-* `EmbedWithNagaOilComposer` and `ComposerWithRelativePath` removed (they required
-  naga-oil at runtime in the generated output).
+* `WgslShaderSourceType` now has two variants:
+  - `EmbedSource` — compiles WESL shaders at build time using the WESL compiler and
+    embeds the resulting WGSL; no WESL or naga-oil dependency needed at runtime.
+  - `WeslWithRelativePath` — generates a `create_shader_module_from_path(device, base_dir)`
+    function that uses the WESL compiler **at runtime** to load and compile shaders from
+    disk; requires the `wesl` crate (with `naga-ext`) as a runtime dependency.  This is
+    the WESL-native equivalent of the old `ComposerWithRelativePath`.
+* `EmbedWithNagaOilComposer` removed (was an embed variant that required naga-oil).
 * `EmbedWithWesl` removed (merged into `EmbedSource`).
 * WESL `import package::module::item;` syntax is understood by the dependency-tree
   builder (`parse_imports.rs`), so `cargo::rerun-if-changed` is correctly emitted for
@@ -62,7 +65,7 @@ provided by naga-oil's custom preprocessor (`#import`, `#ifdef`, etc.).
 | `#import module::item` | `import package::module::item;` |
 | `#ifdef FEATURE` / `#endif` | `@if(FEATURE)` on the item |
 | `EmbedWithNagaOilComposer` | `EmbedSource` |
-| `ComposerWithRelativePath` | `EmbedSource` (compile-time only) |
+| `ComposerWithRelativePath` | `WeslWithRelativePath` (runtime) or `EmbedSource` (compile-time) |
 | `EmbedWithWesl` | `EmbedSource` |
 
 > **Note:** WESL conditional compilation only supports boolean feature flags.
@@ -70,7 +73,5 @@ provided by naga-oil's custom preprocessor (`#import`, `#ifdef`, etc.).
 
 ### Remaining / future work
 
-- WESL-based runtime shader loading path (equivalent to the old `ComposerWithRelativePath`
-  but for WESL import syntax and without a naga-oil dependency).
 - Track WESL's direct naga IR output path to remove the naga WGSL round-trip in
   the WESL compilation step.

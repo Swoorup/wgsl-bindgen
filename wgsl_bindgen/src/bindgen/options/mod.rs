@@ -35,6 +35,39 @@ pub enum WgslShaderSourceType {
   /// values are silently ignored because WESL conditional translation only supports boolean
   /// feature flags.
   EmbedSource,
+
+  /// Load and compile shaders at **runtime** from disk using the
+  /// [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) compiler.
+  ///
+  /// This is the WESL equivalent of the old `ComposerWithRelativePath` variant.
+  /// It generates a `create_shader_module_from_path(device, base_dir)` function
+  /// that, at runtime:
+  /// 1. Resolves the shader's WESL `import` statements relative to `base_dir`.
+  /// 2. Compiles the fully-linked WGSL using the WESL compiler.
+  /// 3. Creates and returns a `wgpu::ShaderModule`.
+  ///
+  /// **Runtime dependency**: the generated code calls `wesl::Wesl::new(base_dir)`,
+  /// so your application must depend on the `wesl` crate.  Add it to your
+  /// `Cargo.toml`:
+  ///
+  /// ```toml
+  /// [dependencies]
+  /// wesl = { version = "0.3", features = ["naga-ext"] }
+  /// ```
+  ///
+  /// The `naga-ext` feature is required to support naga-specific WGSL extensions
+  /// such as `binding_array`.
+  ///
+  /// Use this variant when you need hot-reloading or want to ship shaders as
+  /// separate files alongside your binary.  Combine with `EmbedSource` via the
+  /// bitflag OR operator to emit both creation paths:
+  ///
+  /// ```rust,ignore
+  /// .shader_source_type(
+  ///     WgslShaderSourceType::EmbedSource | WgslShaderSourceType::WeslWithRelativePath
+  /// )
+  /// ```
+  WeslWithRelativePath,
 }
 
 /// A struct representing a directory to scan for additional source files.

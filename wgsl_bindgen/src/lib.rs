@@ -234,6 +234,10 @@ pub(crate) struct WgslEntryResult<'a> {
   source_including_deps: SourceWithFullDependenciesResult<'a>,
   /// WGSL source produced by the WESL compiler, used as the embedded string.
   wgsl_source: String,
+  /// WESL module path string (e.g. `"package::effects::glow"`) derived at build time.
+  /// Used by the `WeslWithRelativePath` source type to embed the module path in the
+  /// generated runtime loading function.
+  wesl_module_path: String,
 }
 
 impl<'a> WgslEntryResult<'a> {
@@ -253,6 +257,11 @@ impl<'a> WgslEntryResult<'a> {
     quote! {
       #(#mod_path_parts)::*
     }
+  }
+
+  /// Returns the WESL module path string (e.g. `"package::effects::glow"`).
+  pub fn wesl_module_path(&self) -> &str {
+    &self.wesl_module_path
   }
 }
 
@@ -493,6 +502,7 @@ mod test {
         source_file: &dummy_source,
       },
       wgsl_source: source.to_string(),
+      wesl_module_path: "package::test".into(),
     };
 
     create_rust_bindings(vec![entry], &options)

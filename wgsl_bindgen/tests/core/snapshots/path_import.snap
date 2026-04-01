@@ -4,12 +4,12 @@ source: wgsl_bindgen/tests/core/mod.rs
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
-  BasicMain,
+  BasicPathImport,
 }
 impl ShaderEntry {
   pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
     match self {
-      Self::BasicMain => basic::main::create_pipeline_layout(device),
+      Self::BasicPathImport => basic::path_import::create_pipeline_layout(device),
     }
   }
   pub fn create_shader_module_embed_source(
@@ -17,16 +17,9 @@ impl ShaderEntry {
     device: &wgpu::Device,
   ) -> wgpu::ShaderModule {
     match self {
-      Self::BasicMain => basic::main::create_shader_module_embed_source(device),
-    }
-  }
-  pub fn create_shader_module_from_path(
-    &self,
-    device: &wgpu::Device,
-    base_dir: &::std::path::Path,
-  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
-    match self {
-      Self::BasicMain => basic::main::create_shader_module_from_path(device, base_dir),
+      Self::BasicPathImport => {
+        basic::path_import::create_shader_module_embed_source(device)
+      }
     }
   }
 }
@@ -79,27 +72,40 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
+  const EXTERNAL_REACHME_RTS_STRUCT_ASSERTS: () = {
+    assert!(std::mem::offset_of!(external::reachme::RtsStruct, value) == 0);
+    assert!(std::mem::offset_of!(external::reachme::RtsStruct, index) == 4);
+    assert!(std::mem::size_of::<external::reachme::RtsStruct>() == 8);
+  };
+}
+pub mod external {
+  use super::{_root, _root::*};
+  pub mod reachme {
+    use super::{_root, _root::*};
+    #[repr(C, align(4))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct RtsStruct {
+      #[doc = "offset: 0, size: 4, type: `f32`"]
+      pub value: f32,
+      #[doc = "offset: 4, size: 4, type: `u32`"]
+      pub index: u32,
+    }
+    impl RtsStruct {
+      pub const fn new(value: f32, index: u32) -> Self {
+        Self { value, index }
+      }
+    }
+  }
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for external::reachme::RtsStruct {}
+  unsafe impl bytemuck::Pod for external::reachme::RtsStruct {}
 }
 pub mod basic {
   use super::{_root, _root::*};
-  pub mod main {
+  pub mod path_import {
     use super::{_root, _root::*};
-    pub struct OverrideConstants {
-      pub color_alpha: Option<f32>,
-      pub width_scale: Option<f32>,
-    }
-    impl OverrideConstants {
-      pub fn constants(&self) -> Vec<(&'static str, f64)> {
-        let mut entries = vec![];
-        if let Some(value) = self.color_alpha {
-          entries.push(("1", value as f64));
-        };
-        if let Some(value) = self.width_scale {
-          entries.push(("2", value as f64));
-        }
-        entries
-      }
-    }
     pub mod compute {
       use super::{_root, _root::*};
       pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
@@ -117,44 +123,27 @@ pub mod basic {
           cache: None,
         })
       }
-      pub fn create_main_pipeline_from_path(
-        device: &wgpu::Device,
-        base_dir: &::std::path::Path,
-      ) -> ::std::result::Result<wgpu::ComputePipeline, ::std::string::String> {
-        let module = super::create_shader_module_from_path(device, base_dir)?;
-        let layout = super::create_pipeline_layout(device);
-        ::std::result::Result::Ok(device.create_compute_pipeline(
-          &wgpu::ComputePipelineDescriptor {
-            label: Some("Compute Pipeline main"),
-            layout: Some(&layout),
-            module: &module,
-            entry_point: Some("main"),
-            compilation_options: Default::default(),
-            cache: None,
-          },
-        ))
-      }
     }
     pub const ENTRY_MAIN: &str = "main";
     #[derive(Debug)]
     pub struct WgpuBindGroup0EntriesParams<'a> {
-      pub buffer: wgpu::BufferBinding<'a>,
+      pub rts: wgpu::BufferBinding<'a>,
     }
     #[derive(Clone, Debug)]
     pub struct WgpuBindGroup0Entries<'a> {
-      pub buffer: wgpu::BindGroupEntry<'a>,
+      pub rts: wgpu::BindGroupEntry<'a>,
     }
     impl<'a> WgpuBindGroup0Entries<'a> {
       pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
         Self {
-          buffer: wgpu::BindGroupEntry {
+          rts: wgpu::BindGroupEntry {
             binding: 0,
-            resource: wgpu::BindingResource::Buffer(params.buffer),
+            resource: wgpu::BindingResource::Buffer(params.rts),
           },
         }
       }
       pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-        [self.buffer]
+        [self.rts]
       }
       pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
         self.into_array().into_iter().collect()
@@ -165,14 +154,14 @@ pub mod basic {
     impl WgpuBindGroup0 {
       pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
         wgpu::BindGroupLayoutDescriptor {
-          label: Some("BasicMain::BindGroup0::LayoutDescriptor"),
+          label: Some("BasicPathImport::BindGroup0::LayoutDescriptor"),
           entries: &[
-            #[doc = " @binding(0): \"buffer\""]
+            #[doc = " @binding(0): \"rts\""]
             wgpu::BindGroupLayoutEntry {
               binding: 0,
               visibility: wgpu::ShaderStages::COMPUTE,
               ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                ty: wgpu::BufferBindingType::Storage { read_only: true },
                 has_dynamic_offset: false,
                 min_binding_size: None,
               },
@@ -190,7 +179,7 @@ pub mod basic {
         let bind_group_layout = Self::get_bind_group_layout(device);
         let entries = bindings.into_array();
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-          label: Some("BasicMain::BindGroup0"),
+          label: Some("BasicPathImport::BindGroup0"),
           layout: &bind_group_layout,
           entries: &entries,
         });
@@ -209,30 +198,25 @@ pub mod basic {
     #[derive(Debug, Copy, Clone)]
     pub struct WgpuBindGroups<'a> {
       pub bind_group0: &'a WgpuBindGroup0,
-      pub bind_group1: &'a basic::bindings::WgpuBindGroup1,
     }
     impl<'a> WgpuBindGroups<'a> {
       pub fn set(&self, pass: &mut impl SetBindGroup) {
         self.bind_group0.set(pass);
-        self.bind_group1.set(pass);
       }
     }
     #[derive(Debug)]
     pub struct WgpuPipelineLayout;
     impl WgpuPipelineLayout {
       pub fn bind_group_layout_entries(
-        entries: [wgpu::BindGroupLayout; 2],
-      ) -> [wgpu::BindGroupLayout; 2] {
+        entries: [wgpu::BindGroupLayout; 1],
+      ) -> [wgpu::BindGroupLayout; 1] {
         entries
       }
     }
     pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
       device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("BasicMain::PipelineLayout"),
-        bind_group_layouts: &[
-          Some(&WgpuBindGroup0::get_bind_group_layout(device)),
-          Some(&basic::bindings::WgpuBindGroup1::get_bind_group_layout(device)),
-        ],
+        label: Some("BasicPathImport::PipelineLayout"),
+        bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
         immediate_size: 0u32,
       })
     }
@@ -241,117 +225,23 @@ pub mod basic {
     ) -> wgpu::ShaderModule {
       let source = std::borrow::Cow::Borrowed(SHADER_STRING);
       device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("main.wgsl"),
+        label: Some("path_import.wgsl"),
         source: wgpu::ShaderSource::Wgsl(source),
       })
     }
     pub const SHADER_STRING: &str = r#"
 @group(0) @binding(0)
-var<storage, read_write> buffer: array<f32>;
-
-override color_alpha: f32 = 1.0;
-
-override width_scale: f32 = 1.0;
+var<storage> rts: array<package_external_reachme_RtsStruct>;
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    buffer[id.x] *= 2 * package_basic_bindings_ONE * color_alpha * width_scale;
+    let v = rts[id.x].value;
 }
 
-@group(1) @binding(0)
-var<uniform> package_basic_bindings_ONE: f32;
+struct package_external_reachme_RtsStruct {
+    value: f32,
+    index: u32
+}
 "#;
-    #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
-    #[doc = r""]
-    #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
-    #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
-    #[doc = r""]
-    #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
-    pub fn create_shader_module_from_path(
-      device: &wgpu::Device,
-      base_dir: &::std::path::Path,
-    ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
-      let module_path: ::wesl::syntax::ModulePath = "package::basic::main"
-        .parse()
-        .expect("wgsl_bindgen generated an invalid WESL module path");
-      let compiler = ::wesl::Wesl::new(base_dir);
-      let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
-      let source = compiled.to_string();
-      ::std::result::Result::Ok(device.create_shader_module(
-        wgpu::ShaderModuleDescriptor {
-          label: Some("main.wgsl"),
-          source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
-        },
-      ))
-    }
-  }
-  pub mod bindings {
-    use super::{_root, _root::*};
-    #[derive(Debug)]
-    pub struct WgpuBindGroup1EntriesParams<'a> {
-      pub ONE: wgpu::BufferBinding<'a>,
-    }
-    #[derive(Clone, Debug)]
-    pub struct WgpuBindGroup1Entries<'a> {
-      pub ONE: wgpu::BindGroupEntry<'a>,
-    }
-    impl<'a> WgpuBindGroup1Entries<'a> {
-      pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
-        Self {
-          ONE: wgpu::BindGroupEntry {
-            binding: 0,
-            resource: wgpu::BindingResource::Buffer(params.ONE),
-          },
-        }
-      }
-      pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-        [self.ONE]
-      }
-      pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-        self.into_array().into_iter().collect()
-      }
-    }
-    #[derive(Debug)]
-    pub struct WgpuBindGroup1(wgpu::BindGroup);
-    impl WgpuBindGroup1 {
-      pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-        wgpu::BindGroupLayoutDescriptor {
-          label: Some("BasicBindings::BindGroup1::LayoutDescriptor"),
-          entries: &[
-            #[doc = " @binding(0): \"_root::basic::bindings::ONE\""]
-            wgpu::BindGroupLayoutEntry {
-              binding: 0,
-              visibility: wgpu::ShaderStages::COMPUTE,
-              ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: std::num::NonZeroU64::new(
-                  std::mem::size_of::<f32>() as _
-                ),
-              },
-              count: None,
-            },
-          ],
-        };
-      pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-      }
-      pub fn from_bindings(
-        device: &wgpu::Device,
-        bindings: WgpuBindGroup1Entries,
-      ) -> Self {
-        let bind_group_layout = Self::get_bind_group_layout(device);
-        let entries = bindings.into_array();
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-          label: Some("BasicBindings::BindGroup1"),
-          layout: &bind_group_layout,
-          entries: &entries,
-        });
-        Self(bind_group)
-      }
-      pub fn set(&self, pass: &mut impl SetBindGroup) {
-        pass.set_bind_group(1, &self.0, &[]);
-      }
-    }
   }
 }

@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.22.2
 // Changes made to this file will not be saved.
-// SourceHash: f126130a03771127c2e9c94384b67d64ebcaef041f3a6e916bf7d4356a549b01
+// SourceHash: 91a25c2ef5beccfaae79e624d556142be33a3eb93af364f7371f452ed7d47ea5
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -56,6 +56,33 @@ impl ShaderEntry {
       }
       Self::ComputeDemoParticleRenderer => {
         compute_demo::particle_renderer::create_shader_module_embed_source(device)
+      }
+    }
+  }
+  pub fn create_shader_module_from_path(
+    &self,
+    device: &wgpu::Device,
+    base_dir: &::std::path::Path,
+  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+    match self {
+      Self::FullscreenEffects => {
+        fullscreen_effects::create_shader_module_from_path(device, base_dir)
+      }
+      Self::SimpleArrayDemo => {
+        simple_array_demo::create_shader_module_from_path(device, base_dir)
+      }
+      Self::Overlay => overlay::create_shader_module_from_path(device, base_dir),
+      Self::GradientTriangle => {
+        gradient_triangle::create_shader_module_from_path(device, base_dir)
+      }
+      Self::MultisampledTextureDemo => {
+        multisampled_texture_demo::create_shader_module_from_path(device, base_dir)
+      }
+      Self::ComputeDemoParticlePhysics => {
+        compute_demo::particle_physics::create_shader_module_from_path(device, base_dir)
+      }
+      Self::ComputeDemoParticleRenderer => {
+        compute_demo::particle_renderer::create_shader_module_from_path(device, base_dir)
       }
     }
   }
@@ -527,6 +554,27 @@ fn package__1global_bindings__1get_time() -> f32 {
     return package__1global_bindings_globals.time;
 }
 "#;
+  #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+  #[doc = r""]
+  #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+  #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+  #[doc = r""]
+  #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+  pub fn create_shader_module_from_path(
+    device: &wgpu::Device,
+    base_dir: &::std::path::Path,
+  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+    let module_path: ::wesl::syntax::ModulePath = "package::fullscreen_effects"
+      .parse()
+      .expect("wgsl_bindgen generated an invalid WESL module path");
+    let compiler = ::wesl::Wesl::new(base_dir);
+    let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+    let source = compiled.to_string();
+    ::std::result::Result::Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("fullscreen_effects.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+    }))
+  }
 }
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
@@ -1012,6 +1060,27 @@ fn package__1global_bindings__1get_time() -> f32 {
     return package__1global_bindings_globals.time;
 }
 "#;
+  #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+  #[doc = r""]
+  #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+  #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+  #[doc = r""]
+  #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+  pub fn create_shader_module_from_path(
+    device: &wgpu::Device,
+    base_dir: &::std::path::Path,
+  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+    let module_path: ::wesl::syntax::ModulePath = "package::simple_array_demo"
+      .parse()
+      .expect("wgsl_bindgen generated an invalid WESL module path");
+    let compiler = ::wesl::Wesl::new(base_dir);
+    let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+    let source = compiled.to_string();
+    ::std::result::Result::Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("simple_array_demo.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+    }))
+  }
 }
 pub mod constants {
   use super::{_root, _root::*};
@@ -1307,6 +1376,27 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return final_color;
 }
 "#;
+  #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+  #[doc = r""]
+  #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+  #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+  #[doc = r""]
+  #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+  pub fn create_shader_module_from_path(
+    device: &wgpu::Device,
+    base_dir: &::std::path::Path,
+  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+    let module_path: ::wesl::syntax::ModulePath = "package::overlay"
+      .parse()
+      .expect("wgsl_bindgen generated an invalid WESL module path");
+    let compiler = ::wesl::Wesl::new(base_dir);
+    let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+    let source = compiled.to_string();
+    ::std::result::Result::Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("overlay.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+    }))
+  }
 }
 pub mod gradient_triangle {
   use super::{_root, _root::*};
@@ -1458,6 +1548,27 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(r, g, b, 1.0);
 }
 "#;
+  #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+  #[doc = r""]
+  #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+  #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+  #[doc = r""]
+  #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+  pub fn create_shader_module_from_path(
+    device: &wgpu::Device,
+    base_dir: &::std::path::Path,
+  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+    let module_path: ::wesl::syntax::ModulePath = "package::gradient_triangle"
+      .parse()
+      .expect("wgsl_bindgen generated an invalid WESL module path");
+    let compiler = ::wesl::Wesl::new(base_dir);
+    let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+    let source = compiled.to_string();
+    ::std::result::Result::Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("gradient_triangle.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+    }))
+  }
 }
 pub mod multisampled_texture_demo {
   use super::{_root, _root::*};
@@ -1704,8 +1815,6 @@ fn fs_msaa(in: ShapeOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(in.color, 1.0);
 }
 
-const package_constants_ONE: f32 = 1.0;
-
 struct package__1global_bindings_GlobalUniforms {
     time: f32,
     scale_factor: f32,
@@ -1719,7 +1828,30 @@ var<uniform> package__1global_bindings_globals: package__1global_bindings_Global
 fn package__1global_bindings__1get_time() -> f32 {
     return package__1global_bindings_globals.time;
 }
+
+const package_constants_ONE: f32 = 1.0;
 "#;
+  #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+  #[doc = r""]
+  #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+  #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+  #[doc = r""]
+  #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+  pub fn create_shader_module_from_path(
+    device: &wgpu::Device,
+    base_dir: &::std::path::Path,
+  ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+    let module_path: ::wesl::syntax::ModulePath = "package::multisampled_texture_demo"
+      .parse()
+      .expect("wgsl_bindgen generated an invalid WESL module path");
+    let compiler = ::wesl::Wesl::new(base_dir);
+    let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+    let source = compiled.to_string();
+    ::std::result::Result::Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("multisampled_texture_demo.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+    }))
+  }
 }
 pub mod compute_demo {
   use super::{_root, _root::*};
@@ -1816,6 +1948,23 @@ pub mod compute_demo {
           compilation_options: Default::default(),
           cache: None,
         })
+      }
+      pub fn create_main_pipeline_from_path(
+        device: &wgpu::Device,
+        base_dir: &::std::path::Path,
+      ) -> ::std::result::Result<wgpu::ComputePipeline, ::std::string::String> {
+        let module = super::create_shader_module_from_path(device, base_dir)?;
+        let layout = super::create_pipeline_layout(device);
+        ::std::result::Result::Ok(device.create_compute_pipeline(
+          &wgpu::ComputePipelineDescriptor {
+            label: Some("Compute Pipeline main"),
+            layout: Some(&layout),
+            module: &module,
+            entry_point: Some("main"),
+            compilation_options: Default::default(),
+            cache: None,
+          },
+        ))
       }
     }
     pub const ENTRY_MAIN: &str = "main";
@@ -2189,6 +2338,30 @@ fn package__1global_bindings__2get_mouse_pos() -> vec2<f32> {
     return package__1global_bindings_globals.mouse_pos;
 }
 "#;
+    #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+    #[doc = r""]
+    #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+    #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+    #[doc = r""]
+    #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+    pub fn create_shader_module_from_path(
+      device: &wgpu::Device,
+      base_dir: &::std::path::Path,
+    ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+      let module_path: ::wesl::syntax::ModulePath =
+        "package::compute_demo::particle_physics"
+          .parse()
+          .expect("wgsl_bindgen generated an invalid WESL module path");
+      let compiler = ::wesl::Wesl::new(base_dir);
+      let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+      let source = compiled.to_string();
+      ::std::result::Result::Ok(device.create_shader_module(
+        wgpu::ShaderModuleDescriptor {
+          label: Some("particle_physics.wgsl"),
+          source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+        },
+      ))
+    }
   }
   pub mod particle_renderer {
     use super::{_root, _root::*};
@@ -2446,5 +2619,29 @@ fn package__1global_bindings__2get_frame_size() -> vec2<f32> {
     return package__1global_bindings_globals.frame_size;
 }
 "#;
+    #[doc = r" Load and compile this shader at runtime from `base_dir` using the WESL compiler."]
+    #[doc = r""]
+    #[doc = r" `base_dir` should be the same directory that was used as `workspace_root` when"]
+    #[doc = r" generating these bindings (i.e. the root that contains the shader files)."]
+    #[doc = r""]
+    #[doc = r" **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature."]
+    pub fn create_shader_module_from_path(
+      device: &wgpu::Device,
+      base_dir: &::std::path::Path,
+    ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+      let module_path: ::wesl::syntax::ModulePath =
+        "package::compute_demo::particle_renderer"
+          .parse()
+          .expect("wgsl_bindgen generated an invalid WESL module path");
+      let compiler = ::wesl::Wesl::new(base_dir);
+      let compiled = compiler.compile(&module_path).map_err(|e| e.to_string())?;
+      let source = compiled.to_string();
+      ::std::result::Result::Ok(device.create_shader_module(
+        wgpu::ShaderModuleDescriptor {
+          label: Some("particle_renderer.wgsl"),
+          source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+        },
+      ))
+    }
   }
 }

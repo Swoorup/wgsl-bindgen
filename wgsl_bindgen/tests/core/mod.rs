@@ -171,18 +171,76 @@ fn test_shader_visibility_merging() -> Result<()> {
   Ok(())
 }
 
+/// Test that `WeslWithRelativePath` generates a `create_shader_module_from_path` function
+/// that loads and compiles shaders at runtime using the WESL compiler.
+///
+/// This is the restored equivalent of the old `test_relative_path_composer` test,
+/// now using the WESL-based runtime loading path instead of naga_oil.
 #[test]
-#[ignore = "It doesn't like path symbols inside a nested type like array."]
-fn test_path_import() -> Result<()> {
-  let _ = WgslBindgenOptionBuilder::default()
-    .add_entry_point("tests/shaders/core/basic/path_import.wgsl")
+fn test_relative_path_composer() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/shaders/core/basic/main.wgsl")
+    .workspace_root("tests/shaders/core")
+    .additional_scan_dir((None, "tests/shaders/core/additional"))
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
+    .shader_source_type(
+      WgslShaderSourceType::EmbedSource | WgslShaderSourceType::WeslWithRelativePath,
+    )
+    .output("tests/output/core/relative_path_composer.actual.rs".to_string())
     .build()?
-    .generate_string()
+    .generate()
     .into_diagnostic()?;
 
+  let actual =
+    read_to_string("tests/output/core/relative_path_composer.actual.rs").unwrap();
+
+  // Verify the runtime loading function is generated
+  assert!(
+    actual.contains("create_shader_module_from_path"),
+    "Should generate create_shader_module_from_path function"
+  );
+  assert!(
+    actual.contains("base_dir: &::std::path::Path"),
+    "Runtime function should take a base_dir path"
+  );
+  assert!(
+    actual.contains("wesl::Wesl::new"),
+    "Runtime function should use the WESL compiler"
+  );
+  // Embed source function should also be present (both variants)
+  assert!(
+    actual.contains("create_shader_module_embed_source"),
+    "Should also generate create_shader_module_embed_source function"
+  );
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_path_import() -> Result<()> {
+  // This test verifies that WESL cross-module struct imports work.
+  // Previously this used naga_oil's `#import "../path/to/reachme"` syntax;
+  // it is now converted to WESL `import package::external::reachme::RtsStruct;`.
+  WgslBindgenOptionBuilder::default()
+    .add_entry_point("tests/shaders/core/basic/path_import.wgsl")
+    .workspace_root("tests/shaders/core")
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/core/path_import.actual.rs".to_string())
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/core/path_import.actual.rs").unwrap();
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
   Ok(())
 }

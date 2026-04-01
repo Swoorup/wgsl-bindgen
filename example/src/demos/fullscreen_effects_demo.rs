@@ -22,7 +22,15 @@ impl Demo for FullscreenEffectsDemo {
     queue: &wgpu::Queue,
     surface_format: wgpu::TextureFormat,
   ) -> Self {
-    // Create shader and pipeline layout
+    // Create shader and pipeline layout.
+    // We use the embedded source (compile-time WESL compilation) here.
+    // To instead load shaders at runtime from disk (e.g. for hot-reloading),
+    // use the generated `create_shader_module_from_path`:
+    //
+    //   let shader = shader_bindings::fullscreen_effects::create_shader_module_from_path(
+    //       device,
+    //       std::path::Path::new(crate::SHADER_DIR),
+    //   ).expect("Failed to compile shader at runtime");
     let shader = shader_bindings::fullscreen_effects::create_shader_module_embed_source(device);
     let render_pipeline_layout =
       shader_bindings::fullscreen_effects::create_pipeline_layout(device);

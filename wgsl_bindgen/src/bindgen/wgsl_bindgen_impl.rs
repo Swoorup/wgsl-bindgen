@@ -261,6 +261,7 @@ impl WGSLBindgen {
       naga_module: module,
       source_including_deps: entry,
       wgsl_source,
+      wesl_module_path: module_path_str,
     })
   }
 

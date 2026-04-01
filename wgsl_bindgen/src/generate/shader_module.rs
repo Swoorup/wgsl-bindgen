@@ -33,35 +33,70 @@ impl<'a> WgslEntryResult<'a> {
 
 impl WgslShaderSourceType {
   pub(crate) fn create_shader_module_fn_name(&self) -> &'static str {
-    "create_shader_module_embed_source"
+    match self {
+      WgslShaderSourceType::EmbedSource => "create_shader_module_embed_source",
+      WgslShaderSourceType::WeslWithRelativePath => "create_shader_module_from_path",
+    }
   }
 
   pub(crate) fn load_shader_module_fn_name(&self) -> Ident {
-    format_ident!("load_shader_module_embedded")
+    match self {
+      WgslShaderSourceType::EmbedSource => format_ident!("load_shader_module_embedded"),
+      WgslShaderSourceType::WeslWithRelativePath => {
+        format_ident!("load_shader_module_from_path")
+      }
+    }
   }
 
   pub(crate) fn create_compute_pipeline_fn_name(&self, name: &str) -> Ident {
-    format_ident!("create_{}_pipeline_embed_source", name)
+    match self {
+      WgslShaderSourceType::EmbedSource => {
+        format_ident!("create_{}_pipeline_embed_source", name)
+      }
+      WgslShaderSourceType::WeslWithRelativePath => {
+        format_ident!("create_{}_pipeline_from_path", name)
+      }
+    }
   }
 
   pub(crate) fn get_return_type(&self, type_to_return: TokenStream) -> TokenStream {
-    type_to_return
+    match self {
+      WgslShaderSourceType::EmbedSource => type_to_return,
+      WgslShaderSourceType::WeslWithRelativePath => {
+        quote!(::std::result::Result<#type_to_return, ::std::string::String>)
+      }
+    }
   }
 
   pub(crate) fn wrap_return_stmt(&self, stm: TokenStream) -> TokenStream {
-    stm
+    match self {
+      WgslShaderSourceType::EmbedSource => stm,
+      WgslShaderSourceType::WeslWithRelativePath => quote!(::std::result::Result::Ok(#stm)),
+    }
   }
 
   pub(crate) fn get_propagate_operator(&self) -> TokenStream {
-    quote!()
+    match self {
+      WgslShaderSourceType::EmbedSource => quote!(),
+      WgslShaderSourceType::WeslWithRelativePath => quote!(?),
+    }
   }
 
   pub(crate) fn shader_module_params_defs_and_params(
     &self,
   ) -> (TokenStream, TokenStream) {
-    let param_defs = quote!(device: &wgpu::Device);
-    let params = quote!(device);
-    (param_defs, params)
+    match self {
+      WgslShaderSourceType::EmbedSource => {
+        let param_defs = quote!(device: &wgpu::Device);
+        let params = quote!(device);
+        (param_defs, params)
+      }
+      WgslShaderSourceType::WeslWithRelativePath => {
+        let param_defs = quote!(device: &wgpu::Device, base_dir: &::std::path::Path);
+        let params = quote!(device, base_dir);
+        (param_defs, params)
+      }
+    }
   }
 }
 
@@ -194,11 +229,63 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
   }
 }
 
+/// Generate a `create_shader_module_from_path` function that uses the WESL compiler
+/// at **runtime** to load and compile shaders from disk.
+///
+/// The generated function signature is:
+/// ```rust,ignore
+/// pub fn create_shader_module_from_path(
+///     device: &wgpu::Device,
+///     base_dir: &::std::path::Path,
+/// ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String>
+/// ```
+fn generate_shader_module_from_path(entry: &WgslEntryResult) -> TokenStream {
+  let fn_name = format_ident!(
+    "{}",
+    WgslShaderSourceType::WeslWithRelativePath.create_shader_module_fn_name()
+  );
+  let shader_label = entry.get_label();
+  let wesl_module_path = entry.wesl_module_path();
+
+  quote! {
+    /// Load and compile this shader at runtime from `base_dir` using the WESL compiler.
+    ///
+    /// `base_dir` should be the same directory that was used as `workspace_root` when
+    /// generating these bindings (i.e. the root that contains the shader files).
+    ///
+    /// **Runtime dependency**: requires the `wesl` crate with the `naga-ext` feature.
+    pub fn #fn_name(
+        device: &wgpu::Device,
+        base_dir: &::std::path::Path,
+    ) -> ::std::result::Result<wgpu::ShaderModule, ::std::string::String> {
+        let module_path: ::wesl::syntax::ModulePath = #wesl_module_path
+            .parse()
+            .expect("wgsl_bindgen generated an invalid WESL module path");
+        let compiler = ::wesl::Wesl::new(base_dir);
+        let compiled = compiler
+            .compile(&module_path)
+            .map_err(|e| e.to_string())?;
+        let source = compiled.to_string();
+        ::std::result::Result::Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: #shader_label,
+            source: wgpu::ShaderSource::Wgsl(::std::borrow::Cow::Owned(source)),
+        }))
+    }
+  }
+}
+
 pub(crate) fn shader_module(
   entry: &WgslEntryResult,
-  _options: &WgslBindgenOption,
+  options: &WgslBindgenOption,
 ) -> TokenStream {
-  generate_shader_module_embedded(entry)
+  let mut tokens = generate_shader_module_embedded(entry);
+  if options
+    .shader_source_type
+    .contains(WgslShaderSourceType::WeslWithRelativePath)
+  {
+    tokens.extend(generate_shader_module_from_path(entry));
+  }
+  tokens
 }
 
 fn create_canonical_variable_name(name: &str, is_const: bool) -> String {
