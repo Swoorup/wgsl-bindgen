@@ -8,7 +8,18 @@ publish = false
 
 [dependencies]
 bytemuck = { workspace = true, features = ["derive"] }
-wgpu = { workspace = true }
+naga_oil = { workspace = true }
+wgpu = { workspace = true, features = ["naga-ir"] }
+# fwgsl compiler crates — also needed at runtime for the hot-reload `load_file` callback
+# that compiles .fwgsl source on the fly to WGSL.
+fwgsl_parser = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_semantic = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_typechecker = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_hir = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_ast_lowering = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_mir = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_wgsl_codegen = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
+fwgsl_diagnostics = { git = "https://github.com/ubugeeei/fwgsl", rev = "78d1de6690513b66fb0c19295635512de1315dd9" }
 
 [build-dependencies]
 # fwgsl compiler crates (https://github.com/ubugeeei/fwgsl)

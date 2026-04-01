@@ -24,6 +24,7 @@
 //!   impl From<Shape> for shaders::shape_compute::ShapeParams ← automatic conversion trait
 //! ```
 
+mod fwgsl_loader;
 mod shader_bindings;
 
 fn main() {
@@ -77,8 +78,62 @@ fn main() {
     );
   }
 
+  // ── Hot-reload path (ComposerWithRelativePath) ────────────────────────────────
+  //
+  // `ComposerWithRelativePath` generates a `create_shader_module_relative_path`
+  // function that reads shader sources at **runtime** via a `load_file` callback.
+  // Combined with a filesystem watcher (e.g. `notify`), you can hot-reload
+  // shaders without restarting your application.
+  //
+  // For `.fwgsl` files the callback must compile the fwgsl source to WGSL first.
+  // `fwgsl_loader::make_fwgsl_load_file()` provides exactly that callback.
   println!();
-  println!("All enums and From impls were generated automatically from `// @fwgsl-adt:`");
-  println!("annotations injected by build.rs. No WgslEnumDefinition was needed.");
+  println!("[hot-reload] ComposerWithRelativePath — fwgsl-aware load_file callback:");
+  println!("  SHADER_ENTRY_PATH for each shader (relative to base_dir):");
+  println!(
+    "    scale_bias  → {}",
+    shader_bindings::shaders::scale_bias::SHADER_ENTRY_PATH
+  );
+  println!(
+    "    color_compute → {}",
+    shader_bindings::shaders::color_compute::SHADER_ENTRY_PATH
+  );
+  println!(
+    "    shape_compute → {}",
+    shader_bindings::shaders::shape_compute::SHADER_ENTRY_PATH
+  );
+
+  // Demonstrate that the fwgsl-aware load_file callback compiles .fwgsl
+  // source to WGSL at runtime — no wgpu device needed for this check.
+  let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+  let base_dir = manifest_dir.to_str().expect("valid UTF-8 path");
+  let load_file = fwgsl_loader::make_fwgsl_load_file();
+
+  println!();
+  println!("  Compiling scale_bias.fwgsl at runtime via make_fwgsl_load_file():");
+  let scale_bias_path = format!(
+    "{base_dir}/{}",
+    shader_bindings::shaders::scale_bias::SHADER_ENTRY_PATH
+  );
+  match load_file(&scale_bias_path) {
+    Ok(wgsl) => {
+      let fn_count = wgsl.matches("fn ").count();
+      println!(
+        "    ✓ compiled {scale_bias_path} → {fn_count} WGSL function(s)"
+      );
+    }
+    Err(e) => println!("    ✗ error: {e}"),
+  }
+
+  println!();
+  println!("  To hot-reload a shader (pseudocode — requires a wgpu Device):");
+  println!("    let base_dir = env!(\"CARGO_MANIFEST_DIR\");  // or your runtime assets dir");
+  println!("    let module = shaders::scale_bias::create_shader_module_relative_path(");
+  println!("        &device, base_dir, Default::default(),");
+  println!("        fwgsl_loader::make_fwgsl_load_file(),");
+  println!("    );");
+  println!("  Re-call whenever a .fwgsl file changes (e.g. via a `notify` watcher).");
+
+  println!();
 }
 

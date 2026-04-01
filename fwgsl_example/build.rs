@@ -31,7 +31,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use miette::{IntoDiagnostic, Result};
-use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslTypeSerializeStrategy};
+use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslShaderSourceType, WgslTypeSerializeStrategy};
 
 // ─────────────────────────────────────────────────────────────────
 // fwgsl compile pipeline
@@ -120,10 +120,10 @@ fn inject_adt_annotations(wgsl: &str, hir: &fwgsl_hir::HirProgram) -> String {
       })
       .collect();
 
-    fn parse_token_tag(tok: &str) -> u32 {
+    fn extract_tag_from_token(tok: &str) -> u32 {
       tok.split(':').nth(1).and_then(|s| s.parse().ok()).unwrap_or(u32::MAX)
     }
-    variant_tokens.sort_by_key(|tok: &String| parse_token_tag(tok));
+    variant_tokens.sort_by_key(|tok: &String| extract_tag_from_token(tok));
 
     annotations.push_str(&format!(
       "// @fwgsl-adt: {} {}\n",
@@ -227,6 +227,9 @@ fn main() -> Result<()> {
     .add_entry_point(manifest_dir.join("shaders/shape_compute.fwgsl").to_str().unwrap())
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .shader_source_type(
+      WgslShaderSourceType::EmbedSource | WgslShaderSourceType::ComposerWithRelativePath,
+    )
     .output(manifest_dir.join("src/shader_bindings.rs"))
     .build()
     .into_diagnostic()?
