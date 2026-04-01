@@ -249,78 +249,6 @@ pub enum WgslTypeVisibility {
   RestrictedSuper,
 }
 
-/// A single variant of a user-defined algebraic enum.
-///
-/// The `discriminant` must be the `u32` tag value that fwgsl (or another source)
-/// assigns to this constructor in the generated WGSL.
-#[derive(Debug, Clone)]
-pub struct WgslEnumVariant {
-  /// The Rust identifier to use for this variant (e.g. `"Red"`).
-  pub name: String,
-  /// The `u32` discriminant value used in WGSL (e.g. `0`).
-  pub discriminant: u32,
-}
-
-impl From<(&str, u32)> for WgslEnumVariant {
-  fn from((name, discriminant): (&str, u32)) -> Self {
-    Self {
-      name: name.to_owned(),
-      discriminant,
-    }
-  }
-}
-
-impl From<(String, u32)> for WgslEnumVariant {
-  fn from((name, discriminant): (String, u32)) -> Self {
-    Self { name, discriminant }
-  }
-}
-
-/// Describes a Rust enum to be emitted alongside the wgsl-bindgen output.
-///
-/// This is intended for use with algebraic data types (ADTs) defined in
-/// [fwgsl](https://github.com/ubugeeei/fwgsl): because fwgsl lowers simple
-/// enums to bare `u32` discriminant values in WGSL, wgsl-bindgen cannot
-/// detect them automatically. Providing `WgslEnumDefinition` entries causes
-/// wgsl-bindgen to emit a `#[repr(u32)]` Rust enum with full conversion
-/// traits so both sides stay in sync.
-///
-/// # Example
-///
-/// ```no_run
-/// use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslEnumDefinition, WgslEnumVariant};
-///
-/// WgslBindgenOptionBuilder::default()
-///     .workspace_root("shaders")
-///     .add_entry_point("shader.wgsl")
-///     .add_custom_enum(WgslEnumDefinition {
-///         name: "Color".to_string(),
-///         variants: vec![
-///             WgslEnumVariant { name: "Red".to_string(),   discriminant: 0 },
-///             WgslEnumVariant { name: "Green".to_string(), discriminant: 1 },
-///             WgslEnumVariant { name: "Blue".to_string(),  discriminant: 2 },
-///         ],
-///     })
-///     .output("src/shader_bindings.rs");
-/// ```
-#[derive(Debug, Clone)]
-pub struct WgslEnumDefinition {
-  /// The Rust identifier to use for the enum type (e.g. `"Color"`).
-  pub name: String,
-  /// The ordered list of variants with their WGSL discriminant values.
-  pub variants: Vec<WgslEnumVariant>,
-}
-
-impl WgslEnumDefinition {
-  /// Convenience constructor from a name and a slice of `(variant_name, discriminant)` pairs.
-  pub fn new(name: impl Into<String>, variants: impl IntoIterator<Item = (&'static str, u32)>) -> Self {
-    Self {
-      name: name.into(),
-      variants: variants.into_iter().map(WgslEnumVariant::from).collect(),
-    }
-  }
-}
-
 #[derive(Debug, Default, Builder)]
 #[builder(
   setter(into),
@@ -445,18 +373,6 @@ pub struct WgslBindgenOption {
   /// These are preprocessor definitions that can be used in WGSL shaders with #ifdef, #ifndef, etc.
   #[builder(default, setter(into))]
   pub shader_defs: Vec<(String, naga_oil::compose::ShaderDefValue)>,
-
-  /// A list of algebraic enum definitions to emit alongside the generated shader bindings.
-  ///
-  /// This is particularly useful when integrating with fwgsl (https://github.com/ubugeeei/fwgsl):
-  /// fwgsl algebraic data types (ADTs) are lowered to `u32` discriminant values in WGSL, so
-  /// wgsl-bindgen cannot detect them automatically. By providing the ADT metadata here,
-  /// wgsl-bindgen emits a corresponding `#[repr(u32)]` Rust enum with conversion traits,
-  /// keeping the Rust and WGSL sides in sync.
-  ///
-  /// Each entry describes one enum: its name and the list of `(variant_name, discriminant)` pairs.
-  #[builder(default, setter(each(name = "add_custom_enum", into)))]
-  pub custom_enums: Vec<WgslEnumDefinition>,
 }
 
 impl WgslBindgenOptionBuilder {

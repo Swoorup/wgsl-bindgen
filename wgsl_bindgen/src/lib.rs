@@ -382,6 +382,7 @@ fn create_rust_bindings(
       adt::adt_enum_tokens_dedup(
         &e.adt_types,
         &e.mod_name,
+        &e.naga_module,
         &mut seen_adt_names,
         options.serialization_strategy,
       )
@@ -389,15 +390,11 @@ fn create_rust_bindings(
     .collect();
   let adt_enum_tokens = quote! { #(#adt_tokens)* };
 
-  // === LEGACY: custom_enums from WgslEnumDefinition (manual override, kept for compat) ===
-  let custom_enum_tokens = structs::enum_tokens(options);
-
   let output = quote! {
     #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
     #shader_registry
     #adt_enum_tokens
-    #custom_enum_tokens
     #mod_token_stream
   };
 

@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.22.2
 // Changes made to this file will not be saved.
-// SourceHash: be987e8db53340c1921ef9dfe54b49bdd8f964117bc6d798c91b7a0d86018f3f
+// SourceHash: 8d2bf45f983c99032c7b8524242b2477167cf2c59c2d38c9d55802302170a636
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -39,7 +39,7 @@ impl ShaderEntry {
 #[doc = r" write the enum into a WGSL-compatible buffer."]
 #[doc = r""]
 #[doc = r" This type is automatically generated from a `// @fwgsl-adt:` annotation in the"]
-#[doc = r" shader source — no manual `WgslEnumDefinition` is required."]
+#[doc = r" shader source."]
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
@@ -73,7 +73,7 @@ unsafe impl ::bytemuck::Zeroable for Color {}
 #[doc = r" `u32` discriminant value used in the corresponding WGSL shader code."]
 #[doc = r""]
 #[doc = r" This type is automatically generated from a `// @fwgsl-adt:` annotation in the"]
-#[doc = r" shader source — no manual `WgslEnumDefinition` is required."]
+#[doc = r" shader source."]
 #[derive(Debug, Clone, Copy)]
 pub enum Shape {
   Circle(shape_compute::Circle),
@@ -86,6 +86,30 @@ impl Shape {
     match self {
       Self::Circle(_) => 0u32,
       Self::Rect(_) => 1u32,
+    }
+  }
+}
+impl ::core::convert::From<Shape> for shape_compute::ShapeParams {
+  #[doc = r" Convert this enum value into the corresponding WGSL uniform params struct."]
+  #[doc = r""]
+  #[doc = r" The `tag` field is set to the variant's discriminant. Fields present in"]
+  #[doc = r" the variant's payload struct are copied by name; all other fields are zeroed."]
+  #[inline]
+  fn from(e: Shape) -> Self {
+    let __tag = e.tag();
+    match e {
+      Shape::Circle(__v) => shape_compute::ShapeParams {
+        tag: __tag,
+        field0: __v.field0,
+        field1: ::core::default::Default::default(),
+        _pad: ::core::default::Default::default(),
+      },
+      Shape::Rect(__v) => shape_compute::ShapeParams {
+        tag: __tag,
+        field0: __v.field0,
+        field1: __v.field1,
+        _pad: ::core::default::Default::default(),
+      },
     }
   }
 }

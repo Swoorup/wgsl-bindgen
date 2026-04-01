@@ -34,7 +34,7 @@
 //!
 //! impl TryFrom<u32> for Color { ... }
 //! impl From<Color> for u32 { ... }
-//! // bytemuck::Zeroable + Pod when discriminant 0 exists
+//! // bytemuck::Zeroable when discriminant 0 exists
 //! ```
 //!
 //! ### Data-carrying enums (at least one variant with a struct payload)
@@ -42,19 +42,21 @@
 //! ```rust,ignore
 //! #[derive(Debug, Clone, Copy)]
 //! pub enum Shape {
-//!     Circle(Circle),  // Circle is a WGSL struct emitted by fwgsl
-//!     Rect(Rect),
+//!     Circle(shape_compute::Circle),  // Circle is a WGSL struct emitted by fwgsl
+//!     Rect(shape_compute::Rect),
 //! }
 //! impl Shape {
 //!     pub fn tag(&self) -> u32 { match self { Self::Circle(_) => 0, Self::Rect(_) => 1 } }
 //! }
+//! // When a `{EnumName}Params` struct exists in the same WGSL module:
+//! impl From<Shape> for shape_compute::ShapeParams { ... }
 //! ```
 
 use std::collections::HashSet;
 
 use proc_macro2::TokenStream;
 use crate::qs::{format_ident, quote};
-use crate::{WgslTypeSerializeStrategy};
+use crate::WgslTypeSerializeStrategy;
 
 // ─────────────────────────────────────────────
 // Data model
@@ -140,27 +142,52 @@ pub(crate) fn parse_fwgsl_adt_annotations(wgsl: &str) -> Vec<FwgslAdtType> {
 }
 
 // ─────────────────────────────────────────────
+// Naga struct introspection helpers
+// ─────────────────────────────────────────────
+
+/// Return the ordered list of field names for a struct named `struct_name`
+/// in the given naga module, or `None` if no such struct exists.
+fn naga_struct_fields<'m>(module: &'m naga::Module, struct_name: &str) -> Option<Vec<&'m str>> {
+  module.types.iter().find_map(|(_, ty)| {
+    if ty.name.as_deref() != Some(struct_name) {
+      return None;
+    }
+    if let naga::TypeInner::Struct { members, .. } = &ty.inner {
+      Some(
+        members
+          .iter()
+          .filter_map(|m| m.name.as_deref())
+          .collect(),
+      )
+    } else {
+      None
+    }
+  })
+}
+
+// ─────────────────────────────────────────────
 // Token generation
 // ─────────────────────────────────────────────
 
 /// Generate the Rust token stream for all ADTs from a WGSL entry, deduplicating
 /// by type name across multiple calls.
 ///
-/// Pass a mutable `seen_names` set to deduplicate ADTs that appear in more than
-/// one shader entry point.
-///
-/// `module_name` is the Rust module path (e.g. `shape_compute`) used to qualify
-/// struct type references in data-carrying enum variants.
+/// * `module_name` — the Rust module path (e.g. `shape_compute`) used to qualify
+///   struct type references in data-carrying enum variants.
+/// * `naga_module` — the naga IR for the WGSL entry; used to look up struct field
+///   names when generating `From<ADT> for ParamsStruct` impls.
+/// * `seen_names` — mutable dedup set; ADTs whose names are already in the set are skipped.
 pub(crate) fn adt_enum_tokens_dedup(
   adts: &[FwgslAdtType],
   module_name: &str,
+  naga_module: &naga::Module,
   seen_names: &mut HashSet<String>,
   serialization_strategy: WgslTypeSerializeStrategy,
 ) -> TokenStream {
   let items: Vec<TokenStream> = adts
     .iter()
     .filter(|adt| seen_names.insert(adt.name.clone()))
-    .map(|adt| generate_adt_tokens(adt, module_name, serialization_strategy))
+    .map(|adt| generate_adt_tokens(adt, module_name, naga_module, serialization_strategy))
     .collect();
   quote! { #(#items)* }
 }
@@ -168,12 +195,13 @@ pub(crate) fn adt_enum_tokens_dedup(
 fn generate_adt_tokens(
   adt: &FwgslAdtType,
   module_name: &str,
+  naga_module: &naga::Module,
   strategy: WgslTypeSerializeStrategy,
 ) -> TokenStream {
   if adt.is_simple_enum() {
     generate_simple_enum(adt, strategy)
   } else {
-    generate_data_enum(adt, module_name)
+    generate_data_enum(adt, module_name, naga_module)
   }
 }
 
@@ -225,7 +253,7 @@ fn generate_simple_enum(adt: &FwgslAdtType, strategy: WgslTypeSerializeStrategy)
     /// write the enum into a WGSL-compatible buffer.
     ///
     /// This type is automatically generated from a `// @fwgsl-adt:` annotation in the
-    /// shader source — no manual `WgslEnumDefinition` is required.
+    /// shader source.
     #[repr(u32)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum #enum_name {
@@ -254,41 +282,40 @@ fn generate_simple_enum(adt: &FwgslAdtType, strategy: WgslTypeSerializeStrategy)
   }
 }
 
+/// Fully-qualify a WGSL struct name with the Rust module path.
+/// e.g. `qualify_struct("shape_compute", "Circle")` → `shape_compute::Circle`.
+fn qualify_struct(module_name: &str, sname: &str) -> TokenStream {
+  if module_name.is_empty() {
+    let ident = format_ident!("{}", sname);
+    quote! { #ident }
+  } else {
+    let parts: Vec<proc_macro2::Ident> = module_name
+      .split("::")
+      .chain(std::iter::once(sname))
+      .map(|p| format_ident!("{}", p))
+      .collect();
+    quote! { #(#parts)::* }
+  }
+}
+
 /// Generate a data-carrying Rust enum where each variant wraps the corresponding
-/// WGSL struct (also generated by wgsl-bindgen from the WGSL source).
-///
-/// `module_name` is the Rust module path (e.g. `shape_compute`) that contains the
-/// struct types.  The generated enum is placed at the crate root, so struct
-/// references are qualified as `module_name::StructName`.
-fn generate_data_enum(adt: &FwgslAdtType, module_name: &str) -> TokenStream {
+/// WGSL struct (also generated by wgsl-bindgen from the WGSL source), together with
+/// a `From<EnumName> for {EnumName}Params` impl when a matching params struct exists.
+fn generate_data_enum(
+  adt: &FwgslAdtType,
+  module_name: &str,
+  naga_module: &naga::Module,
+) -> TokenStream {
   let enum_name = format_ident!("{}", adt.name);
 
-  // Resolve a struct name to a fully-qualified Rust path.
-  // If the struct lives in `shape_compute` the path is `shape_compute::Circle`.
-  let qualify_struct = |sname: &str| -> proc_macro2::TokenStream {
-    if module_name.is_empty() {
-      let ident = format_ident!("{}", sname);
-      quote! { #ident }
-    } else {
-      // Handle `::` separated module paths
-      let parts: Vec<proc_macro2::Ident> = module_name
-        .split("::")
-        .chain(std::iter::once(sname))
-        .map(|p| format_ident!("{}", p))
-        .collect();
-      quote! { #(#parts)::* }
-    }
-  };
-
-  // For variants that have a struct payload, wrap it; for tag-only variants,
-  // emit a unit variant.
+  // Enum variant definitions
   let variants: Vec<TokenStream> = adt
     .variants
     .iter()
     .map(|v| {
       let ident = format_ident!("{}", v.name);
       if let Some(ref sname) = v.struct_name {
-        let struct_path = qualify_struct(sname);
+        let struct_path = qualify_struct(module_name, sname);
         quote! { #ident(#struct_path) }
       } else {
         quote! { #ident }
@@ -311,6 +338,9 @@ fn generate_data_enum(adt: &FwgslAdtType, module_name: &str) -> TokenStream {
     })
     .collect();
 
+  // Try to generate `impl From<EnumName> for {module}::{EnumName}Params`.
+  let from_impl = generate_from_params_impl(adt, module_name, naga_module);
+
   quote! {
     /// Rust mirror of the fwgsl algebraic data type (ADT) of the same name.
     ///
@@ -319,7 +349,7 @@ fn generate_data_enum(adt: &FwgslAdtType, module_name: &str) -> TokenStream {
     /// `u32` discriminant value used in the corresponding WGSL shader code.
     ///
     /// This type is automatically generated from a `// @fwgsl-adt:` annotation in the
-    /// shader source — no manual `WgslEnumDefinition` is required.
+    /// shader source.
     #[derive(Debug, Clone, Copy)]
     pub enum #enum_name {
       #(#variants),*
@@ -331,6 +361,101 @@ fn generate_data_enum(adt: &FwgslAdtType, module_name: &str) -> TokenStream {
       pub fn tag(&self) -> u32 {
         match self {
           #(#tag_arms,)*
+        }
+      }
+    }
+
+    #from_impl
+  }
+}
+
+/// Try to generate `impl From<EnumName> for module::EnumNameParams`.
+///
+/// The params struct is detected by the convention `{EnumName}Params` — i.e. if the ADT
+/// is `Shape` the struct must be `ShapeParams` in the same WGSL module.
+///
+/// The generated implementation:
+/// * sets the `tag` field (if present) from `e.tag()`
+/// * for each variant with a struct payload, copies matching field names from the
+///   variant struct into the params struct; any params struct field not present in the
+///   variant struct is set to `Default::default()`
+///
+/// Returns an empty `TokenStream` if no matching params struct is found.
+fn generate_from_params_impl(
+  adt: &FwgslAdtType,
+  module_name: &str,
+  naga_module: &naga::Module,
+) -> TokenStream {
+  let params_struct_name = format!("{}Params", adt.name);
+
+  // Look up the params struct in the naga module
+  let params_fields = match naga_struct_fields(naga_module, &params_struct_name) {
+    Some(f) => f,
+    None => return quote! {},
+  };
+
+  let enum_name = format_ident!("{}", adt.name);
+  let params_path = qualify_struct(module_name, &params_struct_name);
+
+  // Build a match arm per variant that fills all params struct fields.
+  let match_arms: Vec<TokenStream> = adt
+    .variants
+    .iter()
+    .map(|v| {
+      let variant_ident = format_ident!("{}", v.name);
+
+      // Get the field names for this variant's struct (if any)
+      let variant_fields: Vec<String> = v
+        .struct_name
+        .as_deref()
+        .and_then(|sn| naga_struct_fields(naga_module, sn))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|s| s.to_owned())
+        .collect();
+
+      // Build initializer for each field of the params struct
+      let field_inits: Vec<TokenStream> = params_fields
+        .iter()
+        .map(|pf| {
+          let pf_ident = format_ident!("{}", pf);
+          if *pf == "tag" {
+            // Always use the enum's tag() for the discriminant field
+            quote! { #pf_ident: __tag }
+          } else if variant_fields.contains(&pf.to_string()) {
+            // Copy matching field from the variant struct (bound as `__v`)
+            quote! { #pf_ident: __v.#pf_ident }
+          } else {
+            // Unmatched field: use zero/default
+            quote! { #pf_ident: ::core::default::Default::default() }
+          }
+        })
+        .collect();
+
+      if v.struct_name.is_some() {
+        quote! {
+          #enum_name::#variant_ident(__v) => #params_path { #(#field_inits),* }
+        }
+      } else {
+        // Unit variant: no inner struct to copy from
+        quote! {
+          #enum_name::#variant_ident => #params_path { #(#field_inits),* }
+        }
+      }
+    })
+    .collect();
+
+  quote! {
+    impl ::core::convert::From<#enum_name> for #params_path {
+      /// Convert this enum value into the corresponding WGSL uniform params struct.
+      ///
+      /// The `tag` field is set to the variant's discriminant. Fields present in
+      /// the variant's payload struct are copied by name; all other fields are zeroed.
+      #[inline]
+      fn from(e: #enum_name) -> Self {
+        let __tag = e.tag();
+        match e {
+          #(#match_arms,)*
         }
       }
     }
@@ -408,3 +533,4 @@ mod tests {
     assert_eq!(adts.len(), 0);
   }
 }
+

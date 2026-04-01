@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::quote_gen::{RustSourceItem, RustSourceItemPath, RustStructBuilder};
-use crate::{WgslBindgenOption, WgslEnumDefinition, WgslEnumVariant, WgslTypeSerializeStrategy};
+use crate::{WgslBindgenOption, WgslTypeSerializeStrategy};
 use naga::{Handle, Type};
 use proc_macro2::TokenStream;
 use crate::qs::{format_ident, quote};
@@ -154,104 +154,6 @@ fn struct_has_rts_array_member(
       }
     )
   })
-}
-
-/// Returns a `TokenStream` of Rust enum definitions generated from all
-/// [`WgslEnumDefinition`] entries in the options.
-///
-/// Each definition becomes a `#[repr(u32)]` Rust enum placed at the top level of
-/// the output file (alongside `ShaderEntry`), together with:
-/// - `TryFrom<u32>` — converts a raw WGSL discriminant back to the enum
-/// - `From<Enum> for u32` — passes the enum into a WGSL buffer
-/// - `bytemuck::Zeroable` / `bytemuck::Pod` unsafe impls (Bytemuck strategy only)
-pub fn enum_tokens(options: &WgslBindgenOption) -> TokenStream {
-  let items: Vec<TokenStream> = options
-    .custom_enums
-    .iter()
-    .map(|def| generate_enum_tokens(def, options))
-    .collect();
-  quote! { #(#items)* }
-}
-
-fn generate_enum_tokens(def: &WgslEnumDefinition, options: &WgslBindgenOption) -> TokenStream {
-  let enum_name = format_ident!("{}", def.name);
-
-  // Build the variant list: `Red = 0u32`, `Green = 1u32`, …
-  let variants: Vec<TokenStream> = def
-    .variants
-    .iter()
-    .map(|WgslEnumVariant { name, discriminant }| {
-      let variant_ident = format_ident!("{}", name);
-      quote! { #variant_ident = #discriminant }
-    })
-    .collect();
-
-  // Build the TryFrom<u32> match arms
-  let try_from_arms: Vec<TokenStream> = def
-    .variants
-    .iter()
-    .map(|WgslEnumVariant { name, discriminant }| {
-      let variant_ident = format_ident!("{}", name);
-      quote! { #discriminant => ::core::result::Result::Ok(Self::#variant_ident) }
-    })
-    .collect();
-
-  // Bytemuck impls: `#[repr(u32)]` enums are Pod/Zeroable ONLY when discriminant 0 exists.
-  //
-  // `bytemuck::Zeroable` requires that zeroing the type produces a valid value.
-  // For a `#[repr(u32)]` enum that means discriminant 0 must be a valid variant.
-  // `bytemuck::Pod` additionally requires that all bit patterns are valid, which is
-  // satisfied for `#[repr(u32)]` enums only if we restrict to 0..N discriminants —
-  // in practice we limit ourselves to the case where 0 is a defined variant, which
-  // is the common case for fwgsl ADTs (tags start at 0).
-  let bytemuck_impls = if options.serialization_strategy == WgslTypeSerializeStrategy::Bytemuck {
-    let has_zero_variant = def.variants.iter().any(|v| v.discriminant == 0);
-    if has_zero_variant {
-      quote! {
-        unsafe impl ::bytemuck::Zeroable for #enum_name {}
-        unsafe impl ::bytemuck::Pod for #enum_name {}
-      }
-    } else {
-      // Neither Zeroable nor Pod is safe when no variant corresponds to discriminant 0,
-      // because an all-zeros bit pattern would not represent any valid enum state.
-      quote! {}
-    }
-  } else {
-    quote! {}
-  };
-
-  quote! {
-    /// Rust mirror of the fwgsl algebraic data type (ADT) of the same name.
-    ///
-    /// Each variant corresponds to a `u32` constructor tag in the generated WGSL.
-    /// Use [`TryFrom<u32>`] to convert a raw WGSL value back to this enum, and
-    /// [`From<Self> for u32`] to write the enum into a WGSL-compatible buffer.
-    #[repr(u32)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub enum #enum_name {
-      #(#variants),*
-    }
-
-    impl ::core::convert::TryFrom<u32> for #enum_name {
-      type Error = u32;
-      #[inline]
-      fn try_from(v: u32) -> ::core::result::Result<Self, u32> {
-        match v {
-          #(#try_from_arms,)*
-          other => ::core::result::Result::Err(other),
-        }
-      }
-    }
-
-    impl ::core::convert::From<#enum_name> for u32 {
-      #[inline]
-      fn from(e: #enum_name) -> u32 {
-        e as u32
-      }
-    }
-
-    #bytemuck_impls
-  }
 }
 
 #[cfg(test)]
