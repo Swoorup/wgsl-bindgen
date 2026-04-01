@@ -77,10 +77,12 @@ mod tests {
   use super::demangle_and_fully_qualify;
 
   #[test]
-  fn should_fully_qualify_mangled_string() {
-    let string = "UniformsX_naga_oil_mod_XOR4XAZLTX";
+  fn should_fully_qualify_wesl_mangled_string() {
+    // WESL EscapeMangler format: package::global_bindings::GlobalUniforms
+    // mangled as "package__1global_bindings_GlobalUniforms"
+    let string = "package__1global_bindings_GlobalUniforms";
     let actual = demangle_and_fully_qualify(string, None);
-    assert_eq!(actual.to_string(), "_root :: types :: Uniforms");
+    assert_eq!(actual.to_string(), "_root :: global_bindings :: GlobalUniforms");
   }
 
   #[test]

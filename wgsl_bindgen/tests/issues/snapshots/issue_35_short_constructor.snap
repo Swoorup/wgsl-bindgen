@@ -53,19 +53,17 @@ pub mod layout_asserts {
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
 }
-pub mod clear {
+pub mod vertices {
   use super::{_root, _root::*};
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct package_vertices_VertexIn {
+  pub struct VertexIn {
     pub position: glam::Vec4,
   }
-  pub const fn package_vertices_VertexIn(
-    position: glam::Vec4,
-  ) -> package_vertices_VertexIn {
-    package_vertices_VertexIn { position }
+  pub const fn VertexIn(position: glam::Vec4) -> VertexIn {
+    VertexIn { position }
   }
-  impl package_vertices_VertexIn {
+  impl VertexIn {
     pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [wgpu::VertexAttribute {
       format: wgpu::VertexFormat::Float32x4,
       offset: std::mem::offset_of!(Self, position) as u64,
@@ -81,6 +79,14 @@ pub mod clear {
       }
     }
   }
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for vertices::VertexIn {}
+  unsafe impl bytemuck::Pod for vertices::VertexIn {}
+}
+pub mod clear {
+  use super::{_root, _root::*};
   pub const ENTRY_VERTEX_MAIN: &str = "vertex_main";
   pub const ENTRY_FRAGMENT_MAIN: &str = "fragment_main";
   #[derive(Debug)]
@@ -103,14 +109,10 @@ pub mod clear {
       },
     }
   }
-  pub fn vertex_main_entry(
-    package_vertices__vertex_in: wgpu::VertexStepMode,
-  ) -> VertexEntry<1> {
+  pub fn vertex_main_entry(vertex_in: wgpu::VertexStepMode) -> VertexEntry<1> {
     VertexEntry {
       entry_point: ENTRY_VERTEX_MAIN,
-      buffers: [package_vertices_VertexIn::vertex_buffer_layout(
-        package_vertices__vertex_in,
-      )],
+      buffers: [vertices::VertexIn::vertex_buffer_layout(vertex_in)],
       constants: Default::default(),
     }
   }
@@ -189,9 +191,4 @@ struct package_vertices_VertexIn {
     position: vec4<f32>
 }
 "#;
-}
-pub mod bytemuck_impls {
-  use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for clear::package_vertices_VertexIn {}
-  unsafe impl bytemuck::Pod for clear::package_vertices_VertexIn {}
 }

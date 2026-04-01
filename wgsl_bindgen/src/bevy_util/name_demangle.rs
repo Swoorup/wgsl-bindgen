@@ -1,16 +1,17 @@
 use std::borrow::Cow;
-use std::sync::OnceLock;
 
-use regex::Regex;
 use smallvec::SmallVec;
+use wesl::syntax::PathOrigin;
+use wesl::{EscapeMangler, Mangler};
 
 use crate::quote_gen::RustSourceItemPath;
 
-const DECORATION_PRE: &str = "X_naga_oil_mod_X";
-const DECORATION_POST: &str = "X";
-
 impl RustSourceItemPath {
-  /// Demangles a string representing a module path and item name, splitting them into separate parts.
+  /// Demangles a WESL-mangled identifier (e.g. `package__1global_bindings_GlobalUniforms`)
+  /// into a `RustSourceItemPath`.
+  ///
+  /// If the name is already a plain identifier (no mangling), the `default_module_path` is
+  /// used as the module and the full string as the item name.
   pub fn from_mangled(string: &str, default_module_path: &str) -> Self {
     let demangled = demangle_str(string);
     let mut parts = demangled
@@ -33,26 +34,41 @@ impl RustSourceItemPath {
   }
 }
 
-fn undecorate_regex() -> &'static Regex {
-  static MEM: OnceLock<Regex> = OnceLock::new();
+/// Attempt to demangle a WESL `EscapeMangler`-mangled identifier.
+///
+/// Returns `Some("module::path::Item")` when successful, `None` when the string does
+/// not look like a WESL-mangled name (no `::` path components encoded).
+fn wesl_demangle(mangled: &str) -> Option<String> {
+  let (path, item) = EscapeMangler.unmangle(mangled)?;
 
-  MEM.get_or_init(|| {
-    // https://github.com/bevyengine/naga_oil/blob/master/src/compose/mod.rs#L355-L363
-    Regex::new(
-      format!(
-        r"(\x1B\[\d+\w)?([\w\d_]+){}([A-Z0-9]*){}",
-        regex_syntax::escape(DECORATION_PRE),
-        regex_syntax::escape(DECORATION_POST)
-      )
-      .as_str(),
-    )
-    .unwrap()
-  })
+  // Only handle package-absolute paths (origin == PathOrigin::Absolute).
+  // These correspond to `import package::...` – the only form we emit.
+  let components = match &path.origin {
+    PathOrigin::Absolute => &path.components,
+    // For relative/external-package paths fall back to the default behaviour.
+    _ => return None,
+  };
+
+  if components.is_empty() {
+    // Top-level item in the root package – no sub-module prefix.
+    // Return None so the caller uses the invoking entry module instead.
+    None
+  } else {
+    Some(format!("{}::{}", components.join("::"), item))
+  }
 }
 
-// https://github.com/bevyengine/naga_oil/blob/master/src/compose/mod.rs#L417-L419
-fn decode(from: &str) -> String {
-  String::from_utf8(data_encoding::BASE32_NOPAD.decode(from.as_bytes()).unwrap()).unwrap()
+/// Demangle a WGSL identifier produced by the WESL compiler.
+///
+/// * For WESL-mangled names (e.g. `package__1global_bindings_GlobalUniforms`) the
+///   function returns the demangled `"module::Item"` form.
+/// * For plain identifiers the input is returned unchanged.
+pub fn demangle_str(string: &str) -> Cow<'_, str> {
+  if let Some(demangled) = wesl_demangle(string) {
+    Cow::Owned(demangled)
+  } else {
+    Cow::Borrowed(string)
+  }
 }
 
 pub fn escape_os_path(path: &str) -> String {
@@ -71,24 +87,15 @@ pub fn make_valid_rust_import(value: &str) -> String {
     .to_string()
 }
 
-// https://github.com/bevyengine/naga_oil/blob/master/src/compose/mod.rs#L421-L431
-pub fn demangle_str(string: &str) -> Cow<'_, str> {
-  undecorate_regex().replace_all(string, |caps: &regex::Captures| {
-    format!(
-      "{}{}::{}",
-      caps.get(1).map(|cc| cc.as_str()).unwrap_or(""),
-      make_valid_rust_import(&decode(caps.get(3).unwrap().as_str())),
-      caps.get(2).unwrap().as_str()
-    )
-  })
-}
-
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;
 
   use crate::bevy_util::make_valid_rust_import;
   use crate::quote_gen::RustSourceItemPath;
+
+  use super::demangle_str;
+  use wesl::Mangler;
 
   #[test]
   fn test_make_valid_rust_import() {
@@ -97,21 +104,49 @@ mod tests {
   }
 
   #[test]
-  fn test_demangle_mod_names() {
+  fn test_wesl_demangle_with_module() {
+    // `package::global_bindings::GlobalUniforms`
+    // EscapeMangler: "global_bindings" has 1 underscore → "_1global_bindings"
+    // Mangle result: "package__1global_bindings_GlobalUniforms"
     assert_eq!(
-      RustSourceItemPath::from_mangled("SnehaDataX_naga_oil_mod_XOM5DU5DZOBSXGX", ""),
+      RustSourceItemPath::from_mangled("package__1global_bindings_GlobalUniforms", "entry"),
       RustSourceItemPath {
-        module: "s::types".into(),
-        name: "SnehaData".into()
+        module: "global_bindings".into(),
+        name: "GlobalUniforms".into(),
       }
     );
+  }
 
+  #[test]
+  fn test_wesl_demangle_nested_module() {
+    // `package::compute_demo::particle_physics::Particle`
+    let mangled = wesl::EscapeMangler
+      .mangle(&"package::compute_demo::particle_physics".parse().unwrap(), "Particle");
+    let result = RustSourceItemPath::from_mangled(&mangled, "entry");
+    assert_eq!(result.module.as_str(), "compute_demo::particle_physics");
+    assert_eq!(result.name.as_str(), "Particle");
+  }
+
+  #[test]
+  fn test_plain_name_uses_default_module() {
+    // A name with no mangling stays in the default module
     assert_eq!(
-      RustSourceItemPath::from_mangled("UniformsX_naga_oil_mod_XOR4XAZLTX", ""),
+      RustSourceItemPath::from_mangled("Uniforms", "my_shader"),
       RustSourceItemPath {
-        module: "types".into(),
-        name: "Uniforms".into()
+        module: "my_shader".into(),
+        name: "Uniforms".into(),
       }
     );
+  }
+
+  #[test]
+  fn test_demangle_str_wesl() {
+    // Sub-module item: demangled to "module::Item"
+    assert_eq!(
+      demangle_str("package__1global_bindings_GlobalUniforms"),
+      "global_bindings::GlobalUniforms"
+    );
+    // Plain identifier passes through unchanged
+    assert_eq!(demangle_str("Uniforms"), "Uniforms");
   }
 }
