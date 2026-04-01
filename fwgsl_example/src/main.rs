@@ -21,26 +21,26 @@
 //! src/shader_bindings.rs  including:
 //!   pub enum Color { Red, Green, Blue }           ← simple #[repr(u32)] enum
 //!   pub enum Shape { Circle(Circle), Rect(Rect) } ← data-carrying enum
-//!   impl From<Shape> for shape_compute::ShapeParams ← automatic conversion trait
+//!   impl From<Shape> for shaders::shape_compute::ShapeParams ← automatic conversion trait
 //! ```
 
 mod shader_bindings;
 
 fn main() {
   use shader_bindings::{Color, Shape};
-  use shader_bindings::shape_compute::{Circle, Rect, ShapeParams};
+  use shader_bindings::shaders::shape_compute::{Circle, Rect, ShapeParams};
 
   println!("fwgsl → WGSL → wgsl-bindgen integration example");
   println!("─────────────────────────────────────────────────────────────────────────────");
 
   // ── Scale-bias shader ──────────────────────────────────────────────────────────
-  let params = shader_bindings::scale_bias_compute::ScaleBiasParams::new(2.0, 0.5);
+  let params = shader_bindings::shaders::scale_bias::ScaleBiasParams::new(2.0, 0.5);
   println!();
-  println!("[scale_bias_compute] ScaleBiasParams (from fwgsl helpers):");
+  println!("[scale_bias] ScaleBiasParams (from fwgsl helpers):");
   println!("  scale  = {}", params.scale);
   println!("  bias   = {}", params.bias);
   println!("  workgroup size = {:?}",
-    shader_bindings::scale_bias_compute::compute::MAIN_WORKGROUP_SIZE);
+    shader_bindings::shaders::scale_bias::compute::MAIN_WORKGROUP_SIZE);
 
   // ── Color enum (simple ADT) ────────────────────────────────────────────────────
   println!();
@@ -55,7 +55,7 @@ fn main() {
   println!();
   println!("[shape_compute] Shape — data-carrying ADT + automatic From<Shape> for ShapeParams:");
   println!("  fwgsl: `data Shape = Circle F32 | Rect F32 F32`");
-  println!("  Generated: impl From<Shape> for shape_compute::ShapeParams");
+  println!("  Generated: impl From<Shape> for shaders::shape_compute::ShapeParams");
   println!();
 
   // Construct Shape variants using the generated Rust types

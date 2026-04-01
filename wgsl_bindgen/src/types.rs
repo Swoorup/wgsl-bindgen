@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use derive_more::{AsRef, Deref, Display, From, Into};
 use educe::Educe;
@@ -126,5 +126,54 @@ pub struct SourceLocation {
 impl From<&SourceLocation> for miette::SourceSpan {
   fn from(value: &SourceLocation) -> miette::SourceSpan {
     miette::SourceSpan::new(value.offset.into(), value.length)
+  }
+}
+
+/// A callback that can provide or transform the WGSL source for a file before it
+/// is compiled by the bindgen pipeline.
+///
+/// The callback receives the **absolute path** of the file being loaded and should return:
+/// * `Some(wgsl_content)` — the WGSL content to use instead of reading the file from disk
+/// * `None` — fall through to normal `fs::read_to_string` behaviour
+///
+/// ## Typical use-case: source-to-WGSL compilers
+///
+/// Pass `.fwgsl` (or `.slang`, `.hlsl`, …) paths directly to
+/// [`WgslBindgenOptionBuilder::add_entry_point`] and register a preprocessor that
+/// compiles them to WGSL on-the-fly.  This eliminates the need to write intermediate
+/// `.wgsl` files to a temporary directory.
+///
+/// ```no_run
+/// # use std::path::Path;
+/// # use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslTypeSerializeStrategy};
+/// fn compile_my_lang(path: &Path) -> Option<String> {
+///   if path.extension()?.to_str()? != "mylang" { return None; }
+///   let src = std::fs::read_to_string(path).expect("read source");
+///   Some(format!("/* compiled from {} */\n{src}", path.display()))
+/// }
+///
+/// WgslBindgenOptionBuilder::default()
+///   .workspace_root("shaders")
+///   .source_preprocessor(compile_my_lang)
+///   .add_entry_point("shaders/my_shader.mylang");
+/// ```
+#[derive(Clone)]
+pub struct SourcePreprocessor(std::sync::Arc<dyn Fn(&Path) -> Option<String> + Send + Sync + 'static>);
+
+impl SourcePreprocessor {
+  /// Create a new `SourcePreprocessor` from a closure or function pointer.
+  pub fn new(f: impl Fn(&Path) -> Option<String> + Send + Sync + 'static) -> Self {
+    Self(std::sync::Arc::new(f))
+  }
+
+  /// Invoke the preprocessor for the given path.
+  pub fn call(&self, path: &Path) -> Option<String> {
+    (self.0)(path)
+  }
+}
+
+impl std::fmt::Debug for SourcePreprocessor {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str("SourcePreprocessor(<fn>)")
   }
 }

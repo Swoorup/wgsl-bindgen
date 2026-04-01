@@ -60,6 +60,7 @@ fn build_bevy_deptree() -> DependencyTree {
       SourceFilePath::new("tests/shaders/integration/bevy_pbr_wgsl/wireframe.wgsl"),
     ],
     vec![],
+    None,
   )
   .into_diagnostic()
   .expect("build_bevy_deptree error")

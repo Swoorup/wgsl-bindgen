@@ -14,7 +14,7 @@ use regex::Regex;
 pub use types::*;
 
 use crate::{
-  FastIndexMap, WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy,
+  FastIndexMap, SourcePreprocessor, WGSLBindgen, WgslBindgenError, WgslType, WgslTypeSerializeStrategy,
 };
 
 /// An enum representing the source type that will be generated for the output.
@@ -373,6 +373,21 @@ pub struct WgslBindgenOption {
   /// These are preprocessor definitions that can be used in WGSL shaders with #ifdef, #ifndef, etc.
   #[builder(default, setter(into))]
   pub shader_defs: Vec<(String, naga_oil::compose::ShaderDefValue)>,
+
+  /// An optional pre-processor invoked for every file before it is compiled.
+  ///
+  /// When set, the callback receives the absolute path of the file being loaded.
+  /// If it returns `Some(wgsl_content)`, that string is used as the WGSL source
+  /// instead of reading the file from disk.  Returning `None` falls through to
+  /// the normal `fs::read_to_string` behaviour.
+  ///
+  /// This hook makes it straightforward to support source-to-WGSL compilers
+  /// (e.g. [fwgsl](https://github.com/ubugeeei/fwgsl), HLSL, Slang) without
+  /// writing intermediate `.wgsl` files to a temporary directory: just pass the
+  /// original source paths to [`WgslBindgenOptionBuilder::add_entry_point`] and
+  /// let the preprocessor handle compilation on-the-fly.
+  #[builder(default, setter(custom))]
+  pub source_preprocessor: Option<SourcePreprocessor>,
 }
 
 impl WgslBindgenOptionBuilder {
@@ -457,6 +472,23 @@ impl WgslBindgenOptionBuilder {
   ) -> &mut Self {
     let generator = Some(config.get_generator_config());
     self.extra_binding_generator = Some(generator);
+    self
+  }
+
+  /// Register a source pre-processor that can provide or transform WGSL content
+  /// for any file before it is compiled by the bindgen pipeline.
+  ///
+  /// The closure receives the **absolute path** of the file being loaded.
+  /// Return `Some(wgsl_string)` to replace the file's content, or `None` to let
+  /// wgsl-bindgen read the file from disk normally.
+  ///
+  /// Typical use-case: compile `.fwgsl` / `.hlsl` / `.slang` sources to WGSL
+  /// on-the-fly, eliminating the need for intermediate temp files.
+  pub fn source_preprocessor(
+    &mut self,
+    f: impl Fn(&std::path::Path) -> Option<String> + Send + Sync + 'static,
+  ) -> &mut Self {
+    self.source_preprocessor = Some(Some(SourcePreprocessor::new(f)));
     self
   }
 }

@@ -23,7 +23,7 @@ pub struct WGSLBindgen {
 }
 
 impl WGSLBindgen {
-  pub(crate) fn new(options: WgslBindgenOption) -> Result<Self, WgslBindgenError> {
+  pub(crate) fn new(mut options: WgslBindgenOption) -> Result<Self, WgslBindgenError> {
     let entry_points = options
       .entry_points
       .iter()
@@ -31,11 +31,15 @@ impl WGSLBindgen {
       .map(SourceFilePath::new)
       .collect();
 
+    // Extract the preprocessor before moving options into the struct.
+    let preprocessor = options.source_preprocessor.take();
+
     let dependency_tree = DependencyTree::try_build(
       options.workspace_root.clone(),
       options.module_import_root.clone(),
       entry_points,
       options.additional_scan_dirs.clone(),
+      preprocessor,
     )?;
 
     let content_hash = Self::get_contents_hash(&options, &dependency_tree);

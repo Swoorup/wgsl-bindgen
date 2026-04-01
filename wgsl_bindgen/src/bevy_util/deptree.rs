@@ -12,7 +12,7 @@ use super::source_file::SourceFile;
 use super::ModulePathResolver;
 use crate::{
   AdditionalScanDirectory, FxIndexMap, FxIndexSet, ImportPathPart, SourceFilePath,
-  SourceModuleName,
+  SourceModuleName, SourcePreprocessor,
 };
 
 #[derive(Debug, Error, Diagnostic)]
@@ -93,6 +93,8 @@ pub struct DependencyTree {
   resolver: ModulePathResolver,
   parsed_sources: FxIndexMap<SourceFilePath, SourceFile>,
   entry_points: FxIndexSet<SourceFilePath>,
+  /// Optional preprocessor: called for every file before its content is used.
+  preprocessor: Option<SourcePreprocessor>,
 }
 
 /// Represents a dependency tree for tracking the dependencies between source files.
@@ -123,6 +125,7 @@ impl DependencyTree {
     entry_module_prefix: Option<String>,
     entry_points: Vec<SourceFilePath>, // path to entry points
     additional_scan_dirs: Vec<AdditionalScanDirectory>,
+    preprocessor: Option<SourcePreprocessor>,
   ) -> Result<Self, DependencyTreeError> {
     let resolver =
       ModulePathResolver::new(workspace_root, entry_module_prefix, additional_scan_dirs);
@@ -131,6 +134,7 @@ impl DependencyTree {
       resolver,
       parsed_sources: Default::default(),
       entry_points: Default::default(),
+      preprocessor,
     };
 
     for entry_point in entry_points {
@@ -198,9 +202,17 @@ impl DependencyTree {
     match self.parsed_sources.entry(source_path.clone()) {
       Entry::Occupied(_) => {} // do nothing
       Entry::Vacant(entry) => {
-        let content = entry.key().read_contents().or(Err(SourceNotFound {
-          path: entry.key().clone(),
-        }))?;
+        // 1. Try the preprocessor first; fall back to reading from disk.
+        let content = match self
+          .preprocessor
+          .as_ref()
+          .and_then(|p| p.call(entry.key().as_path()))
+        {
+          Some(preprocessed) => preprocessed,
+          None => entry.key().read_contents().or(Err(SourceNotFound {
+            path: entry.key().clone(),
+          }))?,
+        };
 
         let source_file =
           SourceFile::create(entry.key().clone(), module_name.clone(), content);

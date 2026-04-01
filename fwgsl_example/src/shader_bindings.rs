@@ -2,21 +2,21 @@
 //
 // ^ wgsl_bindgen version 0.22.2
 // Changes made to this file will not be saved.
-// SourceHash: 8d2bf45f983c99032c7b8524242b2477167cf2c59c2d38c9d55802302170a636
+// SourceHash: 285fce4309a9837203a78657240531d5dce8afba4e61b6295c829cb9fad8579e
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
-  ScaleBiasCompute,
-  ColorCompute,
-  ShapeCompute,
+  ShadersScaleBias,
+  ShadersColorCompute,
+  ShadersShapeCompute,
 }
 impl ShaderEntry {
   pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
     match self {
-      Self::ScaleBiasCompute => scale_bias_compute::create_pipeline_layout(device),
-      Self::ColorCompute => color_compute::create_pipeline_layout(device),
-      Self::ShapeCompute => shape_compute::create_pipeline_layout(device),
+      Self::ShadersScaleBias => shaders::scale_bias::create_pipeline_layout(device),
+      Self::ShadersColorCompute => shaders::color_compute::create_pipeline_layout(device),
+      Self::ShadersShapeCompute => shaders::shape_compute::create_pipeline_layout(device),
     }
   }
   pub fn create_shader_module_embed_source(
@@ -24,11 +24,15 @@ impl ShaderEntry {
     device: &wgpu::Device,
   ) -> wgpu::ShaderModule {
     match self {
-      Self::ScaleBiasCompute => {
-        scale_bias_compute::create_shader_module_embed_source(device)
+      Self::ShadersScaleBias => {
+        shaders::scale_bias::create_shader_module_embed_source(device)
       }
-      Self::ColorCompute => color_compute::create_shader_module_embed_source(device),
-      Self::ShapeCompute => shape_compute::create_shader_module_embed_source(device),
+      Self::ShadersColorCompute => {
+        shaders::color_compute::create_shader_module_embed_source(device)
+      }
+      Self::ShadersShapeCompute => {
+        shaders::shape_compute::create_shader_module_embed_source(device)
+      }
     }
   }
 }
@@ -76,8 +80,8 @@ unsafe impl ::bytemuck::Zeroable for Color {}
 #[doc = r" shader source."]
 #[derive(Debug, Clone, Copy)]
 pub enum Shape {
-  Circle(shape_compute::Circle),
-  Rect(shape_compute::Rect),
+  Circle(shaders::shape_compute::Circle),
+  Rect(shaders::shape_compute::Rect),
 }
 impl Shape {
   #[doc = r" Returns the `u32` discriminant tag used by fwgsl in the corresponding WGSL shader."]
@@ -89,7 +93,7 @@ impl Shape {
     }
   }
 }
-impl ::core::convert::From<Shape> for shape_compute::ShapeParams {
+impl ::core::convert::From<Shape> for shaders::shape_compute::ShapeParams {
   #[doc = r" Convert this enum value into the corresponding WGSL uniform params struct."]
   #[doc = r""]
   #[doc = r" The `tag` field is set to the variant's discriminant. Fields present in"]
@@ -98,13 +102,13 @@ impl ::core::convert::From<Shape> for shape_compute::ShapeParams {
   fn from(e: Shape) -> Self {
     let __tag = e.tag();
     match e {
-      Shape::Circle(__v) => shape_compute::ShapeParams {
+      Shape::Circle(__v) => shaders::shape_compute::ShapeParams {
         tag: __tag,
         field0: __v.field0,
         field1: ::core::default::Default::default(),
         _pad: ::core::default::Default::default(),
       },
-      Shape::Rect(__v) => shape_compute::ShapeParams {
+      Shape::Rect(__v) => shaders::shape_compute::ShapeParams {
         tag: __tag,
         field0: __v.field0,
         field1: __v.field1,
@@ -137,176 +141,183 @@ mod _root {
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {};
-  const SCALE_BIAS_COMPUTE_SCALE_BIAS_PARAMS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(scale_bias_compute::ScaleBiasParams, scale) == 0);
-    assert!(std::mem::offset_of!(scale_bias_compute::ScaleBiasParams, bias) == 4);
-    assert!(std::mem::size_of::<scale_bias_compute::ScaleBiasParams>() == 8);
+  const SHADERS_SCALE_BIAS_SCALE_BIAS_PARAMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(shaders::scale_bias::ScaleBiasParams, scale) == 0);
+    assert!(std::mem::offset_of!(shaders::scale_bias::ScaleBiasParams, bias) == 4);
+    assert!(std::mem::size_of::<shaders::scale_bias::ScaleBiasParams>() == 8);
   };
-  const COLOR_COMPUTE_COLOR_PARAMS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(color_compute::ColorParams, color_tag) == 0);
-    assert!(std::mem::size_of::<color_compute::ColorParams>() == 4);
+  const SHADERS_COLOR_COMPUTE_COLOR_PARAMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(shaders::color_compute::ColorParams, color_tag) == 0);
+    assert!(std::mem::size_of::<shaders::color_compute::ColorParams>() == 4);
   };
-  const SHAPE_COMPUTE_SHAPE_PARAMS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(shape_compute::ShapeParams, tag) == 0);
-    assert!(std::mem::offset_of!(shape_compute::ShapeParams, field0) == 4);
-    assert!(std::mem::offset_of!(shape_compute::ShapeParams, field1) == 8);
-    assert!(std::mem::offset_of!(shape_compute::ShapeParams, _pad) == 12);
-    assert!(std::mem::size_of::<shape_compute::ShapeParams>() == 16);
+  const SHADERS_SHAPE_COMPUTE_SHAPE_PARAMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(shaders::shape_compute::ShapeParams, tag) == 0);
+    assert!(std::mem::offset_of!(shaders::shape_compute::ShapeParams, field0) == 4);
+    assert!(std::mem::offset_of!(shaders::shape_compute::ShapeParams, field1) == 8);
+    assert!(std::mem::offset_of!(shaders::shape_compute::ShapeParams, _pad) == 12);
+    assert!(std::mem::size_of::<shaders::shape_compute::ShapeParams>() == 16);
   };
 }
-pub mod scale_bias_compute {
+pub mod shaders {
   use super::{_root, _root::*};
-  #[repr(C, align(4))]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct ScaleBiasParams {
-    #[doc = "offset: 0, size: 4, type: `f32`"]
-    pub scale: f32,
-    #[doc = "offset: 4, size: 4, type: `f32`"]
-    pub bias: f32,
-  }
-  impl ScaleBiasParams {
-    pub const fn new(scale: f32, bias: f32) -> Self {
-      Self { scale, bias }
-    }
-  }
-  pub mod compute {
+  pub mod scale_bias {
     use super::{_root, _root::*};
-    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
-    pub fn create_main_pipeline_embed_source(
-      device: &wgpu::Device,
-    ) -> wgpu::ComputePipeline {
-      let module = super::create_shader_module_embed_source(device);
-      let layout = super::create_pipeline_layout(device);
-      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Compute Pipeline main"),
-        layout: Some(&layout),
-        module: &module,
-        entry_point: Some("main"),
-        compilation_options: Default::default(),
-        cache: None,
-      })
+    #[repr(C, align(4))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct ScaleBiasParams {
+      #[doc = "offset: 0, size: 4, type: `f32`"]
+      pub scale: f32,
+      #[doc = "offset: 4, size: 4, type: `f32`"]
+      pub bias: f32,
     }
-  }
-  pub const ENTRY_MAIN: &str = "main";
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub data: wgpu::BufferBinding<'a>,
-    pub params: wgpu::BufferBinding<'a>,
-  }
-  #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup0Entries<'a> {
-    pub data: wgpu::BindGroupEntry<'a>,
-    pub params: wgpu::BindGroupEntry<'a>,
-  }
-  impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-      Self {
-        data: wgpu::BindGroupEntry {
-          binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.data),
-        },
-        params: wgpu::BindGroupEntry {
-          binding: 1,
-          resource: wgpu::BindingResource::Buffer(params.params),
-        },
+    impl ScaleBiasParams {
+      pub const fn new(scale: f32, bias: f32) -> Self {
+        Self { scale, bias }
       }
     }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
-      [self.data, self.params]
+    pub mod compute {
+      use super::{_root, _root::*};
+      pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
+      pub fn create_main_pipeline_embed_source(
+        device: &wgpu::Device,
+      ) -> wgpu::ComputePipeline {
+        let module = super::create_shader_module_embed_source(device);
+        let layout = super::create_pipeline_layout(device);
+        device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+          label: Some("Compute Pipeline main"),
+          layout: Some(&layout),
+          module: &module,
+          entry_point: Some("main"),
+          compilation_options: Default::default(),
+          cache: None,
+        })
+      }
     }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.into_array().into_iter().collect()
+    pub const ENTRY_MAIN: &str = "main";
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+      pub data: wgpu::BufferBinding<'a>,
+      pub params: wgpu::BufferBinding<'a>,
     }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0(wgpu::BindGroup);
-  impl WgpuBindGroup0 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-      wgpu::BindGroupLayoutDescriptor {
-        label: Some("ScaleBiasCompute::BindGroup0::LayoutDescriptor"),
-        entries: &[
-          #[doc = " @binding(0): \"data\""]
-          wgpu::BindGroupLayoutEntry {
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+      pub data: wgpu::BindGroupEntry<'a>,
+      pub params: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+      pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+        Self {
+          data: wgpu::BindGroupEntry {
             binding: 0,
-            visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: false },
-              has_dynamic_offset: false,
-              min_binding_size: None,
-            },
-            count: None,
+            resource: wgpu::BindingResource::Buffer(params.data),
           },
-          #[doc = " @binding(1): \"params\""]
-          wgpu::BindGroupLayoutEntry {
+          params: wgpu::BindGroupEntry {
             binding: 1,
-            visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::scale_bias_compute::ScaleBiasParams,
-              >() as _),
-            },
-            count: None,
+            resource: wgpu::BindingResource::Buffer(params.params),
           },
-        ],
-      };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+      }
+      pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+        [self.data, self.params]
+      }
+      pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+        self.into_array().into_iter().collect()
+      }
     }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
-      let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.into_array();
-      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("ScaleBiasCompute::BindGroup0"),
-        layout: &bind_group_layout,
-        entries: &entries,
-      });
-      Self(bind_group)
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+      pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+        wgpu::BindGroupLayoutDescriptor {
+          label: Some("ShadersScaleBias::BindGroup0::LayoutDescriptor"),
+          entries: &[
+            #[doc = " @binding(0): \"data\""]
+            wgpu::BindGroupLayoutEntry {
+              binding: 0,
+              visibility: wgpu::ShaderStages::COMPUTE,
+              ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                has_dynamic_offset: false,
+                min_binding_size: None,
+              },
+              count: None,
+            },
+            #[doc = " @binding(1): \"params\""]
+            wgpu::BindGroupLayoutEntry {
+              binding: 1,
+              visibility: wgpu::ShaderStages::COMPUTE,
+              ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                  _root::shaders::scale_bias::ScaleBiasParams,
+                >() as _),
+              },
+              count: None,
+            },
+          ],
+        };
+      pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+      }
+      pub fn from_bindings(
+        device: &wgpu::Device,
+        bindings: WgpuBindGroup0Entries,
+      ) -> Self {
+        let bind_group_layout = Self::get_bind_group_layout(device);
+        let entries = bindings.into_array();
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+          label: Some("ShadersScaleBias::BindGroup0"),
+          layout: &bind_group_layout,
+          entries: &entries,
+        });
+        Self(bind_group)
+      }
+      pub fn set(&self, pass: &mut impl SetBindGroup) {
+        pass.set_bind_group(0, &self.0, &[]);
+      }
     }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(0, &self.0, &[]);
+    #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+    #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+    #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+    #[doc = "   - Bind group 1: More frequent updates"]
+    #[doc = "   - Bind group 2: More frequent updates"]
+    #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+      pub bind_group0: &'a WgpuBindGroup0,
     }
-  }
-  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
-  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
-  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
-  #[doc = "   - Bind group 1: More frequent updates"]
-  #[doc = "   - Bind group 2: More frequent updates"]
-  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
-  #[derive(Debug, Copy, Clone)]
-  pub struct WgpuBindGroups<'a> {
-    pub bind_group0: &'a WgpuBindGroup0,
-  }
-  impl<'a> WgpuBindGroups<'a> {
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      self.bind_group0.set(pass);
+    impl<'a> WgpuBindGroups<'a> {
+      pub fn set(&self, pass: &mut impl SetBindGroup) {
+        self.bind_group0.set(pass);
+      }
     }
-  }
-  #[derive(Debug)]
-  pub struct WgpuPipelineLayout;
-  impl WgpuPipelineLayout {
-    pub fn bind_group_layout_entries(
-      entries: [wgpu::BindGroupLayout; 1],
-    ) -> [wgpu::BindGroupLayout; 1] {
-      entries
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+      pub fn bind_group_layout_entries(
+        entries: [wgpu::BindGroupLayout; 1],
+      ) -> [wgpu::BindGroupLayout; 1] {
+        entries
+      }
     }
-  }
-  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: Some("ScaleBiasCompute::PipelineLayout"),
-      bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
-      immediate_size: 0u32,
-    })
-  }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("scale_bias_compute.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
-  }
-  pub const SHADER_STRING: &str = r#"
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+      device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("ShadersScaleBias::PipelineLayout"),
+        bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
+        immediate_size: 0u32,
+      })
+    }
+    pub fn create_shader_module_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+      let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+      device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("scale_bias.fwgsl"),
+        source: wgpu::ShaderSource::Wgsl(source),
+      })
+    }
+    pub const SHADER_STRING: &str = r#"
 struct ScaleBiasParams {
     scale: f32,
     bias: f32,
@@ -362,173 +373,165 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     return;
 }
 "#;
-}
-pub mod bytemuck_impls {
-  use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for scale_bias_compute::ScaleBiasParams {}
-  unsafe impl bytemuck::Pod for scale_bias_compute::ScaleBiasParams {}
-  unsafe impl bytemuck::Zeroable for color_compute::ColorParams {}
-  unsafe impl bytemuck::Pod for color_compute::ColorParams {}
-  unsafe impl bytemuck::Zeroable for shape_compute::Circle {}
-  unsafe impl bytemuck::Pod for shape_compute::Circle {}
-  unsafe impl bytemuck::Zeroable for shape_compute::Rect {}
-  unsafe impl bytemuck::Pod for shape_compute::Rect {}
-  unsafe impl bytemuck::Zeroable for shape_compute::ShapeParams {}
-  unsafe impl bytemuck::Pod for shape_compute::ShapeParams {}
-}
-pub mod color_compute {
-  use super::{_root, _root::*};
-  #[repr(C, align(4))]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct ColorParams {
-    #[doc = "offset: 0, size: 4, type: `u32`"]
-    pub color_tag: u32,
   }
-  impl ColorParams {
-    pub const fn new(color_tag: u32) -> Self {
-      Self { color_tag }
-    }
-  }
-  pub mod compute {
+  pub mod color_compute {
     use super::{_root, _root::*};
-    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
-    pub fn create_main_pipeline_embed_source(
-      device: &wgpu::Device,
-    ) -> wgpu::ComputePipeline {
-      let module = super::create_shader_module_embed_source(device);
-      let layout = super::create_pipeline_layout(device);
-      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Compute Pipeline main"),
-        layout: Some(&layout),
-        module: &module,
-        entry_point: Some("main"),
-        compilation_options: Default::default(),
-        cache: None,
-      })
+    #[repr(C, align(4))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct ColorParams {
+      #[doc = "offset: 0, size: 4, type: `u32`"]
+      pub color_tag: u32,
     }
-  }
-  pub const ENTRY_MAIN: &str = "main";
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub output: wgpu::BufferBinding<'a>,
-    pub params: wgpu::BufferBinding<'a>,
-  }
-  #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup0Entries<'a> {
-    pub output: wgpu::BindGroupEntry<'a>,
-    pub params: wgpu::BindGroupEntry<'a>,
-  }
-  impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-      Self {
-        output: wgpu::BindGroupEntry {
-          binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.output),
-        },
-        params: wgpu::BindGroupEntry {
-          binding: 1,
-          resource: wgpu::BindingResource::Buffer(params.params),
-        },
+    impl ColorParams {
+      pub const fn new(color_tag: u32) -> Self {
+        Self { color_tag }
       }
     }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
-      [self.output, self.params]
+    pub mod compute {
+      use super::{_root, _root::*};
+      pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+      pub fn create_main_pipeline_embed_source(
+        device: &wgpu::Device,
+      ) -> wgpu::ComputePipeline {
+        let module = super::create_shader_module_embed_source(device);
+        let layout = super::create_pipeline_layout(device);
+        device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+          label: Some("Compute Pipeline main"),
+          layout: Some(&layout),
+          module: &module,
+          entry_point: Some("main"),
+          compilation_options: Default::default(),
+          cache: None,
+        })
+      }
     }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.into_array().into_iter().collect()
+    pub const ENTRY_MAIN: &str = "main";
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+      pub output: wgpu::BufferBinding<'a>,
+      pub params: wgpu::BufferBinding<'a>,
     }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0(wgpu::BindGroup);
-  impl WgpuBindGroup0 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-      wgpu::BindGroupLayoutDescriptor {
-        label: Some("ColorCompute::BindGroup0::LayoutDescriptor"),
-        entries: &[
-          #[doc = " @binding(0): \"output\""]
-          wgpu::BindGroupLayoutEntry {
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+      pub output: wgpu::BindGroupEntry<'a>,
+      pub params: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+      pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+        Self {
+          output: wgpu::BindGroupEntry {
             binding: 0,
-            visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: false },
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(
-                std::mem::size_of::<[f32; 4]>() as _,
-              ),
-            },
-            count: None,
+            resource: wgpu::BindingResource::Buffer(params.output),
           },
-          #[doc = " @binding(1): \"params\""]
-          wgpu::BindGroupLayoutEntry {
+          params: wgpu::BindGroupEntry {
             binding: 1,
-            visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::color_compute::ColorParams,
-              >() as _),
-            },
-            count: None,
+            resource: wgpu::BindingResource::Buffer(params.params),
           },
-        ],
-      };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+        }
+      }
+      pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+        [self.output, self.params]
+      }
+      pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+        self.into_array().into_iter().collect()
+      }
     }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
-      let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.into_array();
-      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("ColorCompute::BindGroup0"),
-        layout: &bind_group_layout,
-        entries: &entries,
-      });
-      Self(bind_group)
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+      pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+        wgpu::BindGroupLayoutDescriptor {
+          label: Some("ShadersColorCompute::BindGroup0::LayoutDescriptor"),
+          entries: &[
+            #[doc = " @binding(0): \"output\""]
+            wgpu::BindGroupLayoutEntry {
+              binding: 0,
+              visibility: wgpu::ShaderStages::COMPUTE,
+              ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                has_dynamic_offset: false,
+                min_binding_size: std::num::NonZeroU64::new(
+                  std::mem::size_of::<[f32; 4]>() as _,
+                ),
+              },
+              count: None,
+            },
+            #[doc = " @binding(1): \"params\""]
+            wgpu::BindGroupLayoutEntry {
+              binding: 1,
+              visibility: wgpu::ShaderStages::COMPUTE,
+              ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                  _root::shaders::color_compute::ColorParams,
+                >() as _),
+              },
+              count: None,
+            },
+          ],
+        };
+      pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+      }
+      pub fn from_bindings(
+        device: &wgpu::Device,
+        bindings: WgpuBindGroup0Entries,
+      ) -> Self {
+        let bind_group_layout = Self::get_bind_group_layout(device);
+        let entries = bindings.into_array();
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+          label: Some("ShadersColorCompute::BindGroup0"),
+          layout: &bind_group_layout,
+          entries: &entries,
+        });
+        Self(bind_group)
+      }
+      pub fn set(&self, pass: &mut impl SetBindGroup) {
+        pass.set_bind_group(0, &self.0, &[]);
+      }
     }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(0, &self.0, &[]);
+    #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+    #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+    #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+    #[doc = "   - Bind group 1: More frequent updates"]
+    #[doc = "   - Bind group 2: More frequent updates"]
+    #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+      pub bind_group0: &'a WgpuBindGroup0,
     }
-  }
-  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
-  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
-  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
-  #[doc = "   - Bind group 1: More frequent updates"]
-  #[doc = "   - Bind group 2: More frequent updates"]
-  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
-  #[derive(Debug, Copy, Clone)]
-  pub struct WgpuBindGroups<'a> {
-    pub bind_group0: &'a WgpuBindGroup0,
-  }
-  impl<'a> WgpuBindGroups<'a> {
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      self.bind_group0.set(pass);
+    impl<'a> WgpuBindGroups<'a> {
+      pub fn set(&self, pass: &mut impl SetBindGroup) {
+        self.bind_group0.set(pass);
+      }
     }
-  }
-  #[derive(Debug)]
-  pub struct WgpuPipelineLayout;
-  impl WgpuPipelineLayout {
-    pub fn bind_group_layout_entries(
-      entries: [wgpu::BindGroupLayout; 1],
-    ) -> [wgpu::BindGroupLayout; 1] {
-      entries
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+      pub fn bind_group_layout_entries(
+        entries: [wgpu::BindGroupLayout; 1],
+      ) -> [wgpu::BindGroupLayout; 1] {
+        entries
+      }
     }
-  }
-  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: Some("ColorCompute::PipelineLayout"),
-      bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
-      immediate_size: 0u32,
-    })
-  }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("color_compute.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
-  }
-  pub const SHADER_STRING: &str = r#"
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+      device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("ShadersColorCompute::PipelineLayout"),
+        bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
+        immediate_size: 0u32,
+      })
+    }
+    pub fn create_shader_module_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+      let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+      device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("color_compute.fwgsl"),
+        source: wgpu::ShaderSource::Wgsl(source),
+      })
+    }
+    pub const SHADER_STRING: &str = r#"
 struct ColorParams {
     color_tag: u32,
 }
@@ -605,192 +608,197 @@ fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {
     return;
 }
 "#;
-}
-pub mod shape_compute {
-  use super::{_root, _root::*};
-  #[repr(C)]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct Circle {
-    pub field0: f32,
   }
-  impl Circle {
-    pub const fn new(field0: f32) -> Self {
-      Self { field0 }
+  pub mod shape_compute {
+    use super::{_root, _root::*};
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct Circle {
+      pub field0: f32,
     }
-  }
-  #[repr(C)]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct Rect {
-    pub field0: f32,
-    pub field1: f32,
-  }
-  impl Rect {
-    pub const fn new(field0: f32, field1: f32) -> Self {
-      Self { field0, field1 }
-    }
-  }
-  #[repr(C, align(4))]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct ShapeParams {
-    #[doc = "offset: 0, size: 4, type: `u32`"]
-    pub tag: u32,
-    #[doc = "offset: 4, size: 4, type: `f32`"]
-    pub field0: f32,
-    #[doc = "offset: 8, size: 4, type: `f32`"]
-    pub field1: f32,
-    #[doc = "offset: 12, size: 4, type: `f32`"]
-    pub _pad: f32,
-  }
-  impl ShapeParams {
-    pub const fn new(tag: u32, field0: f32, field1: f32, _pad: f32) -> Self {
-      Self {
-        tag,
-        field0,
-        field1,
-        _pad,
+    impl Circle {
+      pub const fn new(field0: f32) -> Self {
+        Self { field0 }
       }
     }
-  }
-  pub mod compute {
-    use super::{_root, _root::*};
-    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
-    pub fn create_main_pipeline_embed_source(
-      device: &wgpu::Device,
-    ) -> wgpu::ComputePipeline {
-      let module = super::create_shader_module_embed_source(device);
-      let layout = super::create_pipeline_layout(device);
-      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Compute Pipeline main"),
-        layout: Some(&layout),
-        module: &module,
-        entry_point: Some("main"),
-        compilation_options: Default::default(),
-        cache: None,
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct Rect {
+      pub field0: f32,
+      pub field1: f32,
+    }
+    impl Rect {
+      pub const fn new(field0: f32, field1: f32) -> Self {
+        Self { field0, field1 }
+      }
+    }
+    #[repr(C, align(4))]
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub struct ShapeParams {
+      #[doc = "offset: 0, size: 4, type: `u32`"]
+      pub tag: u32,
+      #[doc = "offset: 4, size: 4, type: `f32`"]
+      pub field0: f32,
+      #[doc = "offset: 8, size: 4, type: `f32`"]
+      pub field1: f32,
+      #[doc = "offset: 12, size: 4, type: `f32`"]
+      pub _pad: f32,
+    }
+    impl ShapeParams {
+      pub const fn new(tag: u32, field0: f32, field1: f32, _pad: f32) -> Self {
+        Self {
+          tag,
+          field0,
+          field1,
+          _pad,
+        }
+      }
+    }
+    pub mod compute {
+      use super::{_root, _root::*};
+      pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+      pub fn create_main_pipeline_embed_source(
+        device: &wgpu::Device,
+      ) -> wgpu::ComputePipeline {
+        let module = super::create_shader_module_embed_source(device);
+        let layout = super::create_pipeline_layout(device);
+        device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+          label: Some("Compute Pipeline main"),
+          layout: Some(&layout),
+          module: &module,
+          entry_point: Some("main"),
+          compilation_options: Default::default(),
+          cache: None,
+        })
+      }
+    }
+    pub const ENTRY_MAIN: &str = "main";
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0EntriesParams<'a> {
+      pub output: wgpu::BufferBinding<'a>,
+      pub params: wgpu::BufferBinding<'a>,
+    }
+    #[derive(Clone, Debug)]
+    pub struct WgpuBindGroup0Entries<'a> {
+      pub output: wgpu::BindGroupEntry<'a>,
+      pub params: wgpu::BindGroupEntry<'a>,
+    }
+    impl<'a> WgpuBindGroup0Entries<'a> {
+      pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+        Self {
+          output: wgpu::BindGroupEntry {
+            binding: 0,
+            resource: wgpu::BindingResource::Buffer(params.output),
+          },
+          params: wgpu::BindGroupEntry {
+            binding: 1,
+            resource: wgpu::BindingResource::Buffer(params.params),
+          },
+        }
+      }
+      pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+        [self.output, self.params]
+      }
+      pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+        self.into_array().into_iter().collect()
+      }
+    }
+    #[derive(Debug)]
+    pub struct WgpuBindGroup0(wgpu::BindGroup);
+    impl WgpuBindGroup0 {
+      pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+        wgpu::BindGroupLayoutDescriptor {
+          label: Some("ShadersShapeCompute::BindGroup0::LayoutDescriptor"),
+          entries: &[
+            #[doc = " @binding(0): \"output\""]
+            wgpu::BindGroupLayoutEntry {
+              binding: 0,
+              visibility: wgpu::ShaderStages::COMPUTE,
+              ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                has_dynamic_offset: false,
+                min_binding_size: std::num::NonZeroU64::new(
+                  std::mem::size_of::<[f32; 1]>() as _,
+                ),
+              },
+              count: None,
+            },
+            #[doc = " @binding(1): \"params\""]
+            wgpu::BindGroupLayoutEntry {
+              binding: 1,
+              visibility: wgpu::ShaderStages::COMPUTE,
+              ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                  _root::shaders::shape_compute::ShapeParams,
+                >() as _),
+              },
+              count: None,
+            },
+          ],
+        };
+      pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+      }
+      pub fn from_bindings(
+        device: &wgpu::Device,
+        bindings: WgpuBindGroup0Entries,
+      ) -> Self {
+        let bind_group_layout = Self::get_bind_group_layout(device);
+        let entries = bindings.into_array();
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+          label: Some("ShadersShapeCompute::BindGroup0"),
+          layout: &bind_group_layout,
+          entries: &entries,
+        });
+        Self(bind_group)
+      }
+      pub fn set(&self, pass: &mut impl SetBindGroup) {
+        pass.set_bind_group(0, &self.0, &[]);
+      }
+    }
+    #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+    #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+    #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+    #[doc = "   - Bind group 1: More frequent updates"]
+    #[doc = "   - Bind group 2: More frequent updates"]
+    #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+    #[derive(Debug, Copy, Clone)]
+    pub struct WgpuBindGroups<'a> {
+      pub bind_group0: &'a WgpuBindGroup0,
+    }
+    impl<'a> WgpuBindGroups<'a> {
+      pub fn set(&self, pass: &mut impl SetBindGroup) {
+        self.bind_group0.set(pass);
+      }
+    }
+    #[derive(Debug)]
+    pub struct WgpuPipelineLayout;
+    impl WgpuPipelineLayout {
+      pub fn bind_group_layout_entries(
+        entries: [wgpu::BindGroupLayout; 1],
+      ) -> [wgpu::BindGroupLayout; 1] {
+        entries
+      }
+    }
+    pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+      device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("ShadersShapeCompute::PipelineLayout"),
+        bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
+        immediate_size: 0u32,
       })
     }
-  }
-  pub const ENTRY_MAIN: &str = "main";
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub output: wgpu::BufferBinding<'a>,
-    pub params: wgpu::BufferBinding<'a>,
-  }
-  #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup0Entries<'a> {
-    pub output: wgpu::BindGroupEntry<'a>,
-    pub params: wgpu::BindGroupEntry<'a>,
-  }
-  impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-      Self {
-        output: wgpu::BindGroupEntry {
-          binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.output),
-        },
-        params: wgpu::BindGroupEntry {
-          binding: 1,
-          resource: wgpu::BindingResource::Buffer(params.params),
-        },
-      }
+    pub fn create_shader_module_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ShaderModule {
+      let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+      device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("shape_compute.fwgsl"),
+        source: wgpu::ShaderSource::Wgsl(source),
+      })
     }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
-      [self.output, self.params]
-    }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.into_array().into_iter().collect()
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0(wgpu::BindGroup);
-  impl WgpuBindGroup0 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-      wgpu::BindGroupLayoutDescriptor {
-        label: Some("ShapeCompute::BindGroup0::LayoutDescriptor"),
-        entries: &[
-          #[doc = " @binding(0): \"output\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: false },
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(
-                std::mem::size_of::<[f32; 1]>() as _,
-              ),
-            },
-            count: None,
-          },
-          #[doc = " @binding(1): \"params\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 1,
-            visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::shape_compute::ShapeParams,
-              >() as _),
-            },
-            count: None,
-          },
-        ],
-      };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-    }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
-      let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.into_array();
-      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("ShapeCompute::BindGroup0"),
-        layout: &bind_group_layout,
-        entries: &entries,
-      });
-      Self(bind_group)
-    }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(0, &self.0, &[]);
-    }
-  }
-  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
-  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
-  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
-  #[doc = "   - Bind group 1: More frequent updates"]
-  #[doc = "   - Bind group 2: More frequent updates"]
-  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
-  #[derive(Debug, Copy, Clone)]
-  pub struct WgpuBindGroups<'a> {
-    pub bind_group0: &'a WgpuBindGroup0,
-  }
-  impl<'a> WgpuBindGroups<'a> {
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      self.bind_group0.set(pass);
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuPipelineLayout;
-  impl WgpuPipelineLayout {
-    pub fn bind_group_layout_entries(
-      entries: [wgpu::BindGroupLayout; 1],
-    ) -> [wgpu::BindGroupLayout; 1] {
-      entries
-    }
-  }
-  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
-    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: Some("ShapeCompute::PipelineLayout"),
-      bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
-      immediate_size: 0u32,
-    })
-  }
-  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
-    device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("shape_compute.wgsl"),
-      source: wgpu::ShaderSource::Wgsl(source),
-    })
-  }
-  pub const SHADER_STRING: &str = r#"
+    pub const SHADER_STRING: &str = r#"
 struct Circle {
     field0_: f32,
 }
@@ -831,4 +839,18 @@ fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {
     return;
 }
 "#;
+  }
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for shaders::scale_bias::ScaleBiasParams {}
+  unsafe impl bytemuck::Pod for shaders::scale_bias::ScaleBiasParams {}
+  unsafe impl bytemuck::Zeroable for shaders::color_compute::ColorParams {}
+  unsafe impl bytemuck::Pod for shaders::color_compute::ColorParams {}
+  unsafe impl bytemuck::Zeroable for shaders::shape_compute::Circle {}
+  unsafe impl bytemuck::Pod for shaders::shape_compute::Circle {}
+  unsafe impl bytemuck::Zeroable for shaders::shape_compute::Rect {}
+  unsafe impl bytemuck::Pod for shaders::shape_compute::Rect {}
+  unsafe impl bytemuck::Zeroable for shaders::shape_compute::ShapeParams {}
+  unsafe impl bytemuck::Pod for shaders::shape_compute::ShapeParams {}
 }
