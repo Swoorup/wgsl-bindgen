@@ -23,34 +23,18 @@ use crate::{
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IsVariant)]
 pub enum WgslShaderSourceType {
-  /// Preparse the shader modules and embed the final shader string in the output.
-  /// This option skips the naga_oil dependency in the output, and but doesn't allow shader defines.
+  /// Compile shaders at build time using the [WESL](https://github.com/wgsl-tooling-wg/wesl-spec)
+  /// compiler and embed the resulting WGSL in the output.
+  ///
+  /// WESL is a community-driven superset of WGSL with standardized module imports
+  /// (`import package::module::item;`) and conditional translation (`@if` / `@elif` / `@else`
+  /// attributes).  Imports are resolved and features evaluated at build time, so **no WESL
+  /// dependency is required at runtime** — only wgpu.
+  ///
+  /// Shader defs passed via `shader_defs` must use `ShaderDefValue::Bool`; `Int` and `UInt`
+  /// values are silently ignored because WESL conditional translation only supports boolean
+  /// feature flags.
   EmbedSource,
-
-  /// Use Composer with embedded strings for each shader module,
-  /// This option allows shader defines and but doesn't allow hot-reloading.
-  EmbedWithNagaOilComposer,
-
-  /// Use Composer with relative paths and user-provided file loading
-  /// This option allows shader defines and custom IO without requiring nightly Rust.
-  ComposerWithRelativePath,
-
-  /// Use the [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) compiler to compile
-  /// shaders at build time and embed the resulting WGSL in the output.
-  ///
-  /// WESL is a community-driven superset of WGSL that provides standardized import
-  /// syntax (`import package::module::item;`) and conditional translation (`@if` attributes).
-  /// Unlike naga-oil's `#import` preprocessor, WESL imports follow an emerging standard
-  /// tracked at <https://github.com/wgsl-tooling-wg/wesl-spec>.
-  ///
-  /// This option:
-  /// - Uses WESL import syntax instead of naga-oil's `#import` syntax
-  /// - Supports conditional compilation via `@if` feature attributes
-  /// - Embeds the pre-compiled WGSL string — no WESL dependency at runtime
-  /// - Does not support runtime shader defines (features are resolved at build time)
-  ///
-  /// Requires the `wesl` crate feature to be enabled.
-  EmbedWithWesl,
 }
 
 /// A struct representing a directory to scan for additional source files.
@@ -387,14 +371,10 @@ pub struct WgslBindgenOption {
   #[builder(default, setter(into))]
   pub override_sampler_type: Vec<OverrideSamplerType>,
 
-  /// Shader definitions for conditional compilation.
+  /// Shader definitions for WESL conditional translation.
   ///
-  /// These definitions are consumed by the shader compilation backend:
-  /// - For naga-oil source types (`EmbedWithNagaOilComposer`, `ComposerWithRelativePath`)
-  ///   `Bool`, `Int` and `UInt` values are all supported.
-  /// - For [`WgslShaderSourceType::EmbedWithWesl`] only `Bool` values are used;
-  ///   `Int` and `UInt` values are silently ignored because WESL's conditional
-  ///   translation only supports boolean feature flags.
+  /// Only `ShaderDefValue::Bool` values are consumed; `Int` and `UInt` are silently ignored
+  /// because WESL's `@if` conditional translation only supports boolean feature flags.
   #[builder(default, setter(into))]
   pub shader_defs: Vec<(String, ShaderDefValue)>,
 }

@@ -132,12 +132,13 @@ pub mod builtin_vertex_bytemuck {
   }
   pub const SHADER_STRING: &str = r#"
 struct VertexInput {
-    @builtin(vertex_index) vertex_index: u32,
+    @builtin(vertex_index)
+    vertex_index: u32
 }
 
-@vertex 
+@vertex
 fn vs_main(input: VertexInput) -> @builtin(position) vec4<f32> {
-    return vec4<f32>(0f, 0f, 0f, 1f);
+    return vec4<f32>(0.0, 0.0, 0.0, 1.0);
 }
 "#;
 }

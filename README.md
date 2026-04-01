@@ -4,7 +4,7 @@
 
 🚀 **Generate typesafe Rust bindings from [WGSL](https://www.w3.org/TR/WGSL/) shaders for [wgpu](https://github.com/gfx-rs/wgpu)** 
 
-wgsl_bindgen transforms your WGSL shader development workflow by automatically generating Rust types, constants, and boilerplate code that perfectly match your shaders. Powered by [naga-oil](https://github.com/bevyengine/naga_oil), it integrates seamlessly into your build process to catch shader-related errors at compile time rather than runtime.
+wgsl_bindgen transforms your WGSL shader development workflow by automatically generating Rust types, constants, and boilerplate code that perfectly match your shaders. Powered by [WESL](https://github.com/wgsl-tooling-wg/wesl-spec), it integrates seamlessly into your build process to catch shader-related errors at compile time rather than runtime.
 
 ## 🎯 Why wgsl_bindgen?
 
@@ -73,82 +73,32 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 
 ### Shader Handling:
 
--   Supports naga-oil import syntax (`#import`) and many more features from the naga-oil flavour.
--   Add shader defines dynamically when using either `WgslShaderSourceType::EmbedWithNagaOilComposer` or `WgslShaderSourceType::ComposerWithRelativePath` source output type.
+-   Supports [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) — a community-driven superset
+    of WGSL with standardised module imports (`import package::module::item;`) and conditional
+    translation (`@if`/`@elif`/`@else` attributes). WESL shaders are compiled at build time and
+    the resulting WGSL is embedded — **no WESL dependency at runtime**.
 
-    The `WgslShaderSourceType::ComposerWithRelativePath` provides full control over file I/O without requiring nightly Rust, making it ideal for integration with custom asset systems and hot reloading.
+-   Add WESL feature flags for conditional translation via `shader_defs`
+    (`ShaderDefValue::Bool` only; `Int`/`UInt` are accepted but silently ignored).
 
--   **WESL support** (opt-in via the `wesl` crate feature): Use `WgslShaderSourceType::EmbedWithWesl`
-    to compile shaders written in [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) — a
-    community-driven superset of WGSL that provides standardised module imports
-    (`import package::module::item;`) and conditional translation (`@if`/`@elif`/`@else`
-    attributes). The compiled WGSL is embedded at build time so **no WESL dependency is
-    needed at runtime**.
-
-    ```toml
-    # Cargo.toml
-    [build-dependencies]
-    wgsl_bindgen = { version = "0.22", features = ["wesl"] }
-    ```
-
-    ```rust
-    // build.rs
-    WgslBindgenOptionBuilder::default()
-        .workspace_root("shaders")
-        .add_entry_point("shaders/my_shader.wgsl")
-        .shader_source_type(WgslShaderSourceType::EmbedWithWesl)
-        .output("src/shader_bindings.rs")
-        .build()?.generate()?;
-    ```
-
-    WESL shaders use a different import syntax than naga-oil shaders:
+-   **WESL import syntax** and automatic dependency tracking — wgsl_bindgen uses the WESL
+    compiler's own module list to emit `cargo::rerun-if-changed` for all transitive imports, so
+    incremental rebuilds work correctly without extra configuration.
 
     ```wgsl
-    // WESL import syntax (instead of naga-oil's `#import`)
+    // WESL import syntax
     import package::utils::my_function;
 
-    // Conditional translation (instead of naga-oil's `#ifdef`)
+    // Conditional translation
     @if(USE_FEATURE)
     @group(0) @binding(1) var optional_texture: texture_2d<f32>;
     ```
 
-    > **Note:** WESL uses boolean feature flags via `shader_defs` (only `ShaderDefValue::Bool`
-    > is supported). Integer defs are silently ignored when using `EmbedWithWesl`.
-    > 
     > **Note:** The WESL compiler first looks for `.wesl` files, then falls back to `.wgsl`,
-    > so both extensions are supported. You can write WESL import syntax in `.wgsl` files
-    > without renaming them.
-    >
-    > **Note:** Dependency tracking (`cargo::rerun-if-changed`) for WESL `import` statements
-    > is handled automatically — wgsl_bindgen uses the WESL compiler's own module list to
-    > watch all transitive imports, so hot reloading works correctly without extra configuration.
+    > so both extensions are supported.
 
--   The `ShaderDefValue` type (`Bool`, `Int`, `UInt`) is now defined by wgsl_bindgen itself,
-    so your `build.rs` does **not** need to add naga-oil as a direct dependency when using
-    only `EmbedWithWesl` or `EmbedSource`.
+-   Shader registry utility to dynamically call `create_shader` variants depending on the variant.
 
--   **File Visitor Pattern**: The `visit_shader_files` function allows custom processing of all shader files in a dependency tree. This enables advanced use cases like:
-    - **Hot reloading**: Watch for file changes and rebuild shaders automatically
-    - **Caching**: Store processed shader content for faster rebuilds
-    - **Debugging**: Log or analyze shader dependencies and content
-    - **Custom asset systems**: Integrate with existing asset loading pipelines
-
-    ```rust
-    // Example: Hot reloading with file watching
-    use shader_bindings::visit_shader_files;
-    
-    visit_shader_files(
-        "shaders",
-        ShaderEntry::MyShader,
-        |path| std::fs::read_to_string(path),
-        |file_path, file_content| {
-            println!("Processing shader: {}", file_path);
-            // Add to file watcher, cache, etc.
-        }
-    )?;
-    ```
-
--   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
 -   Ability to add additional scan directories for shader imports when defining the workflow.
 
 ### Type Handling:
@@ -174,9 +124,6 @@ bytemuck = { version = "1.0", features = ["derive"] }
 # Optional: for additional features
 # encase = "0.8"
 # serde = { version = "1.0", features = ["derive"] }
-
-# Note: When using ComposerWithRelativePath, enable naga-ir feature for optimal performance:
-# wgpu = { version = "25", features = ["naga-ir"] }
 ```
 
 ### 2. Create your WGSL shader (`shaders/my_shader.wgsl`)
@@ -340,52 +287,8 @@ Override specific types or structs:
 Control how shaders are embedded:
 
 ```rust
-// Embed shader source directly (recommended for most cases)
+// Compile WESL shaders at build time and embed the resulting WGSL (default)
 .shader_source_type(WgslShaderSourceType::EmbedSource)
-
-// Use file paths for hot-reloading during development
-.shader_source_type(WgslShaderSourceType::HardCodedFilePath)
-
-// Use naga-oil composer for advanced import features
-.shader_source_type(WgslShaderSourceType::EmbedWithNagaOilComposer)
-
-// Use relative paths with custom file loading (no nightly Rust required)
-// Requires wgpu "naga-ir" feature for optimal performance
-.shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)
-```
-
-### Using Custom File Loading
-
-The `ComposerWithRelativePath` option allows you to provide your own file loading logic, which is perfect for integrating with custom asset systems.
-
-**Performance Note**: This mode uses wgpu's `naga-ir` feature to pass Naga IR modules directly to the GPU instead of converting back to WGSL source. This provides better performance by avoiding the round-trip conversion process. Make sure to enable the feature in your dependencies:
-
-```toml
-[dependencies]
-wgpu = { version = "25", features = ["naga-ir"] }
-```
-
-```rust
-// In your build.rs
-.shader_source_type(WgslShaderSourceType::ComposerWithRelativePath)
-
-// In your application code
-let module = main::load_naga_module_from_path(
-    "assets/shaders",  // Base directory
-    ShaderEntry::Main, // Entry point enum variant
-    &mut composer,
-    shader_defs,
-    |path| std::fs::read_to_string(path), // Your custom file loader
-)?;
-
-// Or use your own asset system
-let module = main::load_naga_module_from_path(
-    "shaders",
-    ShaderEntry::Main,
-    &mut composer,
-    shader_defs,
-    |path| asset_manager.load_text_file(path), // Custom asset manager
-)?;
 ```
 
 ## Wgsl Import Resolution
@@ -505,7 +408,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [naga-oil](https://github.com/bevyengine/naga_oil) - WGSL import system and preprocessing
+- [wesl](https://github.com/wgsl-tooling-wg/wesl-spec) - WGSL import system and conditional translation
 - [wgpu](https://github.com/gfx-rs/wgpu) - WebGPU implementation for Rust
 - [naga](https://github.com/gfx-rs/naga) - Shader translation and validation
 - [wgsl_to_wgpu](https://github.com/ScanMountGoat/wgsl_to_wgpu/) - Original inspiration

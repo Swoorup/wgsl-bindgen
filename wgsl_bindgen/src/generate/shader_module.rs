@@ -1,8 +1,6 @@
 //! This file is used for creating direct shader file related functions:
 //! such as `create_shader_module`, `create_compute_module`
 
-use std::path::Path;
-
 use derive_more::Constructor;
 use enumflags2::BitFlags;
 use proc_macro2::TokenStream;
@@ -10,7 +8,6 @@ use quote::{format_ident, quote, TokenStreamExt};
 use syn::{Ident, Index};
 
 use crate::generate::quote_naga_capabilities;
-use crate::naga_util::module_to_source;
 use crate::quote_gen::create_shader_raw_string_literal;
 use crate::{
   sanitize_and_pascal_case, WgslBindgenOption, WgslEntryResult, WgslShaderSourceType,
@@ -36,141 +33,35 @@ impl<'a> WgslEntryResult<'a> {
 
 impl WgslShaderSourceType {
   pub(crate) fn create_shader_module_fn_name(&self) -> &'static str {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedSource => "create_shader_module_embed_source",
-      EmbedWithNagaOilComposer => "create_shader_module_embedded",
-      ComposerWithRelativePath => "create_shader_module_relative_path",
-      EmbedWithWesl => "create_shader_module_embed_wesl",
-    }
+    "create_shader_module_embed_source"
   }
 
   pub(crate) fn load_shader_module_fn_name(&self) -> Ident {
-    use WgslShaderSourceType::*;
-    match self {
-      ComposerWithRelativePath => format_ident!("load_naga_module_from_path"),
-      _ => format_ident!("load_shader_module_embedded"),
-    }
+    format_ident!("load_shader_module_embedded")
   }
 
   pub(crate) fn create_compute_pipeline_fn_name(&self, name: &str) -> Ident {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedSource => format_ident!("create_{}_pipeline_embed_source", name),
-      EmbedWithNagaOilComposer => {
-        format_ident!("create_{}_pipeline_embedded", name)
-      }
-      ComposerWithRelativePath => {
-        format_ident!("create_{}_pipeline_relative_path", name)
-      }
-      EmbedWithWesl => format_ident!("create_{}_pipeline_embed_wesl", name),
-    }
+    format_ident!("create_{}_pipeline_embed_source", name)
   }
 
   pub(crate) fn get_return_type(&self, type_to_return: TokenStream) -> TokenStream {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedSource | EmbedWithWesl => type_to_return,
-      EmbedWithNagaOilComposer | ComposerWithRelativePath => {
-        quote!(Result<#type_to_return, naga_oil::compose::ComposerError>)
-      }
-    }
+    type_to_return
   }
 
   pub(crate) fn wrap_return_stmt(&self, stm: TokenStream) -> TokenStream {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote!(Ok(#stm)),
-      _ => stm,
-    }
+    stm
   }
 
   pub(crate) fn get_propagate_operator(&self) -> TokenStream {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote!(?),
-      _ => quote!(),
-    }
-  }
-
-  pub(crate) fn add_composable_naga_module_stmt(
-    &self,
-    source: TokenStream,
-    relative_file_path: String,
-    as_name_assignment: TokenStream,
-  ) -> TokenStream {
-    use WgslShaderSourceType::*;
-
-    match self {
-      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote! {
-        composer.add_composable_module(
-          naga_oil::compose::ComposableModuleDescriptor {
-            source: #source,
-            file_path: #relative_file_path,
-            language: naga_oil::compose::ShaderLanguage::Wgsl,
-            shader_defs: shader_defs.clone(),
-            #as_name_assignment,
-            ..Default::default()
-          }
-        )?;
-      },
-      _ => panic!("Not supported"),
-    }
-  }
-
-  pub(crate) fn generate_make_naga_module_statement(
-    &self,
-    source: TokenStream,
-    relative_file_path: String,
-  ) -> TokenStream {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedWithNagaOilComposer | ComposerWithRelativePath => quote! {
-        composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-          source: #source,
-          file_path: #relative_file_path,
-          shader_defs,
-          ..Default::default()
-        })
-      },
-      _ => panic!("Not supported"),
-    }
+    quote!()
   }
 
   pub(crate) fn shader_module_params_defs_and_params(
     &self,
   ) -> (TokenStream, TokenStream) {
-    use WgslShaderSourceType::*;
-    match self {
-      EmbedSource => {
-        let param_defs = quote!(device: &wgpu::Device);
-        let params = quote!(device);
-        (param_defs, params)
-      }
-      EmbedWithWesl => {
-        let param_defs = quote!(device: &wgpu::Device);
-        let params = quote!(device);
-        (param_defs, params)
-      }
-      EmbedWithNagaOilComposer => {
-        let param_defs = quote! {
-          device: &wgpu::Device,
-          shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
-        };
-        let params = quote!(device, shader_defs);
-        (param_defs, params)
-      }
-      ComposerWithRelativePath => {
-        let param_defs = quote! {
-          device: &wgpu::Device,
-          base_dir: &str,
-          shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-          load_file: impl Fn(&str) -> Result<String, std::io::Error>
-        };
-        let params = quote!(device, base_dir, shader_defs, load_file);
-        (param_defs, params)
-      }
-    }
+    let param_defs = quote!(device: &wgpu::Device);
+    let params = quote!(device);
+    (param_defs, params)
   }
 }
 
@@ -279,11 +170,12 @@ pub(crate) fn compute_module(
   ComputeModuleBuilder::new(module, source_type_flags).build()
 }
 
+/// Generate a `create_shader_module_embed_source` function that embeds the
+/// pre-compiled WGSL produced by the WESL compiler at build time.
 fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
-  let shader_content = module_to_source(&entry.naga_module).unwrap();
   let create_shader_module_fn =
     format_ident!("{}", WgslShaderSourceType::EmbedSource.create_shader_module_fn_name());
-  let shader_literal = create_shader_raw_string_literal(&shader_content);
+  let shader_literal = create_shader_raw_string_literal(&entry.wgsl_source);
   let shader_label = entry.get_label();
   let create_shader_module = quote! {
       pub fn #create_shader_module_fn(device: &wgpu::Device) -> wgpu::ShaderModule {
@@ -302,519 +194,11 @@ fn generate_shader_module_embedded(entry: &WgslEntryResult) -> TokenStream {
   }
 }
 
-/// Generate a `create_shader_module_embed_wesl` function that embeds the
-/// pre-compiled WGSL produced by the WESL compiler at build time.
-fn generate_shader_module_embed_wesl(entry: &WgslEntryResult) -> TokenStream {
-  let wesl_source = match &entry.wesl_compiled_source {
-    Some(src) => src.as_str(),
-    None => {
-      // This branch should be unreachable: EmbedWithWesl is only selected when the `wesl`
-      // feature is enabled, in which case `wesl_compiled_source` is always populated by
-      // `generate_naga_module_for_entry_wesl`. Return empty tokens defensively.
-      unreachable!(
-        "EmbedWithWesl selected but `wesl_compiled_source` is None — \
-         this indicates a logic error in the WESL compilation path"
-      );
-    }
-  };
-
-  let create_shader_module_fn =
-    format_ident!("{}", WgslShaderSourceType::EmbedWithWesl.create_shader_module_fn_name());
-  let shader_literal = create_shader_raw_string_literal(wesl_source);
-  let shader_label = entry.get_label();
-
-  quote! {
-    /// Create a shader module from the WGSL compiled by the WESL compiler at build time.
-    /// The WESL features and imports were resolved at build time; no WESL dependency
-    /// is required at runtime.
-    pub fn #create_shader_module_fn(device: &wgpu::Device) -> wgpu::ShaderModule {
-        let source = std::borrow::Cow::Borrowed(WESL_SHADER_STRING);
-        device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: #shader_label,
-            source: wgpu::ShaderSource::Wgsl(source)
-        })
-    }
-
-    pub const WESL_SHADER_STRING: &str = #shader_literal;
-  }
-}
-
-struct ComposeShaderModuleBuilder<'a, 'b> {
-  entry: &'a WgslEntryResult<'b>,
-  capabilities: Option<naga::valid::Capabilities>,
-  entry_source_path: &'a Path,
-  output_dir: &'a Path,
-  workspace_root: &'a Path,
-  source_type: WgslShaderSourceType,
-  shader_defs: crate::FastIndexMap<String, naga_oil::compose::ShaderDefValue>,
-}
-
-impl<'a, 'b> ComposeShaderModuleBuilder<'a, 'b> {
-  fn new(
-    entry: &'a WgslEntryResult<'b>,
-    capabilities: Option<naga::valid::Capabilities>,
-    output_dir: &'a Path,
-    workspace_root: &'a Path,
-    source_type: WgslShaderSourceType,
-    shader_defs: &[(String, crate::ShaderDefValue)],
-  ) -> Self {
-    let entry_source_path = entry.source_including_deps.source_file.file_path.as_path();
-
-    // Convert our ShaderDefValue to naga-oil's and store in a FastIndexMap for consistent ordering
-    let shader_defs_map: crate::FastIndexMap<String, naga_oil::compose::ShaderDefValue> =
-      shader_defs
-        .iter()
-        .map(|(k, v)| (k.clone(), (*v).into()))
-        .collect();
-
-    Self {
-      entry,
-      capabilities,
-      output_dir,
-      workspace_root,
-      source_type,
-      entry_source_path,
-      shader_defs: shader_defs_map,
-    }
-  }
-
-  fn generate_constants_for_paths(&self) -> TokenStream {
-    use WgslShaderSourceType::*;
-
-    match self.source_type {
-      ComposerWithRelativePath => {
-        let shader_entry_path =
-          get_path_relative_to(self.workspace_root, self.entry_source_path);
-        quote! {
-          pub const SHADER_ENTRY_PATH: &str = #shader_entry_path;
-        }
-      }
-      _ => quote!(),
-    }
-  }
-
-  fn create_shader_module_fn_name(&self) -> Ident {
-    let name = self.source_type.create_shader_module_fn_name();
-    format_ident!("{}", name)
-  }
-
-  fn build_shader_dependency_modules_statements(&self) -> Vec<TokenStream> {
-    let dependency_modules = self
-      .entry
-      .source_including_deps
-      .full_dependencies
-      .iter()
-      .map(|dep| {
-        let as_name = dep
-          .module_name
-          .as_ref()
-          .map(|name| name.to_string())
-          .unwrap();
-        let as_name_assignment = quote! { as_name: Some(#as_name.into()) };
-
-        let relative_file_path = get_path_relative_to(self.output_dir, &dep.file_path);
-        let source = quote!(include_str!(#relative_file_path));
-
-        self.source_type.add_composable_naga_module_stmt(
-          source,
-          relative_file_path,
-          as_name_assignment,
-        )
-      })
-      .collect::<Vec<_>>();
-
-    dependency_modules
-  }
-
-  fn build_load_shader_module_fn(&self) -> TokenStream {
-    use WgslShaderSourceType::*;
-
-    let load_shader_module_fn_name = self.source_type.load_shader_module_fn_name();
-    let return_type = self.source_type.get_return_type(quote!(wgpu::naga::Module));
-
-    match self.source_type {
-      ComposerWithRelativePath => {
-        // For the new variant, we don't generate anything here - the global function handles it
-        quote!()
-      }
-      _ => {
-        // Keep existing implementation for other variants
-        let dependency_modules = self.build_shader_dependency_modules_statements();
-        let relative_file_path =
-          get_path_relative_to(self.output_dir, self.entry_source_path);
-
-        let source = quote!(include_str!(#relative_file_path));
-
-        let make_naga_module_stmt = self
-          .source_type
-          .generate_make_naga_module_statement(source, relative_file_path);
-
-        quote! {
-          pub fn #load_shader_module_fn_name(
-            composer: &mut naga_oil::compose::Composer,
-            shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
-          ) -> #return_type {
-            #(#dependency_modules)*
-            #make_naga_module_stmt
-          }
-        }
-      }
-    }
-  }
-
-  fn create_shader_module_fn(&self) -> TokenStream {
-    use WgslShaderSourceType::*;
-
-    let create_shader_module_fn = self.create_shader_module_fn_name();
-    let load_shader_module_fn_name = self.source_type.load_shader_module_fn_name();
-    let shader_label = self.entry.get_label();
-
-    let shader_enum_variant = self.entry.get_shader_variant();
-    let return_type = self.source_type.get_return_type(quote!(wgpu::ShaderModule));
-    let propagate_operator = self.source_type.get_propagate_operator();
-    let return_stmt = self.source_type.wrap_return_stmt(quote! { shader_module });
-
-    let composer = quote!(naga_oil::compose::Composer::default());
-
-    let composer_with_capabilities = match self.capabilities {
-      Some(capabilities) => {
-        let capabilities_expr = quote_naga_capabilities(capabilities);
-        quote! {
-          #composer.with_capabilities(#capabilities_expr)
-        }
-      }
-      None => quote! {
-        #composer
-      },
-    };
-
-    match self.source_type {
-      ComposerWithRelativePath => {
-        quote! {
-          pub fn #create_shader_module_fn(
-            device: &wgpu::Device,
-            base_dir: &str,
-            shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-            load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-          ) -> #return_type
-          {
-            let mut composer = #composer_with_capabilities;
-            let module = ShaderEntry::#shader_enum_variant.load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file).map_err(|e| {
-              naga_oil::compose::ComposerError {
-                inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-                source: naga_oil::compose::ErrSource::Constructing {
-                  path: "load_naga_module_from_path".to_string(),
-                  source: "Generated code".to_string(),
-                  offset: 0,
-                },
-              }
-            })?;
-
-            // Use naga-ir feature to create shader module directly from naga module
-            let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-              label: #shader_label,
-              source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module))
-            });
-
-            #return_stmt
-          }
-        }
-      }
-      _ => {
-        quote! {
-          pub fn #create_shader_module_fn(
-            device: &wgpu::Device,
-            shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
-          ) -> #return_type {
-
-            let mut composer = #composer_with_capabilities;
-            let module = #load_shader_module_fn_name (&mut composer, shader_defs) #propagate_operator;
-
-            // Mini validation to get module info
-            let info = wgpu::naga::valid::Validator::new(
-              wgpu::naga::valid::ValidationFlags::empty(),
-              wgpu::naga::valid::Capabilities::all(),
-            )
-            .validate(&module)
-            .unwrap();
-
-            // Write to wgsl
-            let shader_string = wgpu::naga::back::wgsl::write_string(
-              &module,
-              &info,
-              wgpu::naga::back::wgsl::WriterFlags::empty(),
-            ).expect("failed to convert naga module to source");
-
-            let source = std::borrow::Cow::Owned(shader_string);
-            let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-              label: #shader_label,
-              source: wgpu::ShaderSource::Wgsl(source)
-            });
-
-            #return_stmt
-          }
-        }
-      }
-    }
-  }
-
-  fn build(&self) -> TokenStream {
-    use WgslShaderSourceType::*;
-
-    let constants = self.generate_constants_for_paths();
-    let load_shader_module_fn = self.build_load_shader_module_fn();
-    let create_shader_module_fn = self.create_shader_module_fn();
-
-    quote! {
-      #constants
-      #load_shader_module_fn
-      #create_shader_module_fn
-    }
-  }
-}
-
-pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
-  quote! {
-    /// Visits and processes all shader files in a dependency tree.
-    ///
-    /// This function traverses the shader dependency tree and calls the visitor function
-    /// for each file encountered. This allows for custom processing like hot reloading,
-    /// caching, or debugging.
-    ///
-    /// # Arguments
-    ///
-    /// * `base_dir` - The base directory for resolving relative paths
-    /// * `load_file` - Function to load file contents from a path
-    /// * `visitor` - Function called for each file with (file_path, file_content)
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(())` if all files were processed successfully, or an error string.
-    pub fn visit_shader_files(
-      &self,
-      base_dir: &str,
-      load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-      mut visitor: impl FnMut(&str, &str),
-    ) -> Result<(), String> {
-        fn visit_dependencies_recursive(
-          base_dir: &str,
-          source: &str,
-          current_path: &str,
-          load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
-          visitor: &mut impl FnMut(&str, &str),
-          visited: &mut std::collections::HashSet<String>,
-        ) -> Result<(), String> {
-          // Use naga_oil's preprocessor to get import information
-          let (_, imports, _) = naga_oil::compose::get_preprocessor_data(source);
-
-          for import in imports {
-            let import_path = if import.import.starts_with('\"') {
-              // Strip quotes from string literals
-              import.import
-                .chars()
-                .skip(1)
-                .take_while(|c| *c != '\"')
-                .collect::<String>()
-            } else {
-              // For module imports like "global_bindings::time", extract just the module name
-              let module_path = import.import.split("::").collect::<Vec<_>>().join(std::path::MAIN_SEPARATOR_STR);
-              format!("{module_path}.wgsl")
-            };
-
-            // Resolve import path - simplified to always resolve from base directory
-            // This works for both module imports (global_bindings::time) and relative imports
-            let full_import_path = if import_path.starts_with('/') || import_path.starts_with('\\') {
-              format!("{base_dir}{import_path}")
-            } else {
-              // Use proper path joining for Windows compatibility
-              std::path::Path::new(base_dir).join(import_path).display().to_string()
-            };
-
-            // Skip if already visited
-            if visited.contains(&full_import_path) {
-              continue;
-            }
-
-            visited.insert(full_import_path.clone());
-
-            // Load the imported file
-            let import_source = match load_file(&full_import_path) {
-              Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                continue;
-              }
-              Err(err) => {
-                return Err(format!("Failed to load import file {full_import_path}: {err}"));
-              }
-              Ok(content) => content,
-            };
-
-            // Recursively visit its dependencies
-            visit_dependencies_recursive(
-              base_dir,
-              &import_source,
-              full_import_path.trim_start_matches(&format!("{base_dir}/")),
-              load_file,
-              visitor,
-              visited,
-            )?;
-
-            // Call visitor for the inner most files first
-            visitor(&full_import_path, &import_source);
-          }
-
-          Ok(())
-        }
-
-        // Load entry point source
-        let entry_path = format!("{}/{}", base_dir, self.relative_path());
-        let entry_source = load_file(&entry_path)
-          .map_err(|e| format!("Failed to load entry point {entry_path}: {e}"))?;
-
-        // Call visitor for entry point
-        visitor(&entry_path, &entry_source);
-
-        // Visit all dependencies
-        let mut visited = std::collections::HashSet::new();
-        visit_dependencies_recursive(
-          base_dir,
-          &entry_source,
-          self.relative_path(),
-          &load_file,
-          &mut visitor,
-          &mut visited,
-        )?;
-
-        Ok(())
-      }
-
-      pub fn load_naga_module_from_path_contents(
-        &self,
-        base_dir: &str,
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-        files: Vec<(String, String)>,
-      ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError>
-      {
-        // Process dependency files first (all except entry point)
-        let entry_path = format!("{}/{}", base_dir, self.relative_path());
-
-        for (file_path, file_content) in &files {
-          if *file_path == entry_path {
-            continue; // Skip entry point, process it last
-          }
-
-          // Extract module name from file path (remove .wgsl extension)
-          let relative_path = file_path.trim_start_matches(&format!("{base_dir}/"));
-          let as_name = std::path::Path::new(relative_path)
-            .with_extension("")
-            .with_extension("")
-            .iter()
-            .flat_map(|s| s.to_str())
-            .collect::<Vec<_>>()
-            .join("::")
-            .to_string();
-
-          composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-            source: file_content,
-            file_path: relative_path,
-            language: naga_oil::compose::ShaderLanguage::Wgsl,
-            shader_defs: shader_defs.clone(),
-            as_name: Some(as_name),
-            ..Default::default()
-          })?;
-        }
-
-        // Get entry point content
-        let (_, entry_source) = &files[0];
-
-        // Create the final module
-        composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-          source: entry_source,
-          file_path: self.relative_path(),
-          shader_defs,
-          ..Default::default()
-        })
-      }
-
-      pub fn load_naga_module_from_path(
-        &self,
-        base_dir: &str,
-        composer: &mut naga_oil::compose::Composer,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-        load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-      ) -> Result<wgpu::naga::Module, String>
-      {
-        let mut files = Vec::<(String, String)>::new();
-        self.visit_shader_files(base_dir, &load_file, |file_path, file_content| {
-          files.push((file_path.to_string(), file_content.to_string()));
-        })?;
-        self.load_naga_module_from_path_contents(base_dir, composer, shader_defs, files)
-          .map_err(|e| format!("{e}"))
-      }
-  }
-}
-
 pub(crate) fn shader_module(
   entry: &WgslEntryResult,
-  options: &WgslBindgenOption,
+  _options: &WgslBindgenOption,
 ) -> TokenStream {
-  use WgslShaderSourceType::*;
-  let source_type = options.shader_source_type;
-  let output_dir = options
-    .output
-    .as_ref()
-    .and_then(|output_file| output_file.parent().map(|p| p.to_path_buf()))
-    .unwrap_or_else(|| {
-      std::env::var("CARGO_MANIFEST_DIR")
-        .unwrap_or_else(|_| ".".into())
-        .into()
-    });
-
-  let mut token_stream = TokenStream::new();
-
-  if source_type.contains(EmbedSource) {
-    token_stream.append_all(generate_shader_module_embedded(entry));
-  }
-
-  if source_type.contains(EmbedWithWesl) {
-    token_stream.append_all(generate_shader_module_embed_wesl(entry));
-  }
-
-  let capabilities = options.ir_capabilities;
-
-  if source_type.contains(EmbedWithNagaOilComposer) {
-    let builder = ComposeShaderModuleBuilder::new(
-      entry,
-      capabilities,
-      &output_dir,
-      &output_dir,
-      EmbedWithNagaOilComposer,
-      &options.shader_defs,
-    );
-    token_stream.append_all(builder.build());
-  }
-
-  if source_type.contains(ComposerWithRelativePath) {
-    let builder = ComposeShaderModuleBuilder::new(
-      entry,
-      capabilities,
-      &output_dir,
-      &options.workspace_root,
-      ComposerWithRelativePath,
-      &options.shader_defs,
-    );
-    token_stream.append_all(builder.build());
-  }
-
-  token_stream
-}
-
-fn get_path_relative_to(relative_to: &std::path::Path, file: &std::path::Path) -> String {
-  pathdiff::diff_paths(file, relative_to)
-    .expect("failed to get relative path")
-    .to_str()
-    .unwrap()
-    .to_string()
+  generate_shader_module_embedded(entry)
 }
 
 fn create_canonical_variable_name(name: &str, is_const: bool) -> String {

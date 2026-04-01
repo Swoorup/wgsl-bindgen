@@ -1,5 +1,5 @@
-#import common::global_time
-#import common::shared_data
+import package::common::global_time;
+import package::common::shared_data;
 
 @compute @workgroup_size(64)
 fn compute_main(@builtin(global_invocation_id) id: vec3<u32>) {

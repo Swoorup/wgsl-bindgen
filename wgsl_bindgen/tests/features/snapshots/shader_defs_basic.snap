@@ -80,18 +80,18 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
-  const TEST_SHADER_UNIFORMS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(test_shader::Uniforms, color) == 0);
-    assert!(std::mem::offset_of!(test_shader::Uniforms, time) == 16);
-    assert!(std::mem::offset_of!(test_shader::Uniforms, scale) == 20);
-    assert!(std::mem::size_of::<test_shader::Uniforms>() == 32);
+  const TEST_SHADER_UNIFORMS_FULL_ASSERTS: () = {
+    assert!(std::mem::offset_of!(test_shader::UniformsFull, color) == 0);
+    assert!(std::mem::offset_of!(test_shader::UniformsFull, time) == 16);
+    assert!(std::mem::offset_of!(test_shader::UniformsFull, scale) == 20);
+    assert!(std::mem::size_of::<test_shader::UniformsFull>() == 32);
   };
 }
 pub mod test_shader {
   use super::{_root, _root::*};
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct Uniforms {
+  pub struct UniformsFull {
     #[doc = "offset: 0, size: 16, type: `vec4<f32>`"]
     pub color: glam::Vec4,
     #[doc = "offset: 16, size: 4, type: `f32`"]
@@ -100,7 +100,7 @@ pub mod test_shader {
     pub scale: f32,
     pub _pad_scale: [u8; 0x8],
   }
-  impl Uniforms {
+  impl UniformsFull {
     pub const fn new(color: glam::Vec4, time: f32, scale: f32) -> Self {
       Self {
         color,
@@ -112,14 +112,14 @@ pub mod test_shader {
   }
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct UniformsInit {
+  pub struct UniformsFullInit {
     pub color: glam::Vec4,
     pub time: f32,
     pub scale: f32,
   }
-  impl UniformsInit {
-    pub fn build(&self) -> Uniforms {
-      Uniforms {
+  impl UniformsFullInit {
+    pub fn build(&self) -> UniformsFull {
+      UniformsFull {
         color: self.color,
         time: self.time,
         scale: self.scale,
@@ -127,8 +127,8 @@ pub mod test_shader {
       }
     }
   }
-  impl From<UniformsInit> for Uniforms {
-    fn from(data: UniformsInit) -> Self {
+  impl From<UniformsFullInit> for UniformsFull {
+    fn from(data: UniformsFullInit) -> Self {
       data.build()
     }
   }
@@ -227,7 +227,7 @@ pub mod test_shader {
               ty: wgpu::BufferBindingType::Uniform,
               has_dynamic_offset: false,
               min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::test_shader::Uniforms,
+                _root::test_shader::UniformsFull,
               >() as _),
             },
             count: None,
@@ -290,43 +290,28 @@ pub mod test_shader {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct Uniforms {
+struct UniformsFull {
     color: vec4<f32>,
     time: f32,
-    scale: f32,
+    scale: f32
 }
 
-@group(0) @binding(0) 
-var<uniform> uniforms: Uniforms;
+@group(0) @binding(0)
+var<uniform> uniforms: UniformsFull;
 
-@vertex 
+@vertex
 fn vs_main() -> @builtin(position) vec4<f32> {
-    var pos: vec4<f32> = vec4<f32>(0f, 0f, 0f, 1f);
-
-    let _e4 = pos;
-    let _e7 = uniforms.scale;
-    pos = (_e4 * _e7);
-    let _e11 = pos.x;
-    let _e14 = uniforms.time;
-    pos.x = (_e11 + sin(_e14));
-    let _e17 = pos;
-    return _e17;
+    return vec4<f32>(0.0, 0.0, 0.0, 1.0);
 }
 
-@fragment 
+@fragment
 fn fs_main() -> @location(0) vec4<f32> {
-    var color: vec4<f32>;
-
-    let _e2 = uniforms.color;
-    color = _e2;
-    color = vec4<f32>(1f, 0f, 0f, 1f);
-    let _e9 = color;
-    return _e9;
+    return uniforms.color;
 }
 "#;
 }
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for test_shader::Uniforms {}
-  unsafe impl bytemuck::Pod for test_shader::Uniforms {}
+  unsafe impl bytemuck::Zeroable for test_shader::UniformsFull {}
+  unsafe impl bytemuck::Pod for test_shader::UniformsFull {}
 }

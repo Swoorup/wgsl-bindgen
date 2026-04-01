@@ -55,176 +55,21 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
     let (param_defs, params) = source_type.shader_module_params_defs_and_params();
     let return_type = source_type.get_return_type(quote!(wgpu::ShaderModule));
 
-    match source_type {
-      WgslShaderSourceType::ComposerWithRelativePath => {
-        // For ComposerWithRelativePath, we need to pass the entry_point enum to the module function
-        let match_arms = self.entries.iter().map(|entry| {
-          let mod_path = entry.get_mod_path();
-          let enum_variant = entry.get_shader_variant();
-
-          quote! {
-            Self::#enum_variant => {
-              #mod_path::#fn_name(device, base_dir, shader_defs, load_file)
-            }
-          }
-        });
-
-        quote! {
-          pub fn #fn_name(&self, #param_defs) -> #return_type
-          {
-            match self {
-              #( #match_arms, )*
-            }
-          }
-        }
-      }
-      _ => {
-        let match_arms = self.entries.iter().map(|entry| {
-          let mod_path = entry.get_mod_path();
-          let enum_variant = entry.get_shader_variant();
-
-          quote! {
-            Self::#enum_variant => {
-              #mod_path::#fn_name(#params)
-            }
-          }
-        });
-
-        quote! {
-          pub fn #fn_name(&self, #param_defs) -> #return_type {
-            match self {
-              #( #match_arms, )*
-            }
-          }
-        }
-      }
-    }
-  }
-
-  fn build_load_shader_to_composer_module(
-    &self,
-    source_type: WgslShaderSourceType,
-  ) -> TokenStream {
-    match source_type {
-      WgslShaderSourceType::EmbedSource => {
-        quote!()
-      }
-      WgslShaderSourceType::ComposerWithRelativePath => {
-        // For ComposerWithRelativePath, no per-entry load function is needed here because
-        // the global `load_naga_module_from_path` method on ShaderEntry handles all entries.
-        quote!()
-      }
-      WgslShaderSourceType::EmbedWithWesl => {
-        // EmbedWithWesl bakes the compiled WGSL at build time; no composer is needed at runtime
-        quote!()
-      }
-      _ => {
-        let fn_name = format_ident!("{}", source_type.load_shader_module_fn_name());
-
-        let match_arms = self.entries.iter().map(|entry| {
-          let mod_path = entry.get_mod_path();
-          let enum_variant = entry.get_shader_variant();
-
-          quote! {
-            Self::#enum_variant => {
-              #mod_path::#fn_name(composer, shader_defs)
-            }
-          }
-        });
-
-        let return_type = source_type.get_return_type(quote!(wgpu::naga::Module));
-
-        quote! {
-          pub fn #fn_name(&self,
-            composer: &mut naga_oil::compose::Composer,
-            shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>
-          ) -> #return_type {
-            match self {
-              #( #match_arms, )*
-            }
-          }
-        }
-      }
-    }
-  }
-
-  fn build_relative_path_fn(&self) -> TokenStream {
-    if !self
-      .options
-      .shader_source_type
-      .contains(WgslShaderSourceType::ComposerWithRelativePath)
-    {
-      return quote!();
-    }
-
     let match_arms = self.entries.iter().map(|entry| {
       let mod_path = entry.get_mod_path();
       let enum_variant = entry.get_shader_variant();
+
       quote! {
-        Self::#enum_variant => #mod_path::SHADER_ENTRY_PATH
+        Self::#enum_variant => {
+          #mod_path::#fn_name(#params)
+        }
       }
     });
 
     quote! {
-      pub fn relative_path(&self) -> &'static str {
+      pub fn #fn_name(&self, #param_defs) -> #return_type {
         match self {
           #( #match_arms, )*
-        }
-      }
-    }
-  }
-
-  fn build_default_shader_defs_fn(&self) -> TokenStream {
-    use WgslShaderSourceType::*;
-
-    // Only generate if we're using shader_defs (non-embedded source types)
-    if !self
-      .options
-      .shader_source_type
-      .contains(EmbedWithNagaOilComposer)
-      && !self
-        .options
-        .shader_source_type
-        .contains(ComposerWithRelativePath)
-    {
-      return quote!();
-    }
-
-    if self.options.shader_defs.is_empty() {
-      quote! {
-        pub fn default_shader_defs() -> std::collections::HashMap<String, naga_oil::compose::ShaderDefValue> {
-          std::collections::HashMap::new()
-        }
-      }
-    } else {
-      let entries: Vec<_> = self
-        .options
-        .shader_defs
-        .iter()
-        .map(|(key, value)| {
-          let key_lit = proc_macro2::Literal::string(key);
-          // Generate naga-oil ShaderDefValue literals in the output code (the generated
-          // code uses naga-oil at runtime for these source types).
-          let value_expr = match value {
-            crate::ShaderDefValue::Bool(b) => {
-              quote!(naga_oil::compose::ShaderDefValue::Bool(#b))
-            }
-            crate::ShaderDefValue::Int(i) => {
-              quote!(naga_oil::compose::ShaderDefValue::Int(#i))
-            }
-            crate::ShaderDefValue::UInt(u) => {
-              quote!(naga_oil::compose::ShaderDefValue::UInt(#u))
-            }
-          };
-          quote!((#key_lit.to_string(), #value_expr))
-        })
-        .collect();
-
-      quote! {
-        pub fn default_shader_defs() -> std::collections::HashMap<String, naga_oil::compose::ShaderDefValue> {
-          std::collections::HashMap::from([
-            #(#entries),*
-          ])
         }
       }
     }
@@ -239,35 +84,11 @@ impl<'a, 'b> ShaderEntryBuilder<'a, 'b> {
       .collect::<Vec<_>>();
 
     let create_pipeline_layout_fn = self.build_create_pipeline_layout_fn();
-    let load_shader_to_composer_module_fns = self
-      .options
-      .shader_source_type
-      .iter()
-      .map(|source_ty| self.build_load_shader_to_composer_module(source_ty))
-      .collect::<Vec<_>>();
-
-    let relative_path_fn = self.build_relative_path_fn();
-    let default_shader_defs_fn = self.build_default_shader_defs_fn();
-
-    // Add global methods if ComposerWithRelativePath is used
-    let global_methods = if self
-      .options
-      .shader_source_type
-      .contains(WgslShaderSourceType::ComposerWithRelativePath)
-    {
-      crate::generate::shader_module::generate_global_load_naga_module_from_path()
-    } else {
-      quote!()
-    };
 
     quote! {
       impl ShaderEntry {
         #create_pipeline_layout_fn
         #(#create_shader_module_fns)*
-        #(#load_shader_to_composer_module_fns)*
-        #relative_path_fn
-        #default_shader_defs_fn
-        #global_methods
       }
     }
   }

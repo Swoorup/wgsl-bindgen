@@ -1,5 +1,5 @@
-#import common::global_time
-#import common::shared_data
+import package::common::global_time;
+import package::common::shared_data;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,

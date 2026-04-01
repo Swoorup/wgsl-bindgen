@@ -1,5 +1,4 @@
-#import bindings;
-#import types::{Fp64};
+import package::basic::bindings::ONE;
 
 struct Style {
     color: vec4f,
@@ -27,9 +26,10 @@ var texture_array_sint: texture_2d_array<i32>;
 @group(0) @binding(6)
 var texture_array_uint: texture_2d_array<u32>;
 
-var<immediate> const_style: Style;
+override color_alpha: f32 = 1.0;
+override width_scale: f32 = 1.0;
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    buffer[id.x] *= 2 * bindings::ONE * const_style.color.a * const_style.width;
+    buffer[id.x] *= 2 * ONE * color_alpha * width_scale;
 }

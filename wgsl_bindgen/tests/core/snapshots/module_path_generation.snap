@@ -274,35 +274,33 @@ pub mod lines {
 struct SegmentData {
     start: vec2<f32>,
     end: vec2<f32>,
-    color: vec4<f32>,
+    color: vec4<f32>
 }
 
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) color: vec4<f32>,
-}
-
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> segment: SegmentData;
 
-@vertex 
-fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
-    var output: VertexOutput;
-
-    if (vertex_index == 0u) {
-        let _e7 = segment.start;
-        output.position = vec4<f32>(_e7, 0f, 1f);
-    } else {
-        let _e14 = segment.end;
-        output.position = vec4<f32>(_e14, 0f, 1f);
-    }
-    let _e21 = segment.color;
-    output.color = _e21;
-    let _e22 = output;
-    return _e22;
+struct VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    color: vec4<f32>
 }
 
-@fragment 
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
+    var output: VertexOutput;
+    if (vertex_index == 0u) {
+        output.position = vec4<f32>(segment.start, 0.0, 1.0);
+    }
+    else {
+        output.position = vec4<f32>(segment.end, 0.0, 1.0);
+    }
+    output.color = segment.color;
+    return output;
+}
+
+@fragment
 fn fs_main(@location(0) color: vec4<f32>) -> @location(0) vec4<f32> {
     return color;
 }

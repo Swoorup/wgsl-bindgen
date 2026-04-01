@@ -126,15 +126,16 @@ pub mod issue_39 {
     })
   }
   pub const SHADER_STRING: &str = r#"
-@id(1) override b1_: bool = true;
-@id(2) override f1_: f32 = 0.5f;
+override b1: bool = true;
 
-@fragment 
+override f1: f32 = 0.5;
+
+@fragment
 fn main() -> @location(0) vec4<f32> {
-    if b1_ {
-        return vec4<f32>(f1_, 0f, 0f, 1f);
+    if b1 {
+        return vec4<f32>(f1, 0.0, 0.0, 1.0);
     }
-    return vec4<f32>(0f, 0f, 0f, 1f);
+    return vec4<f32>(0.0, 0.0, 0.0, 1.0);
 }
 "#;
 }

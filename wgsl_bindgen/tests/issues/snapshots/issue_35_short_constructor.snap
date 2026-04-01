@@ -53,17 +53,19 @@ pub mod layout_asserts {
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
 }
-pub mod vertices {
+pub mod clear {
   use super::{_root, _root::*};
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct VertexIn {
+  pub struct package_vertices_VertexIn {
     pub position: glam::Vec4,
   }
-  pub const fn VertexIn(position: glam::Vec4) -> VertexIn {
-    VertexIn { position }
+  pub const fn package_vertices_VertexIn(
+    position: glam::Vec4,
+  ) -> package_vertices_VertexIn {
+    package_vertices_VertexIn { position }
   }
-  impl VertexIn {
+  impl package_vertices_VertexIn {
     pub const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [wgpu::VertexAttribute {
       format: wgpu::VertexFormat::Float32x4,
       offset: std::mem::offset_of!(Self, position) as u64,
@@ -79,14 +81,6 @@ pub mod vertices {
       }
     }
   }
-}
-pub mod bytemuck_impls {
-  use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for vertices::VertexIn {}
-  unsafe impl bytemuck::Pod for vertices::VertexIn {}
-}
-pub mod clear {
-  use super::{_root, _root::*};
   pub const ENTRY_VERTEX_MAIN: &str = "vertex_main";
   pub const ENTRY_FRAGMENT_MAIN: &str = "fragment_main";
   #[derive(Debug)]
@@ -109,10 +103,14 @@ pub mod clear {
       },
     }
   }
-  pub fn vertex_main_entry(vertex_in: wgpu::VertexStepMode) -> VertexEntry<1> {
+  pub fn vertex_main_entry(
+    package_vertices__vertex_in: wgpu::VertexStepMode,
+  ) -> VertexEntry<1> {
     VertexEntry {
       entry_point: ENTRY_VERTEX_MAIN,
-      buffers: [vertices::VertexIn::vertex_buffer_layout(vertex_in)],
+      buffers: [package_vertices_VertexIn::vertex_buffer_layout(
+        package_vertices__vertex_in,
+      )],
       constants: Default::default(),
     }
   }
@@ -169,26 +167,31 @@ pub mod clear {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct VertexInX_naga_oil_mod_XOZSXE5DJMNSXGX {
-    @location(0) position: vec4<f32>,
-}
-
 struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
+    @builtin(position)
+    position: vec4<f32>
 }
 
-@vertex 
-fn vertex_main(input: VertexInX_naga_oil_mod_XOZSXE5DJMNSXGX) -> VertexOutput {
+@vertex
+fn vertex_main(input: package_vertices_VertexIn) -> VertexOutput {
     var output: VertexOutput;
-
     output.position = input.position;
-    let _e4 = output;
-    return _e4;
+    return output;
 }
 
-@fragment 
-fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(1f, 1f, 1f, 1f);
+@fragment
+fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4(1.0, 1.0, 1.0, 1.0);
+}
+
+struct package_vertices_VertexIn {
+    @location(0)
+    position: vec4<f32>
 }
 "#;
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for clear::package_vertices_VertexIn {}
+  unsafe impl bytemuck::Pod for clear::package_vertices_VertexIn {}
 }

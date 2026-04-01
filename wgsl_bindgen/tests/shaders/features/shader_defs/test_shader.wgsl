@@ -1,50 +1,53 @@
-// Test shader with conditional compilation using shader_defs
+// Test shader with WESL conditional translation using @if feature attributes
 
-struct Uniforms {
+@if(!USE_TIME && !USE_SCALE)
+struct UniformsBase {
     color: vec4<f32>,
-#ifdef USE_TIME
-    time: f32,
-#endif
-#ifdef USE_SCALE
-    scale: f32,
-#endif
 }
 
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+@if(!USE_TIME && USE_SCALE)
+struct UniformsScaleOnly {
+    color: vec4<f32>,
+    scale: f32,
+}
 
-#ifdef USE_TEXTURE
+@if(USE_TIME && !USE_SCALE)
+struct UniformsTimeOnly {
+    color: vec4<f32>,
+    time: f32,
+}
+
+@if(USE_TIME && USE_SCALE)
+struct UniformsFull {
+    color: vec4<f32>,
+    time: f32,
+    scale: f32,
+}
+
+@if(!USE_TIME && !USE_SCALE)
+@group(0) @binding(0) var<uniform> uniforms: UniformsBase;
+
+@if(!USE_TIME && USE_SCALE)
+@group(0) @binding(0) var<uniform> uniforms: UniformsScaleOnly;
+
+@if(USE_TIME && !USE_SCALE)
+@group(0) @binding(0) var<uniform> uniforms: UniformsTimeOnly;
+
+@if(USE_TIME && USE_SCALE)
+@group(0) @binding(0) var<uniform> uniforms: UniformsFull;
+
+@if(USE_TEXTURE)
 @group(0) @binding(1) var test_texture: texture_2d<f32>;
+
+@if(USE_TEXTURE)
 @group(0) @binding(2) var test_sampler: sampler;
-#endif
 
 @vertex
 fn vs_main() -> @builtin(position) vec4<f32> {
-    var pos = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-    
-#ifdef USE_SCALE
-    pos = pos * uniforms.scale;
-#endif
-
-#ifdef USE_TIME
-    pos.x = pos.x + sin(uniforms.time);
-#endif
-
-    return pos;
+    return vec4<f32>(0.0, 0.0, 0.0, 1.0);
 }
 
-@fragment  
+@fragment
 fn fs_main() -> @location(0) vec4<f32> {
-    var color = uniforms.color;
-    
-#ifdef USE_TEXTURE
-    let tex_color = textureSample(test_texture, test_sampler, vec2<f32>(0.5, 0.5));
-    color = color * tex_color;
-#endif
-
-#ifdef DEBUG_MODE
-    // Debug: make everything red
-    color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-#endif
-
-    return color;
+    return uniforms.color;
 }

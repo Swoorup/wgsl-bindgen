@@ -49,28 +49,8 @@ impl SourceFile {
 
 #[cfg(test)]
 mod tests {
-  use indexmap::indexset;
-  use pretty_assertions::assert_eq;
-
   use super::*;
 
-  #[test]
-  fn test_parsing_imports_from_bevy_mesh_view_bindings() {
-    let module_name = Some(SourceModuleName::new("bevy_pbr::mesh_view_bindings"));
-    let source_path = SourceFilePath::new("mesh_view_bindings.wgsl");
-    let source = SourceFile::create(
-      source_path,
-      module_name,
-      include_str!("../../tests/shaders/bevy_pbr_wgsl/mesh_view_bindings.wgsl")
-        .to_owned(),
-    );
-    let actual = source.get_import_path_parts();
-
-    assert_eq!(
-      actual,
-      indexset! {
-        ImportPathPart::new("bevy_pbr::mesh_view_types")
-      }
-    );
-  }
+  // Note: The bevy integration test used naga-oil `#import` syntax which is no
+  // longer supported.  Tests for WESL `import package::` syntax are in parse_imports.rs.
 }

@@ -129,46 +129,24 @@ impl From<&SourceLocation> for miette::SourceSpan {
   }
 }
 
-/// Value for a shader preprocessor definition used in conditional compilation.
+/// Value for a WESL conditional translation feature flag.
 ///
-/// This mirrors the naga-oil `ShaderDefValue` type but is defined in wgsl_bindgen
-/// so that users building with only WESL (`EmbedWithWesl`) do not need to add
-/// naga-oil to their build dependencies.
+/// Passed via `WgslBindgenOptionBuilder::add_shader_defs` to enable or disable
+/// conditional shader code controlled by WESL `@if` attributes.
 ///
-/// When using [`crate::WgslShaderSourceType::EmbedWithWesl`] only `Bool` values
-/// are consumed by the WESL compiler; `Int` and `UInt` values are silently
-/// ignored because WESL's conditional translation only supports boolean feature
-/// flags.
+/// Only `Bool` values are consumed by the WESL compiler; `Int` and `UInt` are
+/// accepted for API compatibility but are silently ignored because WESL's
+/// conditional translation only supports boolean feature flags.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderDefValue {
   /// A boolean shader definition.
   Bool(bool),
   /// A signed 32-bit integer shader definition.
   ///
-  /// Note: not supported by WESL conditional translation.
+  /// Note: not supported by WESL conditional translation — silently ignored.
   Int(i32),
   /// An unsigned 32-bit integer shader definition.
   ///
-  /// Note: not supported by WESL conditional translation.
+  /// Note: not supported by WESL conditional translation — silently ignored.
   UInt(u32),
-}
-
-impl From<ShaderDefValue> for naga_oil::compose::ShaderDefValue {
-  fn from(v: ShaderDefValue) -> Self {
-    match v {
-      ShaderDefValue::Bool(b) => Self::Bool(b),
-      ShaderDefValue::Int(i) => Self::Int(i),
-      ShaderDefValue::UInt(u) => Self::UInt(u),
-    }
-  }
-}
-
-impl From<naga_oil::compose::ShaderDefValue> for ShaderDefValue {
-  fn from(v: naga_oil::compose::ShaderDefValue) -> Self {
-    match v {
-      naga_oil::compose::ShaderDefValue::Bool(b) => Self::Bool(b),
-      naga_oil::compose::ShaderDefValue::Int(i) => Self::Int(i),
-      naga_oil::compose::ShaderDefValue::UInt(u) => Self::UInt(u),
-    }
-  }
 }

@@ -1,4 +1,4 @@
-#import vertices::VertexIn
+import package::vertices::VertexIn;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,

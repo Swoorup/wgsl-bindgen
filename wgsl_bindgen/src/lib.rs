@@ -7,12 +7,11 @@
 //! It integrates seamlessly into your build process to catch shader-related errors at
 //! compile time rather than runtime.
 //!
-//! Supports two shader import / preprocessing backends:
-//! - **naga-oil** (default): uses naga-oil's `#import` preprocessor syntax.
-//! - **WESL** (opt-in via the `wesl` crate feature): uses the
-//!   [WESL](https://github.com/wgsl-tooling-wg/wesl-spec) compiler, which implements
-//!   a standardised `import package::module;` syntax and `@if` conditional translation.
-//!   Compiled WGSL is embedded at build time; no WESL dependency is needed at runtime.
+//! Powered by [WESL](https://github.com/wgsl-tooling-wg/wesl-spec), the sole shader
+//! compilation backend. WESL is a community-driven superset of WGSL with standardised
+//! module imports (`import package::module::item;`) and conditional translation
+//! (`@if`/`@elif`/`@else` attributes). Shaders are compiled at build time and the
+//! resulting WGSL is embedded — no WESL dependency is needed at runtime.
 //!
 //! ## 🎯 Key Benefits
 //!
@@ -233,9 +232,8 @@ pub(crate) struct WgslEntryResult<'a> {
   mod_name: String,
   naga_module: naga::Module,
   source_including_deps: SourceWithFullDependenciesResult<'a>,
-  /// Pre-compiled WGSL source from the WESL compiler, present when
-  /// `WgslShaderSourceType::EmbedWithWesl` is in the selected source types.
-  wesl_compiled_source: Option<String>,
+  /// WGSL source produced by the WESL compiler, used as the embedded string.
+  wgsl_source: String,
 }
 
 impl<'a> WgslEntryResult<'a> {
@@ -494,7 +492,7 @@ mod test {
         full_dependencies: Default::default(),
         source_file: &dummy_source,
       },
-      wesl_compiled_source: None,
+      wgsl_source: source.to_string(),
     };
 
     create_rust_bindings(vec![entry], &options)

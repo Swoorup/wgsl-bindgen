@@ -19,7 +19,6 @@ proc-macro2.workspace = true
 prettyplease.workspace = true
 thiserror.workspace = true
 case.workspace = true
-naga_oil.workspace = true
 regex.workspace = true
 data-encoding.workspace = true
 indexmap.workspace = true
@@ -38,14 +37,13 @@ strum_macros.workspace = true
 pathdiff.workspace = true
 enumflags2.workspace = true
 heck.workspace = true
+wesl.workspace = true
 glam = { workspace = true, optional = true }
 nalgebra = { version = "0.33", optional = true }
-wesl = { workspace = true, optional = true }
 
 [features]
 minify = []
 default = ["glam"]
-wesl = ["dep:wesl"]
 
 # Note: wgsl-minifier currently has version conflicts with naga
 # [dependencies.wgsl-minifier]

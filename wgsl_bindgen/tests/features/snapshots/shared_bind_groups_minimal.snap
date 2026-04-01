@@ -93,29 +93,57 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
-  const SHARED_DATA_SHARED_UNIFORMS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(shared_data::SharedUniforms, view_matrix) == 0);
-    assert!(std::mem::offset_of!(shared_data::SharedUniforms, time) == 64);
-    assert!(std::mem::size_of::<shared_data::SharedUniforms>() == 80);
+  const SHADER_A_PACKAGE_1SHARED_DATA_SHARED_UNIFORMS_ASSERTS: () = {
+    assert!(
+      std::mem::offset_of!(shader_a::package__1shared_data_SharedUniforms, view_matrix)
+        == 0
+    );
+    assert!(
+      std::mem::offset_of!(shader_a::package__1shared_data_SharedUniforms, time) == 64
+    );
+    assert!(std::mem::size_of::<shader_a::package__1shared_data_SharedUniforms>() == 80);
   };
-  const SHARED_DATA_VERTEX_DATA_ASSERTS: () = {
-    assert!(std::mem::offset_of!(shared_data::VertexData, position) == 0);
-    assert!(std::mem::offset_of!(shared_data::VertexData, normal) == 16);
-    assert!(std::mem::size_of::<shared_data::VertexData>() == 32);
+  const SHADER_A_PACKAGE_1SHARED_DATA_VERTEX_DATA_ASSERTS: () = {
+    assert!(
+      std::mem::offset_of!(shader_a::package__1shared_data_VertexData, position) == 0
+    );
+    assert!(
+      std::mem::offset_of!(shader_a::package__1shared_data_VertexData, normal) == 16
+    );
+    assert!(std::mem::size_of::<shader_a::package__1shared_data_VertexData>() == 32);
+  };
+  const SHADER_B_PACKAGE_1SHARED_DATA_SHARED_UNIFORMS_ASSERTS: () = {
+    assert!(
+      std::mem::offset_of!(shader_b::package__1shared_data_SharedUniforms, view_matrix)
+        == 0
+    );
+    assert!(
+      std::mem::offset_of!(shader_b::package__1shared_data_SharedUniforms, time) == 64
+    );
+    assert!(std::mem::size_of::<shader_b::package__1shared_data_SharedUniforms>() == 80);
+  };
+  const SHADER_B_PACKAGE_1SHARED_DATA_VERTEX_DATA_ASSERTS: () = {
+    assert!(
+      std::mem::offset_of!(shader_b::package__1shared_data_VertexData, position) == 0
+    );
+    assert!(
+      std::mem::offset_of!(shader_b::package__1shared_data_VertexData, normal) == 16
+    );
+    assert!(std::mem::size_of::<shader_b::package__1shared_data_VertexData>() == 32);
   };
 }
-pub mod shared_data {
+pub mod shader_a {
   use super::{_root, _root::*};
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct SharedUniforms {
+  pub struct package__1shared_data_SharedUniforms {
     #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
     pub view_matrix: glam::Mat4,
     #[doc = "offset: 64, size: 4, type: `f32`"]
     pub time: f32,
     pub _pad_time: [u8; 0xC],
   }
-  impl SharedUniforms {
+  impl package__1shared_data_SharedUniforms {
     pub const fn new(view_matrix: glam::Mat4, time: f32) -> Self {
       Self {
         view_matrix,
@@ -126,27 +154,29 @@ pub mod shared_data {
   }
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct SharedUniformsInit {
+  pub struct package__1shared_data_SharedUniformsInit {
     pub view_matrix: glam::Mat4,
     pub time: f32,
   }
-  impl SharedUniformsInit {
-    pub fn build(&self) -> SharedUniforms {
-      SharedUniforms {
+  impl package__1shared_data_SharedUniformsInit {
+    pub fn build(&self) -> package__1shared_data_SharedUniforms {
+      package__1shared_data_SharedUniforms {
         view_matrix: self.view_matrix,
         time: self.time,
         _pad_time: [0; 0xC],
       }
     }
   }
-  impl From<SharedUniformsInit> for SharedUniforms {
-    fn from(data: SharedUniformsInit) -> Self {
+  impl From<package__1shared_data_SharedUniformsInit>
+    for package__1shared_data_SharedUniforms
+  {
+    fn from(data: package__1shared_data_SharedUniformsInit) -> Self {
       data.build()
     }
   }
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct VertexData {
+  pub struct package__1shared_data_VertexData {
     #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
     pub position: glam::Vec3,
     pub _pad_position: [u8; 0x4],
@@ -154,7 +184,7 @@ pub mod shared_data {
     pub normal: glam::Vec3,
     pub _pad_normal: [u8; 0x4],
   }
-  impl VertexData {
+  impl package__1shared_data_VertexData {
     pub const fn new(position: glam::Vec3, normal: glam::Vec3) -> Self {
       Self {
         position,
@@ -166,13 +196,13 @@ pub mod shared_data {
   }
   #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct VertexDataInit {
+  pub struct package__1shared_data_VertexDataInit {
     pub position: glam::Vec3,
     pub normal: glam::Vec3,
   }
-  impl VertexDataInit {
-    pub fn build(&self) -> VertexData {
-      VertexData {
+  impl package__1shared_data_VertexDataInit {
+    pub fn build(&self) -> package__1shared_data_VertexData {
+      package__1shared_data_VertexData {
         position: self.position,
         _pad_position: [0; 0x4],
         normal: self.normal,
@@ -180,247 +210,11 @@ pub mod shared_data {
       }
     }
   }
-  impl From<VertexDataInit> for VertexData {
-    fn from(data: VertexDataInit) -> Self {
+  impl From<package__1shared_data_VertexDataInit> for package__1shared_data_VertexData {
+    fn from(data: package__1shared_data_VertexDataInit) -> Self {
       data.build()
     }
   }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub shared_uniforms: wgpu::BufferBinding<'a>,
-    pub vertex_data: wgpu::BufferBinding<'a>,
-    pub shared_texture: &'a wgpu::TextureView,
-    pub shared_sampler: &'a wgpu::Sampler,
-  }
-  #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup0Entries<'a> {
-    pub shared_uniforms: wgpu::BindGroupEntry<'a>,
-    pub vertex_data: wgpu::BindGroupEntry<'a>,
-    pub shared_texture: wgpu::BindGroupEntry<'a>,
-    pub shared_sampler: wgpu::BindGroupEntry<'a>,
-  }
-  impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-      Self {
-        shared_uniforms: wgpu::BindGroupEntry {
-          binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.shared_uniforms),
-        },
-        vertex_data: wgpu::BindGroupEntry {
-          binding: 1,
-          resource: wgpu::BindingResource::Buffer(params.vertex_data),
-        },
-        shared_texture: wgpu::BindGroupEntry {
-          binding: 2,
-          resource: wgpu::BindingResource::TextureView(params.shared_texture),
-        },
-        shared_sampler: wgpu::BindGroupEntry {
-          binding: 3,
-          resource: wgpu::BindingResource::Sampler(params.shared_sampler),
-        },
-      }
-    }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
-      [
-        self.shared_uniforms,
-        self.vertex_data,
-        self.shared_texture,
-        self.shared_sampler,
-      ]
-    }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.into_array().into_iter().collect()
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0(wgpu::BindGroup);
-  impl WgpuBindGroup0 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-      wgpu::BindGroupLayoutDescriptor {
-        label: Some("SharedData::BindGroup0::LayoutDescriptor"),
-        entries: &[
-          #[doc = " @binding(0): \"_root::shared_data::shared_uniforms\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::shared_data::SharedUniforms,
-              >() as _),
-            },
-            count: None,
-          },
-          #[doc = " @binding(1): \"_root::shared_data::vertex_data\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 1,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: true },
-              has_dynamic_offset: false,
-              min_binding_size: None,
-            },
-            count: None,
-          },
-          #[doc = " @binding(2): \"_root::shared_data::shared_texture\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 2,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Texture {
-              sample_type: wgpu::TextureSampleType::Float { filterable: false },
-              view_dimension: wgpu::TextureViewDimension::D2,
-              multisampled: false,
-            },
-            count: None,
-          },
-          #[doc = " @binding(3): \"_root::shared_data::shared_sampler\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 3,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-            count: None,
-          },
-        ],
-      };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-    }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
-      let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.into_array();
-      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("SharedData::BindGroup0"),
-        layout: &bind_group_layout,
-        entries: &entries,
-      });
-      Self(bind_group)
-    }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(0, &self.0, &[]);
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup1EntriesParams<'a> {
-    pub dynamic_data: wgpu::BufferBinding<'a>,
-    pub compute_uniforms: wgpu::BufferBinding<'a>,
-    pub output_data: wgpu::BufferBinding<'a>,
-  }
-  #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup1Entries<'a> {
-    pub dynamic_data: wgpu::BindGroupEntry<'a>,
-    pub compute_uniforms: wgpu::BindGroupEntry<'a>,
-    pub output_data: wgpu::BindGroupEntry<'a>,
-  }
-  impl<'a> WgpuBindGroup1Entries<'a> {
-    pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
-      Self {
-        dynamic_data: wgpu::BindGroupEntry {
-          binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.dynamic_data),
-        },
-        compute_uniforms: wgpu::BindGroupEntry {
-          binding: 1,
-          resource: wgpu::BindingResource::Buffer(params.compute_uniforms),
-        },
-        output_data: wgpu::BindGroupEntry {
-          binding: 2,
-          resource: wgpu::BindingResource::Buffer(params.output_data),
-        },
-      }
-    }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
-      [self.dynamic_data, self.compute_uniforms, self.output_data]
-    }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.into_array().into_iter().collect()
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup1(wgpu::BindGroup);
-  impl WgpuBindGroup1 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-      wgpu::BindGroupLayoutDescriptor {
-        label: Some("SharedData::BindGroup1::LayoutDescriptor"),
-        entries: &[
-          #[doc = " @binding(0): \"_root::shared_data::dynamic_data\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: true },
-              has_dynamic_offset: false,
-              min_binding_size: None,
-            },
-            count: None,
-          },
-          #[doc = " @binding(1): \"_root::shared_data::compute_uniforms\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 1,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(
-                std::mem::size_of::<glam::Vec4>() as _,
-              ),
-            },
-            count: None,
-          },
-          #[doc = " @binding(2): \"_root::shared_data::output_data\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 2,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Storage { read_only: false },
-              has_dynamic_offset: false,
-              min_binding_size: None,
-            },
-            count: None,
-          },
-        ],
-      };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-    }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
-      let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.into_array();
-      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("SharedData::BindGroup1"),
-        layout: &bind_group_layout,
-        entries: &entries,
-      });
-      Self(bind_group)
-    }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(1, &self.0, &[]);
-    }
-  }
-}
-pub mod bytemuck_impls {
-  use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for shared_data::SharedUniforms {}
-  unsafe impl bytemuck::Pod for shared_data::SharedUniforms {}
-  unsafe impl bytemuck::Zeroable for shared_data::VertexData {}
-  unsafe impl bytemuck::Pod for shared_data::VertexData {}
-}
-pub mod shader_a {
-  use super::{_root, _root::*};
   pub const ENTRY_VS_MAIN: &str = "vs_main";
   pub const ENTRY_FS_MAIN: &str = "fs_main";
   #[derive(Debug)]
@@ -477,6 +271,192 @@ pub mod shader_a {
       constants: Default::default(),
     }
   }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub package__1shared_data__1shared_uniforms: wgpu::BufferBinding<'a>,
+    pub package__1shared_data__1vertex_data: wgpu::BufferBinding<'a>,
+    pub package__1shared_data__1shared_texture: &'a wgpu::TextureView,
+    pub package__1shared_data__1shared_sampler: &'a wgpu::Sampler,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub package__1shared_data__1shared_uniforms: wgpu::BindGroupEntry<'a>,
+    pub package__1shared_data__1vertex_data: wgpu::BindGroupEntry<'a>,
+    pub package__1shared_data__1shared_texture: wgpu::BindGroupEntry<'a>,
+    pub package__1shared_data__1shared_sampler: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        package__1shared_data__1shared_uniforms: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1shared_uniforms,
+          ),
+        },
+        package__1shared_data__1vertex_data: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1vertex_data,
+          ),
+        },
+        package__1shared_data__1shared_texture: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::TextureView(
+            params.package__1shared_data__1shared_texture,
+          ),
+        },
+        package__1shared_data__1shared_sampler: wgpu::BindGroupEntry {
+          binding: 3,
+          resource: wgpu::BindingResource::Sampler(
+            params.package__1shared_data__1shared_sampler,
+          ),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
+      [
+        self.package__1shared_data__1shared_uniforms,
+        self.package__1shared_data__1vertex_data,
+        self.package__1shared_data__1shared_texture,
+        self.package__1shared_data__1shared_sampler,
+      ]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("ShaderA::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"package__1shared_data__1shared_uniforms\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::shader_a::package__1shared_data_SharedUniforms,
+              >() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"package__1shared_data__1vertex_data\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"package__1shared_data__1shared_texture\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Float { filterable: false },
+              view_dimension: wgpu::TextureViewDimension::D2,
+              multisampled: false,
+            },
+            count: None,
+          },
+          #[doc = " @binding(3): \"package__1shared_data__1shared_sampler\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 3,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("ShaderA::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1EntriesParams<'a> {
+    pub package__1shared_data__1dynamic_data: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup1Entries<'a> {
+    pub package__1shared_data__1dynamic_data: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup1Entries<'a> {
+    pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+      Self {
+        package__1shared_data__1dynamic_data: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1dynamic_data,
+          ),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.package__1shared_data__1dynamic_data]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1(wgpu::BindGroup);
+  impl WgpuBindGroup1 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("ShaderA::BindGroup1::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"package__1shared_data__1dynamic_data\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("ShaderA::BindGroup1"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(1, &self.0, &[]);
+    }
+  }
   #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
   #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
   #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
@@ -485,8 +465,8 @@ pub mod shader_a {
   #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
   #[derive(Debug, Copy, Clone)]
   pub struct WgpuBindGroups<'a> {
-    pub bind_group0: &'a shared_data::WgpuBindGroup0,
-    pub bind_group1: &'a shared_data::WgpuBindGroup1,
+    pub bind_group0: &'a WgpuBindGroup0,
+    pub bind_group1: &'a WgpuBindGroup1,
   }
   impl<'a> WgpuBindGroups<'a> {
     pub fn set(&self, pass: &mut impl SetBindGroup) {
@@ -507,8 +487,8 @@ pub mod shader_a {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("ShaderA::PipelineLayout"),
       bind_group_layouts: &[
-        Some(&shared_data::WgpuBindGroup0::get_bind_group_layout(device)),
-        Some(&shared_data::WgpuBindGroup1::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup0::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup1::get_bind_group_layout(device)),
       ],
       immediate_size: 0u32,
     })
@@ -521,49 +501,145 @@ pub mod shader_a {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct SharedUniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX {
-    view_matrix: mat4x4<f32>,
-    time: f32,
-}
-
-struct VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX {
-    position: vec3<f32>,
-    normal: vec3<f32>,
-}
-
-@group(0) @binding(0) 
-var<uniform> shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: SharedUniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX;
-@group(0) @binding(1) 
-var<storage> vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX>;
-@group(0) @binding(2) 
-var shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: texture_2d<f32>;
-@group(0) @binding(3) 
-var shared_samplerX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: sampler;
-@group(1) @binding(0) 
-var<storage> dynamic_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<array<f32, 4>>;
-
-@vertex 
+@vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
-    let transform = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.view_matrix;
-    let vertex = vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[(vertex_index % arrayLength((&vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX)))];
-    let dynamic_len = arrayLength((&dynamic_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX));
-    if (dynamic_len > 0u) {
-        let dynamic_array = dynamic_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[0];
-        return vec4<f32>((vertex.position + vec3(dynamic_array[0])), 1f);
+    let transform = package__1shared_data__1shared_uniforms.view_matrix;
+    let vertex = package__1shared_data__1vertex_data[vertex_index % arrayLength(&package__1shared_data__1vertex_data)];
+    let dynamic_len = arrayLength(&package__1shared_data__1dynamic_data);
+    if dynamic_len > 0u {
+        let dynamic_array = package__1shared_data__1dynamic_data[0];
+        return vec4<f32>(vertex.position + vec3<f32>(dynamic_array[0]), 1.0);
     }
-    return vec4<f32>(vertex.position, 1f);
+    return vec4<f32>(vertex.position, 1.0);
 }
 
-@fragment 
+@fragment
 fn fs_main() -> @location(0) vec4<f32> {
-    let time_factor = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.time;
-    let tex_color = textureSample(shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX, shared_samplerX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX, vec2<f32>(0.5f, 0.5f));
-    return (vec4<f32>(1f, 0f, 0f, 1f) * tex_color);
+    let time_factor = package__1shared_data__1shared_uniforms.time;
+    let tex_color = textureSample(package__1shared_data__1shared_texture, package__1shared_data__1shared_sampler, vec2<f32>(0.5, 0.5));
+    return vec4<f32>(1.0, 0.0, 0.0, 1.0) * tex_color;
 }
+
+struct package__1shared_data_SharedUniforms {
+    view_matrix: mat4x4<f32>,
+    time: f32
+}
+
+struct package__1shared_data_VertexData {
+    position: vec3<f32>,
+    normal: vec3<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1shared_data__1shared_uniforms: package__1shared_data_SharedUniforms;
+
+@group(0) @binding(1)
+var<storage, read> package__1shared_data__1vertex_data: array<package__1shared_data_VertexData>;
+
+@group(0) @binding(2)
+var package__1shared_data__1shared_texture: texture_2d<f32>;
+
+@group(0) @binding(3)
+var package__1shared_data__1shared_sampler: sampler;
+
+@group(1) @binding(0)
+var<storage, read> package__1shared_data__1dynamic_data: array<array<f32, 4>>;
 "#;
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for shader_a::package__1shared_data_SharedUniforms {}
+  unsafe impl bytemuck::Pod for shader_a::package__1shared_data_SharedUniforms {}
+  unsafe impl bytemuck::Zeroable for shader_a::package__1shared_data_VertexData {}
+  unsafe impl bytemuck::Pod for shader_a::package__1shared_data_VertexData {}
+  unsafe impl bytemuck::Zeroable for shader_b::package__1shared_data_SharedUniforms {}
+  unsafe impl bytemuck::Pod for shader_b::package__1shared_data_SharedUniforms {}
+  unsafe impl bytemuck::Zeroable for shader_b::package__1shared_data_VertexData {}
+  unsafe impl bytemuck::Pod for shader_b::package__1shared_data_VertexData {}
 }
 pub mod shader_b {
   use super::{_root, _root::*};
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct package__1shared_data_SharedUniforms {
+    #[doc = "offset: 0, size: 64, type: `mat4x4<f32>`"]
+    pub view_matrix: glam::Mat4,
+    #[doc = "offset: 64, size: 4, type: `f32`"]
+    pub time: f32,
+    pub _pad_time: [u8; 0xC],
+  }
+  impl package__1shared_data_SharedUniforms {
+    pub const fn new(view_matrix: glam::Mat4, time: f32) -> Self {
+      Self {
+        view_matrix,
+        time,
+        _pad_time: [0; 0xC],
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct package__1shared_data_SharedUniformsInit {
+    pub view_matrix: glam::Mat4,
+    pub time: f32,
+  }
+  impl package__1shared_data_SharedUniformsInit {
+    pub fn build(&self) -> package__1shared_data_SharedUniforms {
+      package__1shared_data_SharedUniforms {
+        view_matrix: self.view_matrix,
+        time: self.time,
+        _pad_time: [0; 0xC],
+      }
+    }
+  }
+  impl From<package__1shared_data_SharedUniformsInit>
+    for package__1shared_data_SharedUniforms
+  {
+    fn from(data: package__1shared_data_SharedUniformsInit) -> Self {
+      data.build()
+    }
+  }
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct package__1shared_data_VertexData {
+    #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
+    pub position: glam::Vec3,
+    pub _pad_position: [u8; 0x4],
+    #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
+    pub normal: glam::Vec3,
+    pub _pad_normal: [u8; 0x4],
+  }
+  impl package__1shared_data_VertexData {
+    pub const fn new(position: glam::Vec3, normal: glam::Vec3) -> Self {
+      Self {
+        position,
+        _pad_position: [0; 0x4],
+        normal,
+        _pad_normal: [0; 0x4],
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct package__1shared_data_VertexDataInit {
+    pub position: glam::Vec3,
+    pub normal: glam::Vec3,
+  }
+  impl package__1shared_data_VertexDataInit {
+    pub fn build(&self) -> package__1shared_data_VertexData {
+      package__1shared_data_VertexData {
+        position: self.position,
+        _pad_position: [0; 0x4],
+        normal: self.normal,
+        _pad_normal: [0; 0x4],
+      }
+    }
+  }
+  impl From<package__1shared_data_VertexDataInit> for package__1shared_data_VertexData {
+    fn from(data: package__1shared_data_VertexDataInit) -> Self {
+      data.build()
+    }
+  }
   pub mod compute {
     use super::{_root, _root::*};
     pub const CS_MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
@@ -583,6 +659,200 @@ pub mod shader_b {
     }
   }
   pub const ENTRY_CS_MAIN: &str = "cs_main";
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub package__1shared_data__1shared_uniforms: wgpu::BufferBinding<'a>,
+    pub package__1shared_data__1vertex_data: wgpu::BufferBinding<'a>,
+    pub package__1shared_data__1shared_texture: &'a wgpu::TextureView,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub package__1shared_data__1shared_uniforms: wgpu::BindGroupEntry<'a>,
+    pub package__1shared_data__1vertex_data: wgpu::BindGroupEntry<'a>,
+    pub package__1shared_data__1shared_texture: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        package__1shared_data__1shared_uniforms: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1shared_uniforms,
+          ),
+        },
+        package__1shared_data__1vertex_data: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1vertex_data,
+          ),
+        },
+        package__1shared_data__1shared_texture: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::TextureView(
+            params.package__1shared_data__1shared_texture,
+          ),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
+      [
+        self.package__1shared_data__1shared_uniforms,
+        self.package__1shared_data__1vertex_data,
+        self.package__1shared_data__1shared_texture,
+      ]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("ShaderB::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"package__1shared_data__1shared_uniforms\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::shader_b::package__1shared_data_SharedUniforms,
+              >() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"package__1shared_data__1vertex_data\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"package__1shared_data__1shared_texture\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Float { filterable: false },
+              view_dimension: wgpu::TextureViewDimension::D2,
+              multisampled: false,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("ShaderB::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1EntriesParams<'a> {
+    pub package__1shared_data__1compute_uniforms: wgpu::BufferBinding<'a>,
+    pub package__1shared_data__1output_data: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup1Entries<'a> {
+    pub package__1shared_data__1compute_uniforms: wgpu::BindGroupEntry<'a>,
+    pub package__1shared_data__1output_data: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup1Entries<'a> {
+    pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+      Self {
+        package__1shared_data__1compute_uniforms: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1compute_uniforms,
+          ),
+        },
+        package__1shared_data__1output_data: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::Buffer(
+            params.package__1shared_data__1output_data,
+          ),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 2] {
+      [
+        self.package__1shared_data__1compute_uniforms,
+        self.package__1shared_data__1output_data,
+      ]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1(wgpu::BindGroup);
+  impl WgpuBindGroup1 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("ShaderB::BindGroup1::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(1): \"package__1shared_data__1compute_uniforms\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(
+                std::mem::size_of::<glam::Vec4>() as _,
+              ),
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"package__1shared_data__1output_data\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("ShaderB::BindGroup1"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(1, &self.0, &[]);
+    }
+  }
   #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
   #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
   #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
@@ -591,8 +861,8 @@ pub mod shader_b {
   #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
   #[derive(Debug, Copy, Clone)]
   pub struct WgpuBindGroups<'a> {
-    pub bind_group0: &'a shared_data::WgpuBindGroup0,
-    pub bind_group1: &'a shared_data::WgpuBindGroup1,
+    pub bind_group0: &'a WgpuBindGroup0,
+    pub bind_group1: &'a WgpuBindGroup1,
   }
   impl<'a> WgpuBindGroups<'a> {
     pub fn set(&self, pass: &mut impl SetBindGroup) {
@@ -613,8 +883,8 @@ pub mod shader_b {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("ShaderB::PipelineLayout"),
       bind_group_layouts: &[
-        Some(&shared_data::WgpuBindGroup0::get_bind_group_layout(device)),
-        Some(&shared_data::WgpuBindGroup1::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup0::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup1::get_bind_group_layout(device)),
       ],
       immediate_size: 0u32,
     })
@@ -627,60 +897,48 @@ pub mod shader_b {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct SharedUniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX {
-    view_matrix: mat4x4<f32>,
-    time: f32,
-}
-
-struct VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX {
-    position: vec3<f32>,
-    normal: vec3<f32>,
-}
-
-@group(0) @binding(0) 
-var<uniform> shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: SharedUniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX;
-@group(0) @binding(1) 
-var<storage> vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX>;
-@group(0) @binding(2) 
-var shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: texture_2d<f32>;
-@group(1) @binding(1) 
-var<uniform> compute_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: vec4<f32>;
-@group(1) @binding(2) 
-var<storage, read_write> output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<f32>;
-
-@compute @workgroup_size(1, 1, 1) 
+@compute @workgroup_size(1)
 fn cs_main() {
-    var local: bool;
-
-    let matrix = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.view_matrix;
-    let current_time = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.time;
-    let vertex_count = arrayLength((&vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX));
-    let scale_factor = compute_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.x;
-    let _e13 = compute_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.y;
-    let iterations = u32(_e13);
-    if (vertex_count > 0u) {
-        local = (iterations > 0u);
-    } else {
-        local = false;
-    }
-    let _e22 = local;
-    if _e22 {
-        let first_vertex = vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[0];
-        let tex_dims = textureDimensions(shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX);
-        if (arrayLength((&output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX)) > 0u) {
-            output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[0] = (scale_factor * f32(tex_dims.x));
-            if (arrayLength((&output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX)) > 1u) {
-                output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[1] = first_vertex.position.x;
-                return;
-            } else {
-                return;
+    let matrix = package__1shared_data__1shared_uniforms.view_matrix;
+    let current_time = package__1shared_data__1shared_uniforms.time;
+    let vertex_count = arrayLength(&package__1shared_data__1vertex_data);
+    let scale_factor = package__1shared_data__1compute_uniforms.x;
+    let iterations = u32(package__1shared_data__1compute_uniforms.y);
+    if vertex_count > 0u && iterations > 0u {
+        let first_vertex = package__1shared_data__1vertex_data[0];
+        let tex_dims = textureDimensions(package__1shared_data__1shared_texture);
+        if arrayLength(&package__1shared_data__1output_data) > 0u {
+            package__1shared_data__1output_data[0] = scale_factor * f32(tex_dims.x);
+            if arrayLength(&package__1shared_data__1output_data) > 1u {
+                package__1shared_data__1output_data[1] = first_vertex.position.x;
             }
-        } else {
-            return;
         }
-    } else {
-        return;
     }
 }
+
+struct package__1shared_data_SharedUniforms {
+    view_matrix: mat4x4<f32>,
+    time: f32
+}
+
+struct package__1shared_data_VertexData {
+    position: vec3<f32>,
+    normal: vec3<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1shared_data__1shared_uniforms: package__1shared_data_SharedUniforms;
+
+@group(0) @binding(1)
+var<storage, read> package__1shared_data__1vertex_data: array<package__1shared_data_VertexData>;
+
+@group(0) @binding(2)
+var package__1shared_data__1shared_texture: texture_2d<f32>;
+
+@group(1) @binding(1)
+var<uniform> package__1shared_data__1compute_uniforms: vec4<f32>;
+
+@group(1) @binding(2)
+var<storage, read_write> package__1shared_data__1output_data: array<f32>;
 "#;
 }

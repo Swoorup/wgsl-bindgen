@@ -197,9 +197,6 @@ fn detect_required_dependencies_from_content(
   if content.contains("encase::") {
     deps.insert("encase".to_string());
   }
-  if content.contains("naga_oil::") {
-    deps.insert("naga_oil".to_string());
-  }
 
   // Always include core dependencies that are commonly used
   deps.insert("wgpu".to_string());
@@ -270,13 +267,6 @@ edition = "2021"
           .map(|s| s.as_str())
           .unwrap_or("0.11");
         cargo_toml.push_str(&format!("encase = \"{version}\"\n"));
-      }
-      "naga_oil" => {
-        let version = workspace_deps
-          .get("naga_oil")
-          .map(|s| s.as_str())
-          .unwrap_or("0.22");
-        cargo_toml.push_str(&format!("naga_oil = \"{version}\"\n"));
       }
       _ => {}
     }

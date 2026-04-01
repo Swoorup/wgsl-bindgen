@@ -1,6 +1,5 @@
 ---
 source: wgsl_bindgen/tests/features/wesl.rs
-assertion_line: 63
 ---
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -13,12 +12,12 @@ impl ShaderEntry {
       Self::TestShader => test_shader::create_pipeline_layout(device),
     }
   }
-  pub fn create_shader_module_embed_wesl(
+  pub fn create_shader_module_embed_source(
     &self,
     device: &wgpu::Device,
   ) -> wgpu::ShaderModule {
     match self {
-      Self::TestShader => test_shader::create_shader_module_embed_wesl(device),
+      Self::TestShader => test_shader::create_shader_module_embed_source(device),
     }
   }
 }
@@ -277,17 +276,14 @@ pub mod test_shader {
       immediate_size: 0u32,
     })
   }
-  #[doc = r" Create a shader module from the WGSL compiled by the WESL compiler at build time."]
-  #[doc = r" The WESL features and imports were resolved at build time; no WESL dependency"]
-  #[doc = r" is required at runtime."]
-  pub fn create_shader_module_embed_wesl(device: &wgpu::Device) -> wgpu::ShaderModule {
-    let source = std::borrow::Cow::Borrowed(WESL_SHADER_STRING);
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
     device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("test_shader.wgsl"),
       source: wgpu::ShaderSource::Wgsl(source),
     })
   }
-  pub const WESL_SHADER_STRING: &str = r#"
+  pub const SHADER_STRING: &str = r#"
 struct UniformsBase {
     color: vec4<f32>,
     scale: f32

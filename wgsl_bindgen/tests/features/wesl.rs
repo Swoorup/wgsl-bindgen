@@ -4,9 +4,8 @@ use miette::{IntoDiagnostic, Result};
 use syn::parse_str;
 use wgsl_bindgen::{assert_tokens_snapshot, *};
 
-/// Test that EmbedWithWesl compiles a simple WESL shader (without imports) into
+/// Test that EmbedSource compiles a simple WESL shader (with imports) into
 /// a valid shader module binding.
-#[cfg(feature = "wesl")]
 #[test]
 fn test_wesl_embed_basic() -> Result<()> {
   WgslBindgenOptionBuilder::default()
@@ -17,7 +16,7 @@ fn test_wesl_embed_basic() -> Result<()> {
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
-    .shader_source_type(WgslShaderSourceType::EmbedWithWesl)
+    .shader_source_type(WgslShaderSourceType::EmbedSource)
     .derive_serde(false)
     .emit_rerun_if_change(false)
     .skip_header_comments(true)
@@ -32,9 +31,8 @@ fn test_wesl_embed_basic() -> Result<()> {
   Ok(())
 }
 
-/// Test that EmbedWithWesl correctly enables conditional translation features
-/// via shader_defs (Bool values only; non-Bool defs are ignored for WESL).
-#[cfg(feature = "wesl")]
+/// Test that EmbedSource correctly enables WESL conditional translation features
+/// via shader_defs (Bool values only; non-Bool defs are silently ignored).
 #[test]
 fn test_wesl_embed_with_features() -> Result<()> {
   let shader_defs = vec![("USE_TEXTURE".to_string(), ShaderDefValue::Bool(true))];
@@ -47,7 +45,7 @@ fn test_wesl_embed_with_features() -> Result<()> {
     .skip_hash_check(true)
     .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
     .type_map(GlamWgslTypeMap)
-    .shader_source_type(WgslShaderSourceType::EmbedWithWesl)
+    .shader_source_type(WgslShaderSourceType::EmbedSource)
     .add_shader_defs(shader_defs)
     .derive_serde(false)
     .emit_rerun_if_change(false)
