@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.22.2
 // Changes made to this file will not be saved.
-// SourceHash: c1fb1254e5a4248bc7e3010f63027ed73f076bae8991ad3b3cbca7fae6f64310
+// SourceHash: f126130a03771127c2e9c94384b67d64ebcaef041f3a6e916bf7d4356a549b01
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -58,231 +58,6 @@ impl ShaderEntry {
         compute_demo::particle_renderer::create_shader_module_embed_source(device)
       }
     }
-  }
-  pub fn create_shader_module_relative_path(
-    &self,
-    device: &wgpu::Device,
-    base_dir: &str,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    match self {
-      Self::FullscreenEffects => fullscreen_effects::create_shader_module_relative_path(
-        device,
-        base_dir,
-        shader_defs,
-        load_file,
-      ),
-      Self::SimpleArrayDemo => simple_array_demo::create_shader_module_relative_path(
-        device,
-        base_dir,
-        shader_defs,
-        load_file,
-      ),
-      Self::Overlay => overlay::create_shader_module_relative_path(
-        device,
-        base_dir,
-        shader_defs,
-        load_file,
-      ),
-      Self::GradientTriangle => gradient_triangle::create_shader_module_relative_path(
-        device,
-        base_dir,
-        shader_defs,
-        load_file,
-      ),
-      Self::MultisampledTextureDemo => {
-        multisampled_texture_demo::create_shader_module_relative_path(
-          device,
-          base_dir,
-          shader_defs,
-          load_file,
-        )
-      }
-      Self::ComputeDemoParticlePhysics => {
-        compute_demo::particle_physics::create_shader_module_relative_path(
-          device,
-          base_dir,
-          shader_defs,
-          load_file,
-        )
-      }
-      Self::ComputeDemoParticleRenderer => {
-        compute_demo::particle_renderer::create_shader_module_relative_path(
-          device,
-          base_dir,
-          shader_defs,
-          load_file,
-        )
-      }
-    }
-  }
-  pub fn relative_path(&self) -> &'static str {
-    match self {
-      Self::FullscreenEffects => fullscreen_effects::SHADER_ENTRY_PATH,
-      Self::SimpleArrayDemo => simple_array_demo::SHADER_ENTRY_PATH,
-      Self::Overlay => overlay::SHADER_ENTRY_PATH,
-      Self::GradientTriangle => gradient_triangle::SHADER_ENTRY_PATH,
-      Self::MultisampledTextureDemo => multisampled_texture_demo::SHADER_ENTRY_PATH,
-      Self::ComputeDemoParticlePhysics => {
-        compute_demo::particle_physics::SHADER_ENTRY_PATH
-      }
-      Self::ComputeDemoParticleRenderer => {
-        compute_demo::particle_renderer::SHADER_ENTRY_PATH
-      }
-    }
-  }
-  pub fn default_shader_defs(
-  ) -> std::collections::HashMap<String, naga_oil::compose::ShaderDefValue> {
-    std::collections::HashMap::new()
-  }
-  #[doc = r" Visits and processes all shader files in a dependency tree."]
-  #[doc = r""]
-  #[doc = r" This function traverses the shader dependency tree and calls the visitor function"]
-  #[doc = r" for each file encountered. This allows for custom processing like hot reloading,"]
-  #[doc = r" caching, or debugging."]
-  #[doc = r""]
-  #[doc = r" # Arguments"]
-  #[doc = r""]
-  #[doc = r" * `base_dir` - The base directory for resolving relative paths"]
-  #[doc = r" * `load_file` - Function to load file contents from a path"]
-  #[doc = r" * `visitor` - Function called for each file with (file_path, file_content)"]
-  #[doc = r""]
-  #[doc = r" # Returns"]
-  #[doc = r""]
-  #[doc = r" Returns `Ok(())` if all files were processed successfully, or an error string."]
-  pub fn visit_shader_files(
-    &self,
-    base_dir: &str,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-    mut visitor: impl FnMut(&str, &str),
-  ) -> Result<(), String> {
-    fn visit_dependencies_recursive(
-      base_dir: &str,
-      source: &str,
-      current_path: &str,
-      load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
-      visitor: &mut impl FnMut(&str, &str),
-      visited: &mut std::collections::HashSet<String>,
-    ) -> Result<(), String> {
-      let (_, imports, _) = naga_oil::compose::get_preprocessor_data(source);
-      for import in imports {
-        let import_path = if import.import.starts_with('\"') {
-          import
-            .import
-            .chars()
-            .skip(1)
-            .take_while(|c| *c != '\"')
-            .collect::<String>()
-        } else {
-          let module_path = import
-            .import
-            .split("::")
-            .collect::<Vec<_>>()
-            .join(std::path::MAIN_SEPARATOR_STR);
-          format!("{module_path}.wgsl")
-        };
-        let full_import_path =
-          if import_path.starts_with('/') || import_path.starts_with('\\') {
-            format!("{base_dir}{import_path}")
-          } else {
-            std::path::Path::new(base_dir)
-              .join(import_path)
-              .display()
-              .to_string()
-          };
-        if visited.contains(&full_import_path) {
-          continue;
-        }
-        visited.insert(full_import_path.clone());
-        let import_source = match load_file(&full_import_path) {
-          Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            continue;
-          }
-          Err(err) => {
-            return Err(format!("Failed to load import file {full_import_path}: {err}"));
-          }
-          Ok(content) => content,
-        };
-        visit_dependencies_recursive(
-          base_dir,
-          &import_source,
-          full_import_path.trim_start_matches(&format!("{base_dir}/")),
-          load_file,
-          visitor,
-          visited,
-        )?;
-        visitor(&full_import_path, &import_source);
-      }
-      Ok(())
-    }
-    let entry_path = format!("{}/{}", base_dir, self.relative_path());
-    let entry_source = load_file(&entry_path)
-      .map_err(|e| format!("Failed to load entry point {entry_path}: {e}"))?;
-    visitor(&entry_path, &entry_source);
-    let mut visited = std::collections::HashSet::new();
-    visit_dependencies_recursive(
-      base_dir,
-      &entry_source,
-      self.relative_path(),
-      &load_file,
-      &mut visitor,
-      &mut visited,
-    )?;
-    Ok(())
-  }
-  pub fn load_naga_module_from_path_contents(
-    &self,
-    base_dir: &str,
-    composer: &mut naga_oil::compose::Composer,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    files: Vec<(String, String)>,
-  ) -> Result<wgpu::naga::Module, naga_oil::compose::ComposerError> {
-    let entry_path = format!("{}/{}", base_dir, self.relative_path());
-    for (file_path, file_content) in &files {
-      if *file_path == entry_path {
-        continue;
-      }
-      let relative_path = file_path.trim_start_matches(&format!("{base_dir}/"));
-      let as_name = std::path::Path::new(relative_path)
-        .with_extension("")
-        .with_extension("")
-        .iter()
-        .flat_map(|s| s.to_str())
-        .collect::<Vec<_>>()
-        .join("::")
-        .to_string();
-      composer.add_composable_module(naga_oil::compose::ComposableModuleDescriptor {
-        source: file_content,
-        file_path: relative_path,
-        language: naga_oil::compose::ShaderLanguage::Wgsl,
-        shader_defs: shader_defs.clone(),
-        as_name: Some(as_name),
-        ..Default::default()
-      })?;
-    }
-    let (_, entry_source) = &files[0];
-    composer.make_naga_module(naga_oil::compose::NagaModuleDescriptor {
-      source: entry_source,
-      file_path: self.relative_path(),
-      shader_defs,
-      ..Default::default()
-    })
-  }
-  pub fn load_naga_module_from_path(
-    &self,
-    base_dir: &str,
-    composer: &mut naga_oil::compose::Composer,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::naga::Module, String> {
-    let mut files = Vec::<(String, String)>::new();
-    self.visit_shader_files(base_dir, &load_file, |file_path, file_content| {
-      files.push((file_path.to_string(), file_content.to_string()));
-    })?;
-    self
-      .load_naga_module_from_path_contents(base_dir, composer, shader_defs, files)
-      .map_err(|e| format!("{e}"))
   }
 }
 mod _root {
@@ -354,13 +129,6 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<glam::Mat4>() == 64);
     assert!(std::mem::align_of::<glam::Mat4>() == 16);
   };
-  const GLOBAL_BINDINGS_GLOBAL_UNIFORMS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, time) == 0);
-    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, scale_factor) == 4);
-    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, frame_size) == 8);
-    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, mouse_pos) == 16);
-    assert!(std::mem::size_of::<global_bindings::GlobalUniforms>() == 24);
-  };
   const FULLSCREEN_EFFECTS_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(fullscreen_effects::Uniforms, color_rgb) == 0);
     assert!(std::mem::size_of::<fullscreen_effects::Uniforms>() == 16);
@@ -368,6 +136,13 @@ pub mod layout_asserts {
   const FULLSCREEN_EFFECTS_IMMEDIATES_ASSERTS: () = {
     assert!(std::mem::offset_of!(fullscreen_effects::Immediates, color_matrix) == 0);
     assert!(std::mem::size_of::<fullscreen_effects::Immediates>() == 64);
+  };
+  const GLOBAL_BINDINGS_GLOBAL_UNIFORMS_ASSERTS: () = {
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, time) == 0);
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, scale_factor) == 4);
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, frame_size) == 8);
+    assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, mouse_pos) == 16);
+    assert!(std::mem::size_of::<global_bindings::GlobalUniforms>() == 24);
   };
   const SIMPLE_ARRAY_DEMO_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(simple_array_demo::Uniforms, color_rgb) == 0);
@@ -400,126 +175,6 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(compute_demo::particle_physics::Params, damping) == 4);
     assert!(std::mem::size_of::<compute_demo::particle_physics::Params>() == 8);
   };
-}
-pub mod global_bindings {
-  use super::{_root, _root::*};
-  #[repr(C, align(8))]
-  #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct GlobalUniforms {
-    #[doc = "offset: 0, size: 4, type: `f32`"]
-    pub time: f32,
-    #[doc = "offset: 4, size: 4, type: `f32`"]
-    pub scale_factor: f32,
-    #[doc = "offset: 8, size: 8, type: `vec2<f32>`"]
-    pub frame_size: glam::Vec2,
-    #[doc = "offset: 16, size: 8, type: `vec2<f32>`"]
-    pub mouse_pos: glam::Vec2,
-  }
-  impl GlobalUniforms {
-    pub const fn new(
-      time: f32,
-      scale_factor: f32,
-      frame_size: glam::Vec2,
-      mouse_pos: glam::Vec2,
-    ) -> Self {
-      Self {
-        time,
-        scale_factor,
-        frame_size,
-        mouse_pos,
-      }
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0EntriesParams<'a> {
-    pub globals: wgpu::BufferBinding<'a>,
-  }
-  #[derive(Clone, Debug)]
-  pub struct WgpuBindGroup0Entries<'a> {
-    pub globals: wgpu::BindGroupEntry<'a>,
-  }
-  impl<'a> WgpuBindGroup0Entries<'a> {
-    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
-      Self {
-        globals: wgpu::BindGroupEntry {
-          binding: 0,
-          resource: wgpu::BindingResource::Buffer(params.globals),
-        },
-      }
-    }
-    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
-      [self.globals]
-    }
-    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
-      self.into_array().into_iter().collect()
-    }
-  }
-  #[derive(Debug)]
-  pub struct WgpuBindGroup0(wgpu::BindGroup);
-  impl WgpuBindGroup0 {
-    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
-      wgpu::BindGroupLayoutDescriptor {
-        label: Some("GlobalBindings::BindGroup0::LayoutDescriptor"),
-        entries: &[
-          #[doc = " @binding(0): \"_root::global_bindings::globals\""]
-          wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX
-              .union(wgpu::ShaderStages::FRAGMENT)
-              .union(wgpu::ShaderStages::COMPUTE),
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
-                _root::global_bindings::GlobalUniforms,
-              >() as _),
-            },
-            count: None,
-          },
-        ],
-      };
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
-    }
-    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
-      let bind_group_layout = Self::get_bind_group_layout(device);
-      let entries = bindings.into_array();
-      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("GlobalBindings::BindGroup0"),
-        layout: &bind_group_layout,
-        entries: &entries,
-      });
-      Self(bind_group)
-    }
-    pub fn set(&self, pass: &mut impl SetBindGroup) {
-      pass.set_bind_group(0, &self.0, &[]);
-    }
-  }
-}
-pub mod bytemuck_impls {
-  use super::{_root, _root::*};
-  unsafe impl bytemuck::Zeroable for global_bindings::GlobalUniforms {}
-  unsafe impl bytemuck::Pod for global_bindings::GlobalUniforms {}
-  unsafe impl bytemuck::Zeroable for fullscreen_effects::Uniforms {}
-  unsafe impl bytemuck::Pod for fullscreen_effects::Uniforms {}
-  unsafe impl bytemuck::Zeroable for fullscreen_effects::VertexInput {}
-  unsafe impl bytemuck::Pod for fullscreen_effects::VertexInput {}
-  unsafe impl bytemuck::Zeroable for fullscreen_effects::Immediates {}
-  unsafe impl bytemuck::Pod for fullscreen_effects::Immediates {}
-  unsafe impl bytemuck::Zeroable for simple_array_demo::Uniforms {}
-  unsafe impl bytemuck::Pod for simple_array_demo::Uniforms {}
-  unsafe impl bytemuck::Zeroable for simple_array_demo::Immediates {}
-  unsafe impl bytemuck::Pod for simple_array_demo::Immediates {}
-  unsafe impl bytemuck::Zeroable for overlay::InfoData {}
-  unsafe impl bytemuck::Pod for overlay::InfoData {}
-  unsafe impl bytemuck::Zeroable for gradient_triangle::VertexInput {}
-  unsafe impl bytemuck::Pod for gradient_triangle::VertexInput {}
-  unsafe impl bytemuck::Zeroable for compute_demo::particle_physics::Job {}
-  unsafe impl bytemuck::Pod for compute_demo::particle_physics::Job {}
-  unsafe impl bytemuck::Zeroable for compute_demo::particle_physics::Params {}
-  unsafe impl bytemuck::Pod for compute_demo::particle_physics::Params {}
-  unsafe impl bytemuck::Zeroable for compute_demo::particle_renderer::VertexInput {}
-  unsafe impl bytemuck::Pod for compute_demo::particle_renderer::VertexInput {}
 }
 pub mod fullscreen_effects {
   use super::{_root, _root::*};
@@ -805,97 +460,192 @@ pub mod fullscreen_effects {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX {
-    time: f32,
-    scale_factor: f32,
-    frame_size: vec2<f32>,
-    mouse_pos: vec2<f32>,
-}
+@group(1) @binding(0)
+var main_texture: texture_2d<f32>;
+
+@group(1) @binding(1)
+var main_sampler: sampler;
 
 struct Uniforms {
-    color_rgb: vec4<f32>,
+    color_rgb: vec4<f32>
 }
 
+@group(2) @binding(0)
+var<uniform> uniforms: Uniforms;
+
 struct VertexInput {
-    @location(0) position: vec3<f32>,
+    @location(0)
+    position: vec3<f32>
 }
 
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    tex_coords: vec2<f32>
+}
+
+@vertex
+fn vs_main(in: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4(in.position.xyz, 1.0);
+    out.tex_coords = in.position.xy * 0.5 + 0.5;
+    return out;
 }
 
 struct Immediates {
-    color_matrix: mat4x4<f32>,
+    color_matrix: mat4x4<f32>
 }
 
-@group(0) @binding(0) 
-var<uniform> globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-@group(1) @binding(0) 
-var main_texture: texture_2d<f32>;
-@group(1) @binding(1) 
-var main_sampler: sampler;
-@group(2) @binding(0) 
-var<uniform> uniforms: Uniforms;
 var<immediate> constants: Immediates;
 
-fn get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> f32 {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.time;
-    return _e2;
-}
-
-@vertex 
-fn vs_main(in: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-
-    out.clip_position = vec4<f32>(in.position.xyz, 1f);
-    out.tex_coords = ((in.position.xy * 0.5f) + vec2(0.5f));
-    let _e15 = out;
-    return _e15;
-}
-
-@fragment 
-fn fs_main(in_1: VertexOutput) -> @location(0) vec4<f32> {
-    let uv = in_1.tex_coords;
-    let _e4 = textureSample(main_texture, main_sampler, uv);
-    let color = _e4.xyz;
-    let _e6 = get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let t = (_e6 * 0.5f);
-    let center = vec2<f32>(0.5f, 0.5f);
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let uv = in.tex_coords;
+    let color = textureSample(main_texture, main_sampler, uv).rgb;
+    let t = package__1global_bindings__1get_time() * 0.5;
+    let center = vec2<f32>(0.5, 0.5);
     let dist = distance(uv, center);
-    let ripple = ((sin(((dist * 12f) - (t * 1.8f))) * 0.4f) + 0.6f);
-    let color_shift = vec3<f32>((0.5f + (0.5f * sin(t))), (0.5f + (0.5f * sin((t + 2f)))), (0.5f + (0.5f * sin((t + 4f)))));
-    let vignette = smoothstep(0f, 0.8f, (1f - (dist * 1.2f)));
-    let _e52 = uniforms.color_rgb;
-    let final_color = ((((color * _e52.xyz) * color_shift) * (0.7f + (0.3f * ripple))) * vignette);
-    let _e64 = constants.color_matrix;
-    return (_e64 * vec4<f32>(final_color, 1f));
+    let ripple = sin(dist * 12.0 - t * 1.8) * 0.4 + 0.6;
+    let color_shift = vec3<f32>(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.0), 0.5 + 0.5 * sin(t + 4.0));
+    let vignette = smoothstep(0.0, 0.8, 1.0 - dist * 1.2);
+    let final_color = color * uniforms.color_rgb.rgb * color_shift * (0.7 + 0.3 * ripple) * vignette;
+    return constants.color_matrix * vec4(final_color, 1.0);
+}
+
+struct package__1global_bindings_GlobalUniforms {
+    time: f32,
+    scale_factor: f32,
+    frame_size: vec2<f32>,
+    mouse_pos: vec2<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1global_bindings_globals: package__1global_bindings_GlobalUniforms;
+
+fn package__1global_bindings__1get_time() -> f32 {
+    return package__1global_bindings_globals.time;
 }
 "#;
-  pub const SHADER_ENTRY_PATH: &str = "fullscreen_effects.wgsl";
-  pub fn create_shader_module_relative_path(
-    device: &wgpu::Device,
-    base_dir: &str,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-    let module = ShaderEntry::FullscreenEffects
-      .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-      .map_err(|e| naga_oil::compose::ComposerError {
-        inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-        source: naga_oil::compose::ErrSource::Constructing {
-          path: "load_naga_module_from_path".to_string(),
-          source: "Generated code".to_string(),
-          offset: 0,
+}
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for fullscreen_effects::Uniforms {}
+  unsafe impl bytemuck::Pod for fullscreen_effects::Uniforms {}
+  unsafe impl bytemuck::Zeroable for fullscreen_effects::VertexInput {}
+  unsafe impl bytemuck::Pod for fullscreen_effects::VertexInput {}
+  unsafe impl bytemuck::Zeroable for fullscreen_effects::Immediates {}
+  unsafe impl bytemuck::Pod for fullscreen_effects::Immediates {}
+  unsafe impl bytemuck::Zeroable for global_bindings::GlobalUniforms {}
+  unsafe impl bytemuck::Pod for global_bindings::GlobalUniforms {}
+  unsafe impl bytemuck::Zeroable for simple_array_demo::Uniforms {}
+  unsafe impl bytemuck::Pod for simple_array_demo::Uniforms {}
+  unsafe impl bytemuck::Zeroable for simple_array_demo::Immediates {}
+  unsafe impl bytemuck::Pod for simple_array_demo::Immediates {}
+  unsafe impl bytemuck::Zeroable for overlay::InfoData {}
+  unsafe impl bytemuck::Pod for overlay::InfoData {}
+  unsafe impl bytemuck::Zeroable for gradient_triangle::VertexInput {}
+  unsafe impl bytemuck::Pod for gradient_triangle::VertexInput {}
+  unsafe impl bytemuck::Zeroable for compute_demo::particle_physics::Job {}
+  unsafe impl bytemuck::Pod for compute_demo::particle_physics::Job {}
+  unsafe impl bytemuck::Zeroable for compute_demo::particle_physics::Params {}
+  unsafe impl bytemuck::Pod for compute_demo::particle_physics::Params {}
+  unsafe impl bytemuck::Zeroable for compute_demo::particle_renderer::VertexInput {}
+  unsafe impl bytemuck::Pod for compute_demo::particle_renderer::VertexInput {}
+}
+pub mod global_bindings {
+  use super::{_root, _root::*};
+  #[repr(C, align(8))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct GlobalUniforms {
+    #[doc = "offset: 0, size: 4, type: `f32`"]
+    pub time: f32,
+    #[doc = "offset: 4, size: 4, type: `f32`"]
+    pub scale_factor: f32,
+    #[doc = "offset: 8, size: 8, type: `vec2<f32>`"]
+    pub frame_size: glam::Vec2,
+    #[doc = "offset: 16, size: 8, type: `vec2<f32>`"]
+    pub mouse_pos: glam::Vec2,
+  }
+  impl GlobalUniforms {
+    pub const fn new(
+      time: f32,
+      scale_factor: f32,
+      frame_size: glam::Vec2,
+      mouse_pos: glam::Vec2,
+    ) -> Self {
+      Self {
+        time,
+        scale_factor,
+        frame_size,
+        mouse_pos,
+      }
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub globals: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub globals: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        globals: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.globals),
         },
-      })?;
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("fullscreen_effects.wgsl"),
-      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-    });
-    Ok(shader_module)
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.globals]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("GlobalBindings::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"_root::global_bindings::globals\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX
+              .union(wgpu::ShaderStages::FRAGMENT)
+              .union(wgpu::ShaderStages::COMPUTE),
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::global_bindings::GlobalUniforms,
+              >() as _),
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("GlobalBindings::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
   }
 }
 pub mod simple_array_demo {
@@ -1187,109 +937,81 @@ pub mod simple_array_demo {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX {
-    time: f32,
-    scale_factor: f32,
-    frame_size: vec2<f32>,
-    mouse_pos: vec2<f32>,
-}
+@group(1) @binding(0)
+var texture_array: binding_array<texture_2d<f32>, 2>;
+
+@group(1) @binding(1)
+var sampler_array: binding_array<sampler, 2>;
+
+@group(1) @binding(2)
+var texture_array_no_bind: texture_2d_array<f32>;
 
 struct Uniforms {
-    color_rgb: vec4<f32>,
+    color_rgb: vec4<f32>
 }
 
+@group(2) @binding(0)
+var<uniform> uniforms: Uniforms;
+
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    tex_coords: vec2<f32>
+}
+
+@vertex
+fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4(position.xyz, package_constants_ONE);
+    out.tex_coords = position.xy * 0.5 + 0.5;
+    return out;
 }
 
 struct Immediates {
-    color_matrix: mat4x4<f32>,
+    color_matrix: mat4x4<f32>
 }
 
-const ONEX_naga_oil_mod_XMNXW443UMFXHI4YX: f32 = 1f;
-
-@group(0) @binding(0) 
-var<uniform> globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-@group(1) @binding(0) 
-var texture_array: binding_array<texture_2d<f32>, 2>;
-@group(1) @binding(1) 
-var sampler_array: binding_array<sampler, 2>;
-@group(1) @binding(2) 
-var texture_array_no_bind: texture_2d_array<f32>;
-@group(2) @binding(0) 
-var<uniform> uniforms: Uniforms;
 var<immediate> push_constants: Immediates;
 
-fn get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> f32 {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.time;
-    return _e2;
-}
-
-@vertex 
-fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
-    var out: VertexOutput;
-
-    out.clip_position = vec4<f32>(position.xyz, ONEX_naga_oil_mod_XMNXW443UMFXHI4YX);
-    out.tex_coords = ((position.xy * 0.5f) + vec2(0.5f));
-    let _e13 = out;
-    return _e13;
-}
-
-@fragment 
+@fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let base_uv = in.tex_coords;
-    let _e2 = get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let t = (_e2 * 0.5f);
-    let uv1_ = (base_uv + vec2<f32>((sin(t) * 0.1f), (cos((t * 1.3f)) * 0.1f)));
-    let uv2_ = ((base_uv * (1f + (0.2f * sin((t * 0.7f))))) + vec2<f32>((cos((t * 0.8f)) * 0.05f), (sin((t * 1.1f)) * 0.05f)));
-    let _e39 = textureSample(texture_array[0], sampler_array[0], uv1_);
-    let color1_ = _e39.xyz;
-    let _e45 = textureSample(texture_array[1], sampler_array[1], uv2_);
-    let color2_ = _e45.xyz;
-    let _e51 = textureSample(texture_array_no_bind, sampler_array[0], uv1_, 0i);
-    let color1_no_bind = _e51.xyz;
-    let _e57 = textureSample(texture_array_no_bind, sampler_array[1], uv2_, 1i);
-    let color2_no_bind = _e57.xyz;
-    let center = vec2<f32>(0.5f, 0.5f);
+    let t = package__1global_bindings__1get_time() * 0.5;
+    let uv1 = base_uv + vec2<f32>(sin(t) * 0.1, cos(t * 1.3) * 0.1);
+    let uv2 = base_uv * (1.0 + 0.2 * sin(t * 0.7)) + vec2<f32>(cos(t * 0.8) * 0.05, sin(t * 1.1) * 0.05);
+    let color1 = textureSample(texture_array[0], sampler_array[0], uv1).rgb;
+    let color2 = textureSample(texture_array[1], sampler_array[1], uv2).rgb;
+    let color1_no_bind = textureSample(texture_array_no_bind, sampler_array[0], uv1, 0).rgb;
+    let color2_no_bind = textureSample(texture_array_no_bind, sampler_array[1], uv2, 1).rgb;
+    let center = vec2<f32>(0.5, 0.5);
     let dist = distance(base_uv, center);
-    let blend_factor = (0.5f + (0.5f * sin((t + (dist * 8f)))));
-    let blended_color = mix(color1_, color2_, blend_factor);
+    let blend_factor = 0.5 + 0.5 * sin(t + dist * 8.0);
+    let blended_color = mix(color1, color2, blend_factor);
     let blended_color_no_bind = mix(color1_no_bind, color2_no_bind, blended_color);
-    let color_mod = vec3<f32>((0.8f + (0.2f * sin(t))), (0.8f + (0.2f * sin((t + 2f)))), (0.8f + (0.2f * sin((t + 4f)))));
-    let ripple = ((sin(((dist * 10f) - (t * 2.5f))) * 0.25f) + 0.75f);
-    let _e106 = uniforms.color_rgb;
-    let final_color = (((mix(blended_color, blended_color_no_bind, blend_factor) * _e106.xyz) * color_mod) * ripple);
-    let vignette = smoothstep(0f, 0.9f, (1f - (dist * 1.3f)));
-    let _e120 = push_constants.color_matrix;
-    return (_e120 * vec4<f32>((final_color * vignette), 1f));
+    let color_mod = vec3<f32>(0.8 + 0.2 * sin(t), 0.8 + 0.2 * sin(t + 2.0), 0.8 + 0.2 * sin(t + 4.0));
+    let ripple = sin(dist * 10.0 - t * 2.5) * 0.25 + 0.75;
+    let final_color = mix(blended_color, blended_color_no_bind, blend_factor) * uniforms.color_rgb.rgb * color_mod * ripple;
+    let vignette = smoothstep(0.0, 0.9, 1.0 - dist * 1.3);
+    return push_constants.color_matrix * vec4(final_color * vignette, 1.0);
+}
+
+const package_constants_ONE: f32 = 1.0;
+
+struct package__1global_bindings_GlobalUniforms {
+    time: f32,
+    scale_factor: f32,
+    frame_size: vec2<f32>,
+    mouse_pos: vec2<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1global_bindings_globals: package__1global_bindings_GlobalUniforms;
+
+fn package__1global_bindings__1get_time() -> f32 {
+    return package__1global_bindings_globals.time;
 }
 "#;
-  pub const SHADER_ENTRY_PATH: &str = "simple_array_demo.wgsl";
-  pub fn create_shader_module_relative_path(
-    device: &wgpu::Device,
-    base_dir: &str,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-    let module = ShaderEntry::SimpleArrayDemo
-      .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-      .map_err(|e| naga_oil::compose::ComposerError {
-        inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-        source: naga_oil::compose::ErrSource::Constructing {
-          path: "load_naga_module_from_path".to_string(),
-          source: "Generated code".to_string(),
-          offset: 0,
-        },
-      })?;
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("simple_array_demo.wgsl"),
-      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-    });
-    Ok(shader_module)
-  }
 }
 pub mod constants {
   use super::{_root, _root::*};
@@ -1529,8 +1251,29 @@ pub mod overlay {
   }
   pub const SHADER_STRING: &str = r#"
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    tex_coords: vec2<f32>
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
+    var out: VertexOutput;
+    let x = f32((vertex_index & 1u) * 2u);
+    let y = f32((vertex_index >> 1u) * 2u);
+    let dpi_scale = info.scale_factor;
+    let dpi_adjusted_scale = mix(1.2, 0.9, clamp((dpi_scale - 1.0) / 2.0, 0.0, 1.0));
+    let min_dimension = min(info.window_width, info.window_height);
+    let size_boost = max(1.0, min_dimension / 1200.0);
+    let effective_scale = dpi_adjusted_scale * size_boost;
+    let base_height = 0.5;
+    let overlay_height = min(0.8, base_height * effective_scale);
+    out.clip_position = vec4<f32>(x * 2.0 - 1.0, 1.0 - y * overlay_height, 0.0, 1.0);
+    let text_scale_x = 1.0;
+    let text_scale_y = min(1.0, 0.8 / effective_scale);
+    out.tex_coords = vec2<f32>(x * text_scale_x, y * text_scale_y);
+    return out;
 }
 
 struct InfoData {
@@ -1540,76 +1283,30 @@ struct InfoData {
     scale_factor: f32,
     window_width: f32,
     window_height: f32,
-    padding1_: f32,
-    padding2_: f32,
+    padding1: f32,
+    padding2: f32
 }
 
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> info: InfoData;
-@group(0) @binding(1) 
+
+@group(0) @binding(1)
 var text_texture: texture_2d<f32>;
-@group(0) @binding(2) 
+
+@group(0) @binding(2)
 var text_sampler: sampler;
 
-@vertex 
-fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
-    var out: VertexOutput;
-
-    let x = f32(((vertex_index & 1u) * 2u));
-    let y = f32(((vertex_index >> 1u) * 2u));
-    let dpi_scale = info.scale_factor;
-    let dpi_adjusted_scale = mix(1.2f, 0.9f, clamp(((dpi_scale - 1f) / 2f), 0f, 1f));
-    let _e26 = info.window_width;
-    let _e29 = info.window_height;
-    let min_dimension = min(_e26, _e29);
-    let size_boost = max(1f, (min_dimension / 1200f));
-    let effective_scale = (dpi_adjusted_scale * size_boost);
-    let overlay_height = min(0.8f, (0.5f * effective_scale));
-    out.clip_position = vec4<f32>(((x * 2f) - 1f), (1f - (y * overlay_height)), 0f, 1f);
-    let text_scale_y = min(1f, (0.8f / effective_scale));
-    out.tex_coords = vec2<f32>((x * 1f), (y * text_scale_y));
-    let _e61 = out;
-    return _e61;
-}
-
-@fragment 
+@fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let text_color = textureSample(text_texture, text_sampler, in.tex_coords);
-    let bg_color = vec4<f32>(0.05f, 0.05f, 0.08f, 0.9f);
-    let gradient = (1f - (in.tex_coords.y * 0.5f));
-    let _e18 = info.time;
-    let _e23 = info.demo_index;
-    let color_shift = (0.1f * sin(((_e18 * 0.5f) + (_e23 * 3.14159f))));
-    let tinted_bg = (bg_color + vec4<f32>((color_shift * 0.2f), (color_shift * 0.1f), (color_shift * 0.3f), 0f));
-    let final_color = mix((tinted_bg * gradient), vec4<f32>(1f, 1f, 1f, 1f), text_color.w);
+    let bg_color = vec4<f32>(0.05, 0.05, 0.08, 0.9);
+    let gradient = 1.0 - in.tex_coords.y * 0.5;
+    let color_shift = 0.1 * sin(info.time * 0.5 + info.demo_index * 3.14159);
+    let tinted_bg = bg_color + vec4<f32>(color_shift * 0.2, color_shift * 0.1, color_shift * 0.3, 0.0);
+    let final_color = mix(tinted_bg * gradient, vec4<f32>(1.0, 1.0, 1.0, 1.0), text_color.a);
     return final_color;
 }
 "#;
-  pub const SHADER_ENTRY_PATH: &str = "overlay.wgsl";
-  pub fn create_shader_module_relative_path(
-    device: &wgpu::Device,
-    base_dir: &str,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-    let module = ShaderEntry::Overlay
-      .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-      .map_err(|e| naga_oil::compose::ComposerError {
-        inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-        source: naga_oil::compose::ErrSource::Constructing {
-          path: "load_naga_module_from_path".to_string(),
-          source: "Generated code".to_string(),
-          offset: 0,
-        },
-      })?;
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("overlay.wgsl"),
-      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-    });
-    Ok(shader_module)
-  }
 }
 pub mod gradient_triangle {
   use super::{_root, _root::*};
@@ -1729,60 +1426,38 @@ pub mod gradient_triangle {
   }
   pub const SHADER_STRING: &str = r#"
 struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) @interpolate(flat) texture_id: u32,
-    @builtin(vertex_index) vertex_index: u32,
+    @location(0)
+    position: vec3<f32>,
+    @location(1)
+    texture_id: u32,
+    @builtin(vertex_index)
+    vertex_index: u32
 }
 
 struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) texture_id: f32,
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    texture_id: f32
 }
 
-@vertex 
+@vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-
-    output.position = vec4<f32>(input.position, 1f);
+    output.position = vec4<f32>(input.position, 1.0);
     output.texture_id = f32(input.texture_id);
-    let _e9 = output;
-    return _e9;
+    return output;
 }
 
-@fragment 
-fn fs_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
-    let id = input_1.texture_id;
-    let r = clamp((2f - id), 0f, 1f);
-    let g = clamp((1f - abs((id - 2f))), 0f, 1f);
-    let b = clamp((id - 2f), 0f, 1f);
-    return vec4<f32>(r, g, b, 1f);
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    let id = input.texture_id;
+    let r = clamp(2.0 - id, 0.0, 1.0);
+    let g = clamp(1.0 - abs(id - 2.0), 0.0, 1.0);
+    let b = clamp(id - 2.0, 0.0, 1.0);
+    return vec4<f32>(r, g, b, 1.0);
 }
 "#;
-  pub const SHADER_ENTRY_PATH: &str = "gradient_triangle.wgsl";
-  pub fn create_shader_module_relative_path(
-    device: &wgpu::Device,
-    base_dir: &str,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-    let module = ShaderEntry::GradientTriangle
-      .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-      .map_err(|e| naga_oil::compose::ComposerError {
-        inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-        source: naga_oil::compose::ErrSource::Constructing {
-          path: "load_naga_module_from_path".to_string(),
-          source: "Generated code".to_string(),
-          offset: 0,
-        },
-      })?;
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("gradient_triangle.wgsl"),
-      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-    });
-    Ok(shader_module)
-  }
 }
 pub mod multisampled_texture_demo {
   use super::{_root, _root::*};
@@ -1971,126 +1646,80 @@ pub mod multisampled_texture_demo {
     })
   }
   pub const SHADER_STRING: &str = r#"
-struct GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX {
-    time: f32,
-    scale_factor: f32,
-    frame_size: vec2<f32>,
-    mouse_pos: vec2<f32>,
-}
+@group(1) @binding(0)
+var ms_texture: texture_multisampled_2d<f32>;
 
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) tex_coords: vec2<f32>,
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    tex_coords: vec2<f32>
+}
+
+@vertex
+fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4(position.xyz, package_constants_ONE);
+    out.tex_coords = position.xy * 0.5 + 0.5;
+    out.tex_coords.y = 1.0 - out.tex_coords.y;
+    return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let dims = textureDimensions(ms_texture);
+    let coords = vec2<i32>(in.tex_coords * vec2<f32>(dims));
+    var color = vec4<f32>(0.0);
+    for (var i = 0; i < 4; i++) {
+        color += textureLoad(ms_texture, coords, i);
+    }
+    let pulse = 0.8 + 0.2 * sin(package__1global_bindings__1get_time() * 2.0);
+    return color * 0.25 * pulse;
 }
 
 struct ShapeOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) color: vec3<f32>,
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    color: vec3<f32>
 }
 
-const ONEX_naga_oil_mod_XMNXW443UMFXHI4YX: f32 = 1f;
-
-@group(0) @binding(0) 
-var<uniform> globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-@group(1) @binding(0) 
-var ms_texture: texture_multisampled_2d<f32>;
-
-fn get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> f32 {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.time;
-    return _e2;
-}
-
-@vertex 
-fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
-    var out: VertexOutput;
-
-    out.clip_position = vec4<f32>(position.xyz, ONEX_naga_oil_mod_XMNXW443UMFXHI4YX);
-    out.tex_coords = ((position.xy * 0.5f) + vec2(0.5f));
-    let _e17 = out.tex_coords.y;
-    out.tex_coords.y = (1f - _e17);
-    let _e20 = out;
-    return _e20;
-}
-
-@fragment 
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var color: vec4<f32> = vec4(0f);
-    var i: i32 = 0i;
-
-    let dims = textureDimensions(ms_texture);
-    let coords = vec2<i32>((in.tex_coords * vec2<f32>(dims)));
-    loop {
-        let _e11 = i;
-        if (_e11 < 4i) {
-        } else {
-            break;
-        }
-        {
-            let _e15 = color;
-            let _e17 = i;
-            let _e18 = textureLoad(ms_texture, coords, _e17);
-            color = (_e15 + _e18);
-        }
-        continuing {
-            let _e21 = i;
-            i = (_e21 + 1i);
-        }
-    }
-    let _e23 = get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let pulse = (0.8f + (0.2f * sin((_e23 * 2f))));
-    let _e31 = color;
-    return ((_e31 * 0.25f) * pulse);
-}
-
-@vertex 
+@vertex
 fn vs_msaa(@builtin(vertex_index) vi: u32) -> ShapeOutput {
-    var positions: array<vec2<f32>, 3> = array<vec2<f32>, 3>(vec2<f32>(0f, 0.8f), vec2<f32>(-0.8f, -0.8f), vec2<f32>(0.8f, -0.8f));
-    var colors: array<vec3<f32>, 3> = array<vec3<f32>, 3>(vec3<f32>(1f, 0f, 0.5f), vec3<f32>(0f, 1f, 0.5f), vec3<f32>(1f, 1f, 0f));
-    var out_1: ShapeOutput;
-
-    let _e13 = get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let c = cos(_e13);
-    let s = sin(_e13);
-    let rot = mat2x2<f32>(vec2<f32>(c, s), vec2<f32>(-(s), c));
-    let offset = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.mouse_pos;
-    let _e28 = positions[vi];
-    out_1.clip_position = vec4<f32>((((rot * _e28) * 0.5f) + offset), 0f, 1f);
-    let _e39 = colors[vi];
-    out_1.color = _e39;
-    let _e40 = out_1;
-    return _e40;
+    var positions = array<vec2<f32>, 3>(vec2<f32>(0.0, 0.8), vec2<f32>(-0.8, -0.8), vec2<f32>(0.8, -0.8));
+    var colors = array<vec3<f32>, 3>(vec3<f32>(1.0, 0.0, 0.5), vec3<f32>(0.0, 1.0, 0.5), vec3<f32>(1.0, 1.0, 0.0));
+    let t = package__1global_bindings__1get_time();
+    let c = cos(t);
+    let s = sin(t);
+    let rot = mat2x2<f32>(vec2<f32>(c, s), vec2<f32>(-s, c));
+    let offset = package__1global_bindings_globals.mouse_pos;
+    var out: ShapeOutput;
+    out.clip_position = vec4<f32>(rot * positions[vi] * 0.5 + offset, 0.0, 1.0);
+    out.color = colors[vi];
+    return out;
 }
 
-@fragment 
-fn fs_msaa(in_1: ShapeOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(in_1.color, 1f);
+@fragment
+fn fs_msaa(in: ShapeOutput) -> @location(0) vec4<f32> {
+    return vec4<f32>(in.color, 1.0);
+}
+
+const package_constants_ONE: f32 = 1.0;
+
+struct package__1global_bindings_GlobalUniforms {
+    time: f32,
+    scale_factor: f32,
+    frame_size: vec2<f32>,
+    mouse_pos: vec2<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1global_bindings_globals: package__1global_bindings_GlobalUniforms;
+
+fn package__1global_bindings__1get_time() -> f32 {
+    return package__1global_bindings_globals.time;
 }
 "#;
-  pub const SHADER_ENTRY_PATH: &str = "multisampled_texture_demo.wgsl";
-  pub fn create_shader_module_relative_path(
-    device: &wgpu::Device,
-    base_dir: &str,
-    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-    let mut composer = naga_oil::compose::Composer::default()
-      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-    let module = ShaderEntry::MultisampledTextureDemo
-      .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-      .map_err(|e| naga_oil::compose::ComposerError {
-        inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-        source: naga_oil::compose::ErrSource::Constructing {
-          path: "load_naga_module_from_path".to_string(),
-          source: "Generated code".to_string(),
-          offset: 0,
-        },
-      })?;
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-      label: Some("multisampled_texture_demo.wgsl"),
-      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-    });
-    Ok(shader_module)
-  }
 }
 pub mod compute_demo {
   use super::{_root, _root::*};
@@ -2187,28 +1816,6 @@ pub mod compute_demo {
           compilation_options: Default::default(),
           cache: None,
         })
-      }
-      pub fn create_main_pipeline_relative_path(
-        device: &wgpu::Device,
-        base_dir: &str,
-        shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-        load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-      ) -> Result<wgpu::ComputePipeline, naga_oil::compose::ComposerError> {
-        let module = super::create_shader_module_relative_path(
-          device,
-          base_dir,
-          shader_defs,
-          load_file,
-        )?;
-        let layout = super::create_pipeline_layout(device);
-        Ok(device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-          label: Some("Compute Pipeline main"),
-          layout: Some(&layout),
-          module: &module,
-          entry_point: Some("main"),
-          compilation_options: Default::default(),
-          cache: None,
-        }))
       }
     }
     pub const ENTRY_MAIN: &str = "main";
@@ -2341,449 +1948,247 @@ pub mod compute_demo {
       })
     }
     pub const SHADER_STRING: &str = r#"
-struct GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX {
-    time: f32,
-    scale_factor: f32,
-    frame_size: vec2<f32>,
-    mouse_pos: vec2<f32>,
-}
-
 struct Job {
     position: vec3<f32>,
     direction: vec3<f32>,
     accum: vec3<f32>,
-    depth: u32,
+    depth: u32
 }
+
+@group(1) @binding(0)
+var<storage, read_write> jobs: array<Job>;
 
 struct Params {
     scale: f32,
-    damping: f32,
+    damping: f32
 }
 
-const DT: f32 = 0.012f;
-const BOUNDARY: f32 = 1f;
-const NEIGHBOR_RADIUS: f32 = 0.12f;
-const SEPARATION_RADIUS: f32 = 0.06f;
-const MAX_SPEED: f32 = 1f;
-const MAX_FORCE: f32 = 0.08f;
-const MOUSE_FORCE_RADIUS: f32 = 0.3f;
-const MOUSE_FORCE_STRENGTH: f32 = 1.2f;
-
-@group(0) @binding(0) 
-var<uniform> globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-@group(1) @binding(0) 
-var<storage, read_write> jobs: array<Job>;
-@group(1) @binding(1) 
+@group(1) @binding(1)
 var<uniform> params: Params;
 
-fn get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> f32 {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.time;
-    return _e2;
-}
+const DT: f32 = 0.012;
 
-fn get_mouse_posX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> vec2<f32> {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.mouse_pos;
-    return _e2;
-}
+const BOUNDARY: f32 = 1.0;
+
+const NEIGHBOR_RADIUS: f32 = 0.12;
+
+const SEPARATION_RADIUS: f32 = 0.06;
+
+const MAX_SPEED: f32 = 1.0;
+
+const MAX_FORCE: f32 = 0.08;
+
+const MOUSE_FORCE_RADIUS: f32 = 0.3;
+
+const MOUSE_FORCE_STRENGTH: f32 = 1.2;
 
 fn hash(p: vec2<f32>) -> f32 {
-    let h = dot(p, vec2<f32>(127.1f, 311.7f));
-    return fract((sin(h) * 43758.547f));
+    let h = dot(p, vec2<f32>(127.1, 311.7));
+    return fract(sin(h) * 43758.5453123);
 }
 
-fn noise(p_1: vec2<f32>) -> f32 {
-    let i_4 = floor(p_1);
-    let f = fract(p_1);
-    let u = ((f * f) * (vec2(3f) - (2f * f)));
-    let _e14 = hash((i_4 + vec2<f32>(0f, 0f)));
-    let _e19 = hash((i_4 + vec2<f32>(1f, 0f)));
-    let _e26 = hash((i_4 + vec2<f32>(0f, 1f)));
-    let _e31 = hash((i_4 + vec2<f32>(1f, 1f)));
-    return mix(mix(_e14, _e19, u.x), mix(_e26, _e31, u.x), u.y);
+fn noise(p: vec2<f32>) -> f32 {
+    let i = floor(p);
+    let f = fract(p);
+    let u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i + vec2<f32>(0.0, 0.0)), hash(i + vec2<f32>(1.0, 0.0)), u.x), mix(hash(i + vec2<f32>(0.0, 1.0)), hash(i + vec2<f32>(1.0, 1.0)), u.x), u.y);
 }
 
 fn limit(v: vec3<f32>, max_len: f32) -> vec3<f32> {
     let len = length(v);
-    if (len > max_len) {
-        return (normalize(v) * max_len);
+    if len > max_len {
+        return normalize(v) * max_len;
     }
     return v;
 }
 
 fn seek(position: vec3<f32>, to: vec3<f32>, velocity: vec3<f32>) -> vec3<f32> {
-    let desired = (normalize((to - position)) * MAX_SPEED);
-    let _e9 = limit((desired - velocity), MAX_FORCE);
-    return _e9;
+    let desired = normalize(to - position) * MAX_SPEED;
+    return limit(desired - velocity, MAX_FORCE);
 }
 
-fn gravity_force(pos1_: vec3<f32>, pos2_: vec3<f32>, mass1_: f32, mass2_: f32, is_repulsive: bool) -> vec3<f32> {
-    let diff = (pos2_ - pos1_);
-    let dist_sq = max(dot(diff, diff), 0.01f);
-    let dist = sqrt(dist_sq);
-    let force_magnitude = (((mass1_ * mass2_) / dist_sq) * 0.1f);
-    let direction = normalize(diff);
-    if is_repulsive {
-        return (-(direction) * force_magnitude);
-    } else {
-        return (direction * force_magnitude);
+fn separation(index: u32, position: vec3<f32>) -> vec3<f32> {
+    var steer = vec3<f32>(0.0);
+    var count = 0u;
+    for (var i = 0u; i < arrayLength(&jobs); i++) {
+        if i == index {
+            continue;
+        }
+        let other_pos = jobs[i].position;
+        let dist = distance(position, other_pos);
+        if dist > 0.0 && dist < SEPARATION_RADIUS {
+            let diff = normalize(position - other_pos);
+            steer += diff / dist;
+            count++;
+        }
     }
+    if count > 0u {
+        steer = steer / f32(count);
+        steer = normalize(steer) * MAX_SPEED;
+        return limit(steer, MAX_FORCE);
+    }
+    return vec3<f32>(0.0);
 }
 
-fn separation(index: u32, position_1: vec3<f32>) -> vec3<f32> {
-    var steer: vec3<f32> = vec3(0f);
-    var count: u32 = 0u;
-    var i_1: u32 = 0u;
-    var local_2: bool;
-
-    loop {
-        let _e4 = i_1;
-        if (_e4 < arrayLength((&jobs))) {
-        } else {
-            break;
+fn alignment(index: u32, position: vec3<f32>) -> vec3<f32> {
+    var neighbor_vel = vec3<f32>(0.0);
+    var count = 0u;
+    for (var i = 0u; i < arrayLength(&jobs); i++) {
+        if i == index {
+            continue;
         }
-        {
-            let _e9 = i_1;
-            if (_e9 == index) {
-                continue;
-            }
-            let _e12 = i_1;
-            let other_pos = jobs[_e12].position;
-            let dist_1 = distance(position_1, other_pos);
-            if (dist_1 > 0f) {
-                local_2 = (dist_1 < SEPARATION_RADIUS);
-            } else {
-                local_2 = false;
-            }
-            let _e25 = local_2;
-            if _e25 {
-                let diff_1 = normalize((position_1 - other_pos));
-                let _e29 = steer;
-                steer = (_e29 + (diff_1 / vec3(dist_1)));
-                let _e35 = count;
-                count = (_e35 + 1u);
-            }
-        }
-        continuing {
-            let _e38 = i_1;
-            i_1 = (_e38 + 1u);
+        let other_pos = jobs[i].position;
+        let dist = distance(position, other_pos);
+        if dist > 0.0 && dist < NEIGHBOR_RADIUS {
+            neighbor_vel += jobs[i].direction;
+            count++;
         }
     }
-    let _e40 = count;
-    if (_e40 > 0u) {
-        let _e43 = steer;
-        let _e44 = count;
-        steer = (_e43 / vec3(f32(_e44)));
-        let _e48 = steer;
-        steer = (normalize(_e48) * MAX_SPEED);
-        let _e52 = steer;
-        let _e54 = limit(_e52, MAX_FORCE);
-        return _e54;
+    if count > 0u {
+        neighbor_vel = neighbor_vel / f32(count);
+        neighbor_vel = normalize(neighbor_vel) * MAX_SPEED;
+        return limit(neighbor_vel, MAX_FORCE);
     }
-    return vec3(0f);
+    return vec3<f32>(0.0);
 }
 
-fn alignment(index_1: u32, position_2: vec3<f32>) -> vec3<f32> {
-    var neighbor_vel: vec3<f32> = vec3(0f);
-    var count_1: u32 = 0u;
-    var i_2: u32 = 0u;
-    var local_3: bool;
-
-    loop {
-        let _e4 = i_2;
-        if (_e4 < arrayLength((&jobs))) {
-        } else {
-            break;
+fn cohesion(index: u32, position: vec3<f32>) -> vec3<f32> {
+    var neighbor_pos = vec3<f32>(0.0);
+    var count = 0u;
+    for (var i = 0u; i < arrayLength(&jobs); i++) {
+        if i == index {
+            continue;
         }
-        {
-            let _e9 = i_2;
-            if (_e9 == index_1) {
-                continue;
-            }
-            let _e12 = i_2;
-            let other_pos_1 = jobs[_e12].position;
-            let dist_2 = distance(position_2, other_pos_1);
-            if (dist_2 > 0f) {
-                local_3 = (dist_2 < NEIGHBOR_RADIUS);
-            } else {
-                local_3 = false;
-            }
-            let _e25 = local_3;
-            if _e25 {
-                let _e27 = neighbor_vel;
-                let _e29 = i_2;
-                let _e32 = jobs[_e29].direction;
-                neighbor_vel = (_e27 + _e32);
-                let _e36 = count_1;
-                count_1 = (_e36 + 1u);
-            }
-        }
-        continuing {
-            let _e39 = i_2;
-            i_2 = (_e39 + 1u);
+        let other_pos = jobs[i].position;
+        let dist = distance(position, other_pos);
+        if dist > 0.0 && dist < NEIGHBOR_RADIUS {
+            neighbor_pos += other_pos;
+            count++;
         }
     }
-    let _e41 = count_1;
-    if (_e41 > 0u) {
-        let _e44 = neighbor_vel;
-        let _e45 = count_1;
-        neighbor_vel = (_e44 / vec3(f32(_e45)));
-        let _e49 = neighbor_vel;
-        neighbor_vel = (normalize(_e49) * MAX_SPEED);
-        let _e53 = neighbor_vel;
-        let _e55 = limit(_e53, MAX_FORCE);
-        return _e55;
+    if count > 0u {
+        neighbor_pos = neighbor_pos / f32(count);
+        return seek(position, neighbor_pos, jobs[index].direction);
     }
-    return vec3(0f);
+    return vec3<f32>(0.0);
 }
 
-fn cohesion(index_2: u32, position_3: vec3<f32>) -> vec3<f32> {
-    var neighbor_pos: vec3<f32> = vec3(0f);
-    var count_2: u32 = 0u;
-    var i_3: u32 = 0u;
-    var local_4: bool;
-
-    loop {
-        let _e4 = i_3;
-        if (_e4 < arrayLength((&jobs))) {
-        } else {
-            break;
-        }
-        {
-            let _e9 = i_3;
-            if (_e9 == index_2) {
-                continue;
-            }
-            let _e12 = i_3;
-            let other_pos_2 = jobs[_e12].position;
-            let dist_3 = distance(position_3, other_pos_2);
-            if (dist_3 > 0f) {
-                local_4 = (dist_3 < NEIGHBOR_RADIUS);
-            } else {
-                local_4 = false;
-            }
-            let _e25 = local_4;
-            if _e25 {
-                let _e27 = neighbor_pos;
-                neighbor_pos = (_e27 + other_pos_2);
-                let _e31 = count_2;
-                count_2 = (_e31 + 1u);
-            }
-        }
-        continuing {
-            let _e34 = i_3;
-            i_3 = (_e34 + 1u);
-        }
-    }
-    let _e36 = count_2;
-    if (_e36 > 0u) {
-        let _e39 = neighbor_pos;
-        let _e40 = count_2;
-        neighbor_pos = (_e39 / vec3(f32(_e40)));
-        let _e44 = neighbor_pos;
-        let _e48 = jobs[index_2].direction;
-        let _e49 = seek(position_3, _e44, _e48);
-        return _e49;
-    }
-    return vec3(0f);
-}
-
-@compute @workgroup_size(64, 1, 1) 
+@compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    var force: vec3<f32> = vec3(0f);
-    var i: u32 = 0u;
-    var local: bool;
-    var local_1: bool;
-    var new_pos: vec3<f32>;
-
-    let index_3 = global_id.x;
-    if (index_3 >= arrayLength((&jobs))) {
+    let index = global_id.x;
+    if index >= arrayLength(&jobs) {
         return;
     }
-    let _e8 = get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
+    let t = package__1global_bindings__1get_time();
     let gravity_strength = params.scale;
     let damping = params.damping;
-    let job = (&jobs[index_3]);
+    let job = &jobs[index];
     let pos = (*job).position;
     let vel = (*job).direction;
-    let _e22 = (*job).depth;
-    let particle_type = (_e22 % 4u);
-    if (particle_type == 0u) {
-        let _e28 = force;
-        let _e29 = separation(index_3, pos);
-        force = (_e28 + (_e29 * 0.8f));
-        let _e33 = force;
-        let _e34 = alignment(index_3, pos);
-        force = (_e33 + (_e34 * 1.2f));
-        let _e38 = force;
-        let _e39 = cohesion(index_3, pos);
-        force = (_e38 + (_e39 * 0.6f));
-    } else {
-        if (particle_type == 1u) {
-            let noise_offset = vec2<f32>(((pos.x * 0.1f) + (_e8 * 0.05f)), ((pos.y * 0.1f) + (_e8 * 0.08f)));
-            let _e58 = noise(noise_offset);
-            let _e65 = noise((noise_offset + vec2<f32>(100f, 0f)));
-            let _e72 = noise((noise_offset + vec2<f32>(0f, 100f)));
-            let noise_force = (vec3<f32>((_e58 - 0.5f), (_e65 - 0.5f), (_e72 - 0.5f)) * 0.02f);
-            let _e78 = force;
-            force = (_e78 + noise_force);
-            let _e80 = force;
-            let _e81 = separation(index_3, pos);
-            force = (_e80 + (_e81 * 0.5f));
-        } else {
-            if (particle_type == 2u) {
-                let center = vec3<f32>(0f, 0f, 0f);
-                let to_center = (center - pos);
-                let dist_to_center = length(to_center);
-                if (dist_to_center > 0.1f) {
-                    let _e95 = force;
-                    force = (_e95 + ((normalize(to_center) * (gravity_strength * 0.5f)) / vec3(((dist_to_center * dist_to_center) + 0.1f))));
-                    let tangent = normalize(cross(to_center, vec3<f32>(0f, 0f, 1f)));
-                    let _e112 = force;
-                    force = (_e112 + (tangent * 0.02f));
-                }
-                let _e116 = force;
-                let _e117 = separation(index_3, pos);
-                force = (_e116 + (_e117 * 0.8f));
-            } else {
-                let center_1 = vec3<f32>(0f, 0f, 0f);
-                let from_center = (pos - center_1);
-                let dist_to_center_1 = length(from_center);
-                if (dist_to_center_1 > 0.1f) {
-                    let _e129 = force;
-                    force = (_e129 + ((normalize(from_center) * gravity_strength) * 0.3f));
-                }
-                loop {
-                    let _e136 = i;
-                    if (_e136 < arrayLength((&jobs))) {
-                    } else {
-                        break;
-                    }
-                    {
-                        let _e140 = i;
-                        if (_e140 == index_3) {
-                            continue;
-                        }
-                        let _e143 = i;
-                        let other_pos_3 = jobs[_e143].position;
-                        let dist_4 = distance(pos, other_pos_3);
-                        if (dist_4 > 0f) {
-                            local = (dist_4 < 0.06f);
-                        } else {
-                            local = false;
-                        }
-                        let _e155 = local;
-                        if _e155 {
-                            let repel_force = (normalize((pos - other_pos_3)) * (0.1f / (dist_4 + 0.1f)));
-                            let _e163 = force;
-                            force = (_e163 + repel_force);
-                        }
-                    }
-                    continuing {
-                        let _e166 = i;
-                        i = (_e166 + 1u);
-                    }
-                }
+    let particle_type = (*job).depth % 4u;
+    var force = vec3<f32>(0.0);
+    if particle_type == 0u {
+        force += separation(index, pos) * 0.8;
+        force += alignment(index, pos) * 1.2;
+        force += cohesion(index, pos) * 0.6;
+    }
+    else if particle_type == 1u {
+        let noise_offset = vec2<f32>(pos.x * 0.1 + t * 0.05, pos.y * 0.1 + t * 0.08);
+        let noise_force = vec3<f32>(noise(noise_offset) - 0.5, noise(noise_offset + vec2<f32>(100.0, 0.0)) - 0.5, noise(noise_offset + vec2<f32>(0.0, 100.0)) - 0.5) * 0.02;
+        force += noise_force;
+        force += separation(index, pos) * 0.5;
+    }
+    else if particle_type == 2u {
+        let center = vec3<f32>(0.0, 0.0, 0.0);
+        let to_center = center - pos;
+        let dist_to_center = length(to_center);
+        if dist_to_center > 0.1 {
+            force += normalize(to_center) * (gravity_strength * 0.5) / (dist_to_center * dist_to_center + 0.1);
+            let tangent = normalize(cross(to_center, vec3<f32>(0.0, 0.0, 1.0)));
+            force += tangent * 0.02;
+        }
+        force += separation(index, pos) * 0.8;
+    }
+    else {
+        let center = vec3<f32>(0.0, 0.0, 0.0);
+        let from_center = pos - center;
+        let dist_to_center = length(from_center);
+        if dist_to_center > 0.1 {
+            force += normalize(from_center) * gravity_strength * 0.3;
+        }
+        for (var i = 0u; i < arrayLength(&jobs); i++) {
+            if i == index {
+                continue;
+            }
+            let other_pos = jobs[i].position;
+            let dist = distance(pos, other_pos);
+            if dist > 0.0 && dist < NEIGHBOR_RADIUS * 0.5 {
+                let repel_force = normalize(pos - other_pos) * (0.1 / (dist + 0.1));
+                force += repel_force;
             }
         }
     }
-    let _e168 = get_mouse_posX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
+    let mouse_pos = package__1global_bindings__2get_mouse_pos();
     let particle_screen_pos = vec2<f32>(pos.x, pos.y);
-    let mouse_distance = distance(particle_screen_pos, _e168);
-    if (mouse_distance < MOUSE_FORCE_RADIUS) {
-        local_1 = (mouse_distance > 0.001f);
-    } else {
-        local_1 = false;
+    let mouse_distance = distance(particle_screen_pos, mouse_pos);
+    if mouse_distance < MOUSE_FORCE_RADIUS && mouse_distance > 0.001 {
+        let mouse_direction = normalize(particle_screen_pos - mouse_pos);
+        let mouse_force_strength = MOUSE_FORCE_STRENGTH / (mouse_distance * mouse_distance + 0.01);
+        let mouse_force_3d = vec3<f32>(mouse_direction.x, mouse_direction.y, 0.0) * mouse_force_strength;
+        force += mouse_force_3d;
     }
-    let _e180 = local_1;
-    if _e180 {
-        let mouse_direction = normalize((particle_screen_pos - _e168));
-        let mouse_force_strength = (MOUSE_FORCE_STRENGTH / ((mouse_distance * mouse_distance) + 0.01f));
-        let mouse_force_3d = (vec3<f32>(mouse_direction.x, mouse_direction.y, 0f) * mouse_force_strength);
-        let _e193 = force;
-        force = (_e193 + mouse_force_3d);
-    }
-    let wave_force = (vec3<f32>((sin(((_e8 * 0.6f) + (pos.y * 0.3f))) * 0.008f), (cos(((_e8 * 0.8f) + (pos.x * 0.25f))) * 0.008f), (sin(((_e8 * 0.4f) + (pos.z * 0.2f))) * 0.004f)) * gravity_strength);
-    let _e224 = force;
-    force = (_e224 + wave_force);
-    let _e226 = force;
-    let _e229 = limit((vel + _e226), MAX_SPEED);
-    new_pos = (pos + (_e229 * DT));
-    let _e236 = new_pos.x;
-    if (abs(_e236) > 0.9f) {
-        let _e240 = new_pos.x;
-        let push_strength = ((abs(_e240) - 0.9f) / (BOUNDARY - 0.9f));
-        let _e248 = force.x;
-        let _e250 = new_pos.x;
-        force.x = (_e248 - ((sign(_e250) * push_strength) * 0.03f));
-        let _e256 = new_pos.x;
-        if (abs(_e256) > BOUNDARY) {
-            let _e262 = new_pos.x;
-            new_pos.x = (sign(_e262) * BOUNDARY);
+    let wave_force = vec3<f32>(sin(t * 0.6 + pos.y * 0.3) * 0.008, cos(t * 0.8 + pos.x * 0.25) * 0.008, sin(t * 0.4 + pos.z * 0.2) * 0.004) * gravity_strength;
+    force += wave_force;
+    let new_vel = limit(vel + force, MAX_SPEED);
+    var new_pos = pos + new_vel * DT;
+    let boundary_softness = 0.9;
+    let boundary_force = 0.03;
+    if abs(new_pos.x) > boundary_softness {
+        let push_strength = (abs(new_pos.x) - boundary_softness) / (BOUNDARY - boundary_softness);
+        force.x -= sign(new_pos.x) * push_strength * boundary_force;
+        if abs(new_pos.x) > BOUNDARY {
+            new_pos.x = sign(new_pos.x) * BOUNDARY;
         }
     }
-    let _e267 = new_pos.y;
-    if (abs(_e267) > 0.9f) {
-        let _e271 = new_pos.y;
-        let push_strength_1 = ((abs(_e271) - 0.9f) / (BOUNDARY - 0.9f));
-        let _e278 = force.y;
-        let _e280 = new_pos.y;
-        force.y = (_e278 - ((sign(_e280) * push_strength_1) * 0.03f));
-        let _e286 = new_pos.y;
-        if (abs(_e286) > BOUNDARY) {
-            let _e292 = new_pos.y;
-            new_pos.y = (sign(_e292) * BOUNDARY);
+    if abs(new_pos.y) > boundary_softness {
+        let push_strength = (abs(new_pos.y) - boundary_softness) / (BOUNDARY - boundary_softness);
+        force.y -= sign(new_pos.y) * push_strength * boundary_force;
+        if abs(new_pos.y) > BOUNDARY {
+            new_pos.y = sign(new_pos.y) * BOUNDARY;
         }
     }
-    let _e297 = new_pos.z;
-    if (abs(_e297) > 0.4f) {
-        let _e302 = new_pos.z;
-        let push_strength_2 = ((abs(_e302) - 0.4f) / 0.1f);
-        let _e309 = force.z;
-        let _e311 = new_pos.z;
-        force.z = (_e309 - ((sign(_e311) * push_strength_2) * 0.03f));
-        let _e317 = new_pos.z;
-        if (abs(_e317) > 0.5f) {
-            let _e323 = new_pos.z;
-            new_pos.z = (sign(_e323) * 0.5f);
+    if abs(new_pos.z) > 0.4 {
+        let push_strength = (abs(new_pos.z) - 0.4) / 0.1;
+        force.z -= sign(new_pos.z) * push_strength * boundary_force;
+        if abs(new_pos.z) > 0.5 {
+            new_pos.z = sign(new_pos.z) * 0.5;
         }
     }
-    let damped_vel = (_e229 * damping);
-    let _e329 = new_pos;
-    (*job).position = _e329;
+    let damped_vel = new_vel * damping;
+    (*job).position = new_pos;
     (*job).direction = damped_vel;
-    let _e332 = (*job).accum;
-    let _e333 = force;
-    (*job).accum = (_e332 + vec3(length(_e333)));
-    let _e338 = (*job).depth;
-    (*job).depth = (_e338 + 1u);
-    return;
+    (*job).accum += length(force);
+    (*job).depth += 1u;
+}
+
+struct package__1global_bindings_GlobalUniforms {
+    time: f32,
+    scale_factor: f32,
+    frame_size: vec2<f32>,
+    mouse_pos: vec2<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1global_bindings_globals: package__1global_bindings_GlobalUniforms;
+
+fn package__1global_bindings__1get_time() -> f32 {
+    return package__1global_bindings_globals.time;
+}
+
+fn package__1global_bindings__2get_mouse_pos() -> vec2<f32> {
+    return package__1global_bindings_globals.mouse_pos;
 }
 "#;
-    pub const SHADER_ENTRY_PATH: &str = "compute_demo/particle_physics.wgsl";
-    pub fn create_shader_module_relative_path(
-      device: &wgpu::Device,
-      base_dir: &str,
-      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-      load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-      let mut composer = naga_oil::compose::Composer::default()
-        .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-      let module = ShaderEntry::ComputeDemoParticlePhysics
-        .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-        .map_err(|e| naga_oil::compose::ComposerError {
-          inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-          source: naga_oil::compose::ErrSource::Constructing {
-            path: "load_naga_module_from_path".to_string(),
-            source: "Generated code".to_string(),
-            offset: 0,
-          },
-        })?;
-      let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("particle_physics.wgsl"),
-        source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-      });
-      Ok(shader_module)
-    }
   }
   pub mod particle_renderer {
     use super::{_root, _root::*};
@@ -2926,149 +2331,120 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
       })
     }
     pub const SHADER_STRING: &str = r#"
-struct GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX {
-    time: f32,
-    scale_factor: f32,
-    frame_size: vec2<f32>,
-    mouse_pos: vec2<f32>,
-}
-
 struct VertexInput {
-    @location(0) quad_pos: vec2<f32>,
-    @location(1) position_and_size: vec4<f32>,
+    @location(0)
+    quad_pos: vec2<f32>,
+    @location(1)
+    position_and_size: vec4<f32>
 }
 
 struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) color: vec3<f32>,
-    @location(1) energy: f32,
-    @location(2) particle_type: f32,
-    @location(3) world_position: vec2<f32>,
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    color: vec3<f32>,
+    @location(1)
+    energy: f32,
+    @location(2)
+    particle_type: f32,
+    @location(3)
+    world_position: vec2<f32>
 }
 
-@group(0) @binding(0) 
-var<uniform> globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX: GlobalUniformsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX;
-
-fn get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> f32 {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.time;
-    return _e2;
-}
-
-fn get_frame_sizeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX() -> vec2<f32> {
-    let _e2 = globalsX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX.frame_size;
-    return _e2;
-}
-
-@vertex 
+@vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    var particle_pixels: f32 = 8f;
-
-    let _e1 = get_frame_sizeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let aspect_ratio = (_e1.x / _e1.y);
+    let frame = package__1global_bindings__2get_frame_size();
+    let aspect_ratio = frame.x / frame.y;
     let particle_world_pos = input.position_and_size.xyz;
     let particle_data = input.position_and_size.w;
-    let particle_type = (floor(particle_data) % 4f);
-    let energy = (fract(particle_data) * 10f);
-    if (particle_type > 90f) {
-        particle_pixels = 50f;
-    } else {
-        if (particle_type < 0.5f) {
-            particle_pixels = 10f;
-        } else {
-            if (particle_type < 1.5f) {
-                particle_pixels = 9f;
-            } else {
-                if (particle_type < 2.5f) {
-                    particle_pixels = 12f;
-                } else {
-                    particle_pixels = 14f;
-                }
-            }
-        }
+    let particle_type = floor(particle_data) % 4.0;
+    let energy = fract(particle_data) * 10.0;
+    var particle_pixels = 8.0;
+    if particle_type > 90.0 {
+        particle_pixels = 50.0;
     }
-    let _e30 = particle_pixels;
-    particle_pixels = (_e30 * (0.8f + (energy * 0.4f)));
-    let _e36 = particle_pixels;
-    let particle_size = ((_e36 * 2f) / _e1.y);
+    else if particle_type < 0.5 {
+        particle_pixels = 10.0;
+    }
+    else if particle_type < 1.5 {
+        particle_pixels = 9.0;
+    }
+    else if particle_type < 2.5 {
+        particle_pixels = 12.0;
+    }
+    else {
+        particle_pixels = 14.0;
+    }
+    particle_pixels *= (0.8 + energy * 0.4);
+    let particle_size = particle_pixels * 2.0 / frame.y;
     let screen_center = vec2<f32>(particle_world_pos.x, particle_world_pos.y);
-    let quad_offset = vec2<f32>(((input.quad_pos.x * particle_size) / aspect_ratio), (input.quad_pos.y * particle_size));
-    let billboard_pos = (screen_center + quad_offset);
-    output.position = vec4<f32>(billboard_pos, 0f, 1f);
+    let quad_offset = vec2<f32>(input.quad_pos.x * particle_size / aspect_ratio, input.quad_pos.y * particle_size);
+    let billboard_pos = screen_center + quad_offset;
+    output.position = vec4<f32>(billboard_pos, 0.0, 1.0);
     output.world_position = input.quad_pos;
     output.particle_type = particle_type;
     output.energy = energy;
-    if (particle_type > 90f) {
-        output.color = vec3<f32>(0.7f, 0.2f, 0.2f);
-    } else {
-        if (particle_type < 0.5f) {
-            output.color = vec3<f32>(0.15f, (0.4f + (energy * 0.25f)), (0.6f + (energy * 0.2f)));
-        } else {
-            if (particle_type < 1.5f) {
-                output.color = vec3<f32>((0.3f + (energy * 0.2f)), (0.5f + (energy * 0.3f)), (0.2f + (energy * 0.15f)));
-            } else {
-                if (particle_type < 2.5f) {
-                    output.color = vec3<f32>((0.6f + (energy * 0.2f)), (0.35f + (energy * 0.25f)), (0.15f + (energy * 0.1f)));
-                } else {
-                    output.color = vec3<f32>((0.4f + (energy * 0.2f)), (0.25f + (energy * 0.15f)), (0.5f + (energy * 0.3f)));
-                }
-            }
-        }
+    if particle_type > 90.0 {
+        output.color = vec3<f32>(0.7, 0.2, 0.2);
     }
-    let _e128 = output;
-    return _e128;
+    else if particle_type < 0.5 {
+        output.color = vec3<f32>(0.15, 0.4 + energy * 0.25, 0.6 + energy * 0.2);
+    }
+    else if particle_type < 1.5 {
+        output.color = vec3<f32>(0.3 + energy * 0.2, 0.5 + energy * 0.3, 0.2 + energy * 0.15);
+    }
+    else if particle_type < 2.5 {
+        output.color = vec3<f32>(0.6 + energy * 0.2, 0.35 + energy * 0.25, 0.15 + energy * 0.1);
+    }
+    else {
+        output.color = vec3<f32>(0.4 + energy * 0.2, 0.25 + energy * 0.15, 0.5 + energy * 0.3);
+    }
+    return output;
 }
 
-@fragment 
-fn fs_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
-    var final_color: vec3<f32>;
-
-    let _e0 = get_frame_sizeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let _e1 = get_timeX_naga_oil_mod_XM5WG6YTBNRPWE2LOMRUW4Z3TX();
-    let dist_from_center = length(input_1.world_position);
-    if (dist_from_center > 0.8f) {
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    let frame = package__1global_bindings__2get_frame_size();
+    let time = package__1global_bindings__1get_time();
+    let dist_from_center = length(input.world_position);
+    let particle_radius = 0.8;
+    if dist_from_center > particle_radius {
         discard;
     }
-    let alpha = (1f - smoothstep((0.8f - 0.08f), 0.8f, dist_from_center));
-    let particle_id = ((input_1.particle_type * 1000f) + (input_1.energy * 100f));
-    let stable_seed = fract((sin((particle_id * 12.9898f)) * 43758.547f));
-    let slow_time = (_e1 * 0.6f);
-    let pulse = (0.85f + (0.15f * sin(((slow_time * (1f + (input_1.particle_type * 0.3f))) + (stable_seed * 6.28f)))));
-    final_color = ((input_1.color * alpha) * pulse);
-    let glow_radius = (0.8f * 0.6f);
-    let core_glow = (1f - smoothstep(0f, glow_radius, dist_from_center));
-    let edge_glow = (0.3f * (1f - smoothstep(glow_radius, 0.8f, dist_from_center)));
-    let total_glow = (core_glow + edge_glow);
-    let _e57 = final_color;
-    final_color = (_e57 * (0.8f + (total_glow * 0.4f)));
-    let _e63 = final_color;
-    return vec4<f32>(_e63, alpha);
+    let edge_width = 0.08;
+    let intensity = 1.0 - smoothstep(particle_radius - edge_width, particle_radius, dist_from_center);
+    let particle_id = input.particle_type * 1000.0 + input.energy * 100.0;
+    let stable_seed = fract(sin(particle_id * 12.9898) * 43758.5453);
+    let slow_time = time * 0.6;
+    let pulse = 0.85 + 0.15 * sin(slow_time * (1.0 + input.particle_type * 0.3) + stable_seed * 6.28);
+    var final_color = input.color * intensity * pulse;
+    let glow_radius = particle_radius * 0.6;
+    let core_glow = 1.0 - smoothstep(0.0, glow_radius, dist_from_center);
+    let edge_glow = 0.3 * (1.0 - smoothstep(glow_radius, particle_radius, dist_from_center));
+    let total_glow = core_glow + edge_glow;
+    final_color *= (0.8 + total_glow * 0.4);
+    let alpha = intensity;
+    return vec4<f32>(final_color, alpha);
+}
+
+struct package__1global_bindings_GlobalUniforms {
+    time: f32,
+    scale_factor: f32,
+    frame_size: vec2<f32>,
+    mouse_pos: vec2<f32>
+}
+
+@group(0) @binding(0)
+var<uniform> package__1global_bindings_globals: package__1global_bindings_GlobalUniforms;
+
+fn package__1global_bindings__1get_time() -> f32 {
+    return package__1global_bindings_globals.time;
+}
+
+fn package__1global_bindings__2get_frame_size() -> vec2<f32> {
+    return package__1global_bindings_globals.frame_size;
 }
 "#;
-    pub const SHADER_ENTRY_PATH: &str = "compute_demo/particle_renderer.wgsl";
-    pub fn create_shader_module_relative_path(
-      device: &wgpu::Device,
-      base_dir: &str,
-      shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
-      load_file: impl Fn(&str) -> Result<String, std::io::Error>,
-    ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
-      let mut composer = naga_oil::compose::Composer::default()
-        .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
-      let module = ShaderEntry::ComputeDemoParticleRenderer
-        .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
-        .map_err(|e| naga_oil::compose::ComposerError {
-          inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
-          source: naga_oil::compose::ErrSource::Constructing {
-            path: "load_naga_module_from_path".to_string(),
-            source: "Generated code".to_string(),
-            offset: 0,
-          },
-        })?;
-      let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("particle_renderer.wgsl"),
-        source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-      });
-      Ok(shader_module)
-    }
   }
 }

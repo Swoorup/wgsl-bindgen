@@ -168,13 +168,7 @@ impl Demo for ParticleComputeDemo {
 
     // Create compute pipeline
     let compute_pipeline_layout = particle_physics::create_pipeline_layout(device);
-    let compute_shader_module = particle_physics::create_shader_module_relative_path(
-      device,
-      crate::SHADER_DIR,
-      std::collections::HashMap::new(),
-      |path| std::fs::read_to_string(path),
-    )
-    .expect("Failed to create compute shader module");
+    let compute_shader_module = particle_physics::create_shader_module_embed_source(device);
 
     let compute_pipeline =
       device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
@@ -187,13 +181,7 @@ impl Demo for ParticleComputeDemo {
       });
 
     // Create simple render pipeline to visualize the results
-    let render_shader = particle_renderer::create_shader_module_relative_path(
-      device,
-      crate::SHADER_DIR,
-      std::collections::HashMap::new(),
-      |path| std::fs::read_to_string(path),
-    )
-    .expect("Failed to create shader module");
+    let render_shader = particle_renderer::create_shader_module_embed_source(device);
 
     let render_pipeline_layout = particle_renderer::create_pipeline_layout(device);
 

@@ -1,6 +1,7 @@
 // Texture array demo shader
-#import constants as Constants
-#import global_bindings as Globals
+import package::constants::ONE;
+import package::global_bindings::get_time;
+import package::global_bindings::globals;
 
 @group(1) @binding(0) var ms_texture: texture_multisampled_2d<f32>;
 
@@ -13,7 +14,7 @@ struct VertexOutput {
 fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
   // A fullscreen triangle/quad setup (assuming the host gives coords in -1..1 range)
   var out: VertexOutput;
-  out.clip_position = vec4(position.xyz, Constants::ONE);
+  out.clip_position = vec4(position.xyz, ONE);
   out.tex_coords = position.xy * 0.5 + 0.5;
   // flip y for vulkan/wgpu coordinate system
   out.tex_coords.y = 1.0 - out.tex_coords.y;
@@ -32,7 +33,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     
     // Add a pulsing effect using global time
-    let pulse = 0.8 + 0.2 * sin(Globals::get_time() * 2.0);
+    let pulse = 0.8 + 0.2 * sin(get_time() * 2.0);
     return color * 0.25 * pulse;
 }
 
@@ -58,7 +59,7 @@ fn vs_msaa(@builtin(vertex_index) vi: u32) -> ShapeOutput {
         vec3<f32>(1.0, 1.0, 0.0)
     );
 
-    let t = Globals::get_time();
+    let t = get_time();
     let c = cos(t);
     let s = sin(t);
     // Simple 2D rotation matrix
@@ -68,7 +69,7 @@ fn vs_msaa(@builtin(vertex_index) vi: u32) -> ShapeOutput {
     );
     
     // Also move it with mouse!
-    let offset = Globals::globals.mouse_pos;
+    let offset = globals.mouse_pos;
     
     var out: ShapeOutput;
     out.clip_position = vec4<f32>(rot * positions[vi] * 0.5 + offset, 0.0, 1.0);

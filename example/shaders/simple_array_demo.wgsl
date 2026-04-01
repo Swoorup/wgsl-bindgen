@@ -1,6 +1,6 @@
 // Texture array demo shader
-#import global_bindings::get_time
-#import constants as Constants
+import package::global_bindings::get_time;
+import package::constants::ONE;
 
 @group(1) @binding(0) var texture_array: binding_array<texture_2d<f32>, 2>;
 @group(1) @binding(1) var sampler_array: binding_array<sampler, 2>;
@@ -22,7 +22,7 @@ struct VertexOutput {
 fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
   //A fullscreen triangle.
   var out: VertexOutput;
-  out.clip_position = vec4(position.xyz, Constants::ONE);
+  out.clip_position = vec4(position.xyz, ONE);
   out.tex_coords = position.xy * 0.5 + 0.5;
   return out;
 }

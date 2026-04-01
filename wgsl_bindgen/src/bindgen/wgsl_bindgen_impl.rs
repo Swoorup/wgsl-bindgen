@@ -1,4 +1,11 @@
+use std::borrow::Cow;
+use std::collections::HashSet;
 use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+
+use regex::Regex;
+use wesl::{Resolver, ResolveError, StandardResolver};
 
 use crate::bevy_util::parse_imports::WESL_PACKAGE_PREFIX;
 use crate::bevy_util::source_file::SourceFile;
@@ -7,6 +14,67 @@ use crate::{
   create_rust_bindings, ShaderDefValue, SourceFilePath, SourceWithFullDependenciesResult,
   WgslBindgenError, WgslBindgenOption, WgslEntryResult, WgslShaderIrCapabilities,
 };
+
+/// Returns the regex that matches a `var<immediate> name :` declaration.
+fn immediate_var_re() -> &'static Regex {
+  static RE: OnceLock<Regex> = OnceLock::new();
+  RE.get_or_init(|| Regex::new(r"var<immediate>\s+(\w+)\s*:").unwrap())
+}
+
+/// A WESL source resolver that replaces `var<immediate>` (naga push-constant extension)
+/// with `var<private>` so the `wgsl-parse` grammar can accept the source.
+///
+/// After WESL compilation the caller is responsible for substituting `var<private>`
+/// back to `var<immediate>` for the tracked variable names (see
+/// [`collect_immediate_var_names`]).
+struct ImmediateSubstResolver(StandardResolver);
+
+impl ImmediateSubstResolver {
+  fn new(base: &Path) -> Self {
+    Self(StandardResolver::new(base))
+  }
+}
+
+impl Resolver for ImmediateSubstResolver {
+  fn resolve_source<'a>(
+    &'a self,
+    path: &wesl::syntax::ModulePath,
+  ) -> Result<Cow<'a, str>, ResolveError> {
+    let source = self.0.resolve_source(path)?;
+    if !source.contains("var<immediate>") {
+      return Ok(source);
+    }
+    Ok(Cow::Owned(source.replace("var<immediate>", "var<private>")))
+  }
+
+  fn display_name(&self, path: &wesl::syntax::ModulePath) -> Option<String> {
+    self.0.display_name(path)
+  }
+
+  fn fs_path(&self, path: &wesl::syntax::ModulePath) -> Option<PathBuf> {
+    self.0.fs_path(path)
+  }
+}
+
+/// Scan `source` for `var<immediate>` declarations and return the variable names.
+/// These are used after WESL compilation to restore `var<private>` → `var<immediate>`.
+fn collect_immediate_var_names(source: &str) -> HashSet<String> {
+  immediate_var_re()
+    .captures_iter(source)
+    .map(|cap| cap[1].to_string())
+    .collect()
+}
+
+/// In `wgsl_source`, replace `var<private> name` with `var<immediate> name` for each
+/// variable name that was originally `var<immediate>` (collected before WESL compilation).
+fn restore_immediate_vars(mut wgsl_source: String, immediate_names: &HashSet<String>) -> String {
+  for name in immediate_names {
+    let from = format!("var<private> {name}");
+    let to = format!("var<immediate> {name}");
+    wgsl_source = wgsl_source.replace(&from, &to);
+  }
+  wgsl_source
+}
 
 const PKG_VER: &str = env!("CARGO_PKG_VERSION");
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -109,10 +177,19 @@ impl WGSLBindgen {
     })?;
 
     // Set up the WESL compiler with the workspace root as the file-resolver base.
-    // `Wesl::new` uses StandardResolver which tries `.wesl` extension first, then
-    // falls back to `.wgsl` — compatible with plain WGSL shaders that use WESL
-    // import syntax.
-    let mut compiler = wesl::Wesl::new(workspace_root);
+    // We use a custom `ImmediateSubstResolver` that transparently replaces
+    // `var<immediate>` (a naga push-constant extension not in the WGSL/WESL spec)
+    // with `var<private>` so the `wgsl-parse` grammar can parse the source.
+    // After WESL compilation we restore the original address space in the output.
+    //
+    // We also collect `var<immediate>` variable names from the entry-point source
+    // before calling the compiler, so we can do the targeted reverse substitution.
+    let immediate_names: HashSet<String> = std::fs::read_to_string(entry_path)
+      .map(|src| collect_immediate_var_names(&src))
+      .unwrap_or_default();
+
+    let mut compiler = wesl::Wesl::new(workspace_root)
+      .set_custom_resolver(ImmediateSubstResolver::new(workspace_root));
 
     // Convert ShaderDefValue::Bool defs into WESL feature flags.
     // Int and UInt values are not supported by WESL conditional translation.
@@ -136,7 +213,9 @@ impl WGSLBindgen {
       wesl::emit_rerun_if_changed(&compile_result.modules, compiler.resolver());
     }
 
-    let wgsl_source = compile_result.to_string();
+    // Restore `var<immediate>` for any push-constant variables that were temporarily
+    // substituted as `var<private>` for WESL parsing compatibility.
+    let wgsl_source = restore_immediate_vars(compile_result.to_string(), &immediate_names);
 
     // Parse the compiled WGSL with naga to obtain the IR module used for binding
     // generation (type layout, entry points, etc.).

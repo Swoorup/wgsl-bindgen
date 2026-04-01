@@ -31,7 +31,7 @@ indexmap = "2.7"
 indoc = "2.0"
 miette = "7.5"
 naga = { version = "29", features = ["wgsl-in", "wgsl-out"] }
-wesl = "0.3"
+wesl = { version = "0.3", features = ["naga-ext"] }
 pathdiff = "0.2"
 pretty_assertions = "1.4"
 prettyplease = "0.2"

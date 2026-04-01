@@ -1,4 +1,5 @@
-#import global_bindings::{get_time, get_frame_size}
+import package::global_bindings::get_time;
+import package::global_bindings::get_frame_size;
 
 struct VertexInput {
     @location(0) quad_pos: vec2<f32>,           // Quad vertex position (-1 to 1)

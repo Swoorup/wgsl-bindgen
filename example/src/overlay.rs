@@ -17,13 +17,7 @@ pub struct OverlayRenderer {
 impl OverlayRenderer {
   pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> Self {
     // Use generated shader module and pipeline layout
-    let shader = overlay::create_shader_module_relative_path(
-      device,
-      crate::SHADER_DIR,
-      std::collections::HashMap::new(),
-      |path| std::fs::read_to_string(path),
-    )
-    .expect("Failed to create shader module");
+    let shader = overlay::create_shader_module_embed_source(device);
     let pipeline_layout = overlay::create_pipeline_layout(device);
 
     let vertex_entry = overlay::vs_main_entry();

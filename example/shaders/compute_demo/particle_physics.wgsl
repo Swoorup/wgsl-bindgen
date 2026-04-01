@@ -1,5 +1,7 @@
 // Advanced particle physics simulation with flocking and gravitational forces
-#import global_bindings::{get_time, get_mouse_pos, get_frame_size}
+import package::global_bindings::get_time;
+import package::global_bindings::get_mouse_pos;
+import package::global_bindings::get_frame_size;
 
 struct Job {
     position: vec3<f32>,

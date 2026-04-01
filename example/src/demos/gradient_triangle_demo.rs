@@ -29,13 +29,7 @@ impl Demo for GradientTriangleDemo {
     });
 
     let pipeline_layout = gradient_triangle::create_pipeline_layout(device);
-    let shader_module = gradient_triangle::create_shader_module_relative_path(
-      device,
-      crate::SHADER_DIR,
-      std::collections::HashMap::new(),
-      |path| std::fs::read_to_string(path),
-    )
-    .expect("Failed to create shader module");
+    let shader_module = gradient_triangle::create_shader_module_embed_source(device);
 
     let render_pipeline =
       device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {

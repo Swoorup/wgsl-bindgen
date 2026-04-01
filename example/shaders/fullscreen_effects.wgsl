@@ -1,5 +1,5 @@
 // Fullscreen effects shader with ripple and color effects
-#import global_bindings::get_time
+import package::global_bindings::get_time;
 
 @group(1) @binding(0) var main_texture: texture_2d<f32>;
 @group(1) @binding(1) var main_sampler: sampler;
@@ -18,9 +18,8 @@ struct VertexInput {
 struct VertexOutput {
   @builtin(position) clip_position: vec4<f32>,
   @location(0) tex_coords: vec2<f32>,
-  #ifdef VERTEX_UVS
-    @location(2) uv: vec2<f32>,
-  #endif
+  @if(VERTEX_UVS)
+  @location(2) uv: vec2<f32>,
 };
 
 @vertex

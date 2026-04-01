@@ -100,14 +100,6 @@ fn test_struct_layouts() -> Result<()> {
 }
 
 #[test]
-#[ignore = "ComposerWithRelativePath has been removed; WESL is now the sole shader backend."]
-fn test_relative_path_composer() -> Result<()> {
-  // This test used `WgslShaderSourceType::ComposerWithRelativePath` which required
-  // naga-oil at runtime.  naga-oil has been replaced by WESL (`EmbedSource`).
-  Ok(())
-}
-
-#[test]
 fn test_module_path_generation() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .workspace_root("tests/shaders/core")

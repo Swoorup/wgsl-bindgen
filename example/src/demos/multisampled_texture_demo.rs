@@ -43,13 +43,7 @@ impl Demo for MultisampledTextureDemo {
   ) -> Self {
     // Create shader and pipeline layout
     let shader =
-      shader_bindings::multisampled_texture_demo::create_shader_module_relative_path(
-        device,
-        crate::SHADER_DIR,
-        std::collections::HashMap::new(),
-        |path| std::fs::read_to_string(path),
-      )
-      .expect("Failed to create shader module");
+      shader_bindings::multisampled_texture_demo::create_shader_module_embed_source(device);
     let render_pipeline_layout =
       shader_bindings::multisampled_texture_demo::create_pipeline_layout(device);
 

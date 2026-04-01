@@ -23,13 +23,7 @@ impl Demo for FullscreenEffectsDemo {
     surface_format: wgpu::TextureFormat,
   ) -> Self {
     // Create shader and pipeline layout
-    let shader = shader_bindings::fullscreen_effects::create_shader_module_relative_path(
-      device,
-      crate::SHADER_DIR,
-      std::collections::HashMap::new(),
-      |path| std::fs::read_to_string(path),
-    )
-    .expect("Failed to create shader module");
+    let shader = shader_bindings::fullscreen_effects::create_shader_module_embed_source(device);
     let render_pipeline_layout =
       shader_bindings::fullscreen_effects::create_pipeline_layout(device);
 

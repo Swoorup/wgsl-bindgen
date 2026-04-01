@@ -23,9 +23,7 @@ fn main() -> Result<()> {
     )
     .add_custom_padding_field_regexp(Regex::new("_pad.*").unwrap())
     .short_constructor(2)
-    .shader_source_type(
-      WgslShaderSourceType::EmbedSource | WgslShaderSourceType::ComposerWithRelativePath,
-    )
+    .shader_source_type(WgslShaderSourceType::EmbedSource)
     .derive_serde(false)
     .output("src/shader_bindings.rs")
     .build()?
