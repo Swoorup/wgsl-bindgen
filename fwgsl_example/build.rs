@@ -1,24 +1,31 @@
 //! Build script for the fwgsl_example crate.
 //!
-//! Demonstrates integrating [fwgsl](https://github.com/ubugeeei/fwgsl) with
-//! wgsl-bindgen using the [`SourcePreprocessor`] hook.
+//! Compiles `.fwgsl` source files to WGSL and feeds them to wgsl-bindgen via
+//! a [`SourcePreprocessor`] hook — no temporary `.wgsl` files are written.
 //!
-//! ## Pipeline (old approach — avoided here)
+//! ## File layout
 //!
-//! The old approach required:
-//!   1. Reading each `.fwgsl` file manually
-//!   2. Compiling it to WGSL
-//!   3. Wrapping it with hand-written bind-group / entry-point boilerplate
-//!   4. Writing the combined WGSL to `$OUT_DIR/*.wgsl`
-//!   5. Passing those temporary paths to `add_entry_point`
+//! Each `.fwgsl` file is self-contained: it holds both the pure-functional
+//! fwgsl logic **and** the GPU setup ceremony (uniform structs, bind group
+//! bindings, compute entry points), separated by a `-- @wgsl` line:
 //!
-//! ## Pipeline (new approach — used here)
+//! ```text
+//! -- fwgsl code (compiled to WGSL helper functions / structs)
+//! scale_bias : F32 -> F32 -> F32 -> F32
+//! scale_bias s b x = x * s + b
 //!
-//! 1. Register a [`SourcePreprocessor`] closure that compiles any `.fwgsl` file
-//!    on-the-fly and returns the combined WGSL string.
-//! 2. Pass the **original** `.fwgsl` paths directly to `add_entry_point`.
-//! 3. wgsl-bindgen calls the preprocessor for each file, feeds the returned WGSL
-//!    to naga, and generates Rust bindings — no temporary files needed.
+//! -- @wgsl
+//! struct ScaleBiasParams { scale: f32, bias: f32, }
+//! @group(0) @binding(0) var<storage, read_write> data: array<f32>;
+//! @group(0) @binding(1) var<uniform> params: ScaleBiasParams;
+//! @compute @workgroup_size(64, 1, 1)
+//! fn main(...) { ... }
+//! ```
+//!
+//! The preprocessor:
+//! 1. Splits the file on `-- @wgsl`.
+//! 2. Compiles the fwgsl part (everything above the marker) to WGSL.
+//! 3. Returns `fwgsl_output + raw_wgsl_section` — a complete WGSL module.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -32,10 +39,8 @@ use wgsl_bindgen::{WgslBindgenOptionBuilder, WgslTypeSerializeStrategy};
 
 /// Compile a `.fwgsl` source string to annotated WGSL.
 ///
-/// The returned WGSL includes:
-/// * One `// @fwgsl-adt:` comment per user-defined ADT (parsed by wgsl-bindgen
-///   to emit Rust enums automatically).
-/// * The regular WGSL helper functions / structs produced by the fwgsl compiler.
+/// Returns WGSL with `// @fwgsl-adt:` comment annotations prepended for every
+/// user-defined ADT.  wgsl-bindgen parses these automatically to emit Rust enums.
 fn compile_fwgsl(source: &str) -> Result<String> {
   // Phase 1: Parse
   let mut parser = fwgsl_parser::parser::Parser::new(source);
@@ -131,169 +136,67 @@ fn inject_adt_annotations(wgsl: &str, hir: &fwgsl_hir::HirProgram) -> String {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Shader-specific WGSL wrappers
-// ─────────────────────────────────────────────────────────────────
-//
-// Each function takes the annotated fwgsl-generated WGSL and wraps it with
-// the hand-written GPU boilerplate (uniform structs, bind group bindings,
-// compute entry points).
-
-fn scale_bias_combined_wgsl(fwgsl_wgsl: &str) -> String {
-  format!(
-    r#"// Combined WGSL for the scale_bias compute shader.
-
-struct ScaleBiasParams {{
-    scale: f32,
-    bias: f32,
-}}
-
-@group(0) @binding(0) var<storage, read_write> data: array<f32>;
-@group(0) @binding(1) var<uniform> params: ScaleBiasParams;
-
-// --- fwgsl-generated helper functions ---
-{fwgsl_wgsl}
-// --- end fwgsl-generated code ---
-
-@compute @workgroup_size(64, 1, 1)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
-    let idx = global_id.x;
-    if idx >= arrayLength(&data) {{
-        return;
-    }}
-    data[idx] = scale_bias(params.scale, params.bias, data[idx]);
-}}
-"#
-  )
-}
-
-fn color_combined_wgsl(fwgsl_wgsl: &str) -> String {
-  // Simple enums need `alias X = u32;` so naga can validate function signatures
-  // that reference the ADT type name (fwgsl does not emit these automatically).
-  let alias_decls = alias_decls_from_annotations(fwgsl_wgsl);
-  format!(
-    r#"// Combined WGSL for the color_compute shader.
-
-// Type aliases for fwgsl simple enums (→ u32 in WGSL)
-{alias_decls}
-struct ColorParams {{
-    color_tag: u32,
-}}
-
-@group(0) @binding(0) var<storage, read_write> output: array<f32, 4>;
-@group(0) @binding(1) var<uniform> params: ColorParams;
-
-// --- fwgsl-generated helper functions (with @fwgsl-adt: annotation) ---
-{fwgsl_wgsl}
-// --- end fwgsl-generated code ---
-
-@compute @workgroup_size(1, 1, 1)
-fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {{
-    let selected_color: Color = params.color_tag;
-    output[0] = color_to_r(selected_color);
-    output[1] = color_to_g(selected_color);
-    output[2] = color_to_b(selected_color);
-    output[3] = 1.0;
-}}
-"#
-  )
-}
-
-fn shape_combined_wgsl(fwgsl_wgsl: &str) -> String {
-  format!(
-    r#"// Combined WGSL for the shape_compute shader.
-
-// --- fwgsl-generated structs (with @fwgsl-adt: annotation) ---
-{fwgsl_wgsl}
-// --- end fwgsl-generated code ---
-
-struct ShapeParams {{
-    tag: u32,
-    field0: f32,
-    field1: f32,
-    _pad: f32,
-}}
-
-@group(0) @binding(0) var<storage, read_write> output: array<f32, 1>;
-@group(0) @binding(1) var<uniform> params: ShapeParams;
-
-@compute @workgroup_size(1, 1, 1)
-fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {{
-    var area: f32 = 0.0;
-    if params.tag == 0u {{
-        area = params.field0 * params.field0;
-    }} else {{
-        area = params.field0 * params.field1;
-    }}
-    output[0] = area;
-}}
-"#
-  )
-}
-
-/// Extract `alias X = u32;` declarations for every simple (tag-only) ADT in the
-/// annotated WGSL.
-///
-/// Note: this replicates the `// @fwgsl-adt:` annotation parsing that also exists in
-/// `wgsl_bindgen::adt`.  The duplication is intentional — `alias_decls_from_annotations`
-/// is a *build-time*, build-script-local concern (creating WGSL aliases so naga can
-/// validate function signatures like `fn color_to_r(c: Color) -> f32`), whereas
-/// `wgsl_bindgen::adt` is the *library-side* parsing that generates Rust enums.
-/// Neither is the right place to depend on the other.
-fn alias_decls_from_annotations(wgsl: &str) -> String {
-  const PREFIX: &str = "// @fwgsl-adt:";
-  let mut aliases = String::new();
-  for line in wgsl.lines() {
-    let line = line.trim();
-    if !line.starts_with(PREFIX) {
-      continue;
-    }
-    let rest = line[PREFIX.len()..].trim();
-    let mut tokens = rest.split_whitespace();
-    let type_name = match tokens.next() {
-      Some(n) if !n.is_empty() => n,
-      _ => continue,
-    };
-    let is_simple = tokens.all(|tok| tok.matches(':').count() < 2);
-    if is_simple {
-      aliases.push_str(&format!("alias {} = u32;\n", type_name));
-    }
-  }
-  aliases
-}
-
-// ─────────────────────────────────────────────────────────────────
 // Source preprocessor
 // ─────────────────────────────────────────────────────────────────
 
-/// Build the [`SourcePreprocessor`] closure that handles `.fwgsl` files.
+/// The marker line that separates fwgsl code from the raw WGSL section.
+///
+/// Everything above this line in a `.fwgsl` file is compiled through the fwgsl
+/// pipeline.  Everything below it is raw WGSL and is appended verbatim after
+/// the compiled output.
+const WGSL_SECTION_MARKER: &str = "-- @wgsl";
+
+/// Build the generic [`SourcePreprocessor`] for `.fwgsl` files.
 ///
 /// For every file whose extension is `.fwgsl` the closure:
-///   1. Reads the source from disk,
-///   2. Compiles it through the full fwgsl pipeline,
-///   3. Wraps the output with the appropriate GPU boilerplate,
-///   4. Returns the combined WGSL string — no temporary file is written.
+///   1. Reads the source from disk.
+///   2. Splits on the first `-- @wgsl` line.
+///   3. Compiles the fwgsl portion to annotated WGSL.
+///   4. Appends the raw WGSL section (if any) and returns the combined string.
 ///
-/// For any other extension `None` is returned and wgsl-bindgen reads the file
-/// from disk as usual.
+/// For any other extension `None` is returned and wgsl-bindgen falls back to
+/// reading the file from disk normally.
 fn make_fwgsl_preprocessor() -> impl Fn(&Path) -> Option<String> + Send + Sync + 'static {
   move |path: &Path| {
-    // Only handle .fwgsl files
     if path.extension().and_then(|e| e.to_str()) != Some("fwgsl") {
       return None;
     }
 
-    let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-    let source = fs::read_to_string(path)
+    let full_source = fs::read_to_string(path)
       .unwrap_or_else(|e| panic!("failed to read {}: {}", path.display(), e));
-    let fwgsl_wgsl = compile_fwgsl(&source)
+
+    // Split on the first `-- @wgsl` line.
+    let (fwgsl_source, wgsl_section) = match full_source
+      .lines()
+      .enumerate()
+      .find(|(_, line)| line.trim() == WGSL_SECTION_MARKER)
+    {
+      Some((idx, _)) => {
+        let fwgsl_part: String = full_source
+          .lines()
+          .take(idx)
+          .collect::<Vec<_>>()
+          .join("\n");
+        let wgsl_part: String = full_source
+          .lines()
+          .skip(idx + 1)
+          .collect::<Vec<_>>()
+          .join("\n");
+        (fwgsl_part, wgsl_part)
+      }
+      None => (full_source.clone(), String::new()),
+    };
+
+    let compiled_wgsl = compile_fwgsl(&fwgsl_source)
       .unwrap_or_else(|e| panic!("failed to compile {}: {}", path.display(), e));
 
-    let combined = match name {
-      "scale_bias" => scale_bias_combined_wgsl(&fwgsl_wgsl),
-      "color_compute" => color_combined_wgsl(&fwgsl_wgsl),
-      "shape_compute" => shape_combined_wgsl(&fwgsl_wgsl),
-      _ => fwgsl_wgsl,
+    // Combine: compiled fwgsl output followed by the raw WGSL section.
+    let combined = if wgsl_section.is_empty() {
+      compiled_wgsl
+    } else {
+      format!("{}\n{}", compiled_wgsl, wgsl_section)
     };
+
     Some(combined)
   }
 }
@@ -311,13 +214,11 @@ fn main() -> Result<()> {
   println!("cargo::rerun-if-changed=shaders/");
   println!("cargo::rerun-if-changed=build.rs");
 
-  // Run wgsl-bindgen with the fwgsl preprocessor.
+  // Run wgsl-bindgen with the generic fwgsl preprocessor.
   //
-  // .fwgsl files are passed directly — no temporary .wgsl files are written.
-  // The preprocessor compiles each .fwgsl file on demand and returns the
-  // combined WGSL (fwgsl-generated code + hand-written bind group / entry point
-  // boilerplate) as a string.  wgsl-bindgen feeds that string to naga and
-  // generates type-safe Rust bindings including ADT enums and From impls.
+  // Each `.fwgsl` file is fully self-contained — no per-shader wrapper
+  // functions are needed here.  The preprocessor splits on `-- @wgsl`,
+  // compiles the fwgsl portion, and appends the raw WGSL section.
   WgslBindgenOptionBuilder::default()
     .workspace_root(&manifest_dir)
     .source_preprocessor(make_fwgsl_preprocessor())
@@ -334,3 +235,4 @@ fn main() -> Result<()> {
 
   Ok(())
 }
+

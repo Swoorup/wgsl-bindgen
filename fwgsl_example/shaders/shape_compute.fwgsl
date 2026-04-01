@@ -23,5 +23,29 @@
 --
 -- with a `.tag() -> u32` method that returns the WGSL discriminant.
 -- No WgslEnumDefinition is needed — extraction is fully automatic.
+--
+-- The `-- @wgsl` section below is the GPU setup ceremony for this shader.
 
 data Shape = Circle F32 | Rect F32 F32
+
+-- @wgsl
+struct ShapeParams {
+    tag: u32,
+    field0: f32,
+    field1: f32,
+    _pad: f32,
+}
+
+@group(0) @binding(0) var<storage, read_write> output: array<f32, 1>;
+@group(0) @binding(1) var<uniform> params: ShapeParams;
+
+@compute @workgroup_size(1, 1, 1)
+fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {
+    var area: f32 = 0.0;
+    if params.tag == 0u {
+        area = params.field0 * params.field0;
+    } else {
+        area = params.field0 * params.field1;
+    }
+    output[0] = area;
+}

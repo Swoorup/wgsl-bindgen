@@ -8,6 +8,10 @@
 -- The build.rs for this crate extracts the ADT information from the
 -- fwgsl semantic analyzer and passes it to wgsl-bindgen so it can emit
 -- a matching Rust enum alongside the usual struct/bind-group bindings.
+--
+-- The `-- @wgsl` section below is the GPU setup ceremony for this shader.
+-- `alias Color = u32;` is required so naga can validate function
+-- signatures such as `fn color_to_r(c: Color) -> f32`.
 
 data Color = Red | Green | Blue
 
@@ -30,3 +34,24 @@ color_to_b c = match c
   | Red   -> 0.0
   | Green -> 0.0
   | Blue  -> 1.0
+
+-- @wgsl
+// fwgsl simple enums lower to u32 in WGSL; declare the alias so naga
+// can resolve the type name used in the compiled helper functions above.
+alias Color = u32;
+
+struct ColorParams {
+    color_tag: u32,
+}
+
+@group(0) @binding(0) var<storage, read_write> output: array<f32, 4>;
+@group(0) @binding(1) var<uniform> params: ColorParams;
+
+@compute @workgroup_size(1, 1, 1)
+fn main(@builtin(global_invocation_id) _global_id: vec3<u32>) {
+    let selected_color: Color = params.color_tag;
+    output[0] = color_to_r(selected_color);
+    output[1] = color_to_g(selected_color);
+    output[2] = color_to_b(selected_color);
+    output[3] = 1.0;
+}

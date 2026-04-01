@@ -4,6 +4,11 @@
 --
 -- fwgsl compiles this to WGSL, which is then processed by wgsl-bindgen
 -- to generate type-safe Rust bindings.
+--
+-- The `-- @wgsl` section below contains the GPU setup ceremony (uniform
+-- struct, bind group bindings, compute entry point).  The build.rs
+-- preprocessor compiles the fwgsl above and appends the raw WGSL below
+-- so the file is fully self-contained.
 
 -- Apply a scale factor to a value
 scale_val : F32 -> F32 -> F32
@@ -22,3 +27,21 @@ saturate : F32 -> F32
 saturate x =
   let a = if x > 0.0 then x else 0.0
   in if a < 1.0 then a else 1.0
+
+-- @wgsl
+struct ScaleBiasParams {
+    scale: f32,
+    bias: f32,
+}
+
+@group(0) @binding(0) var<storage, read_write> data: array<f32>;
+@group(0) @binding(1) var<uniform> params: ScaleBiasParams;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let idx = global_id.x;
+    if idx >= arrayLength(&data) {
+        return;
+    }
+    data[idx] = scale_bias(params.scale, params.bias, data[idx]);
+}

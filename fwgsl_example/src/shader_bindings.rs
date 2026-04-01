@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.22.2
 // Changes made to this file will not be saved.
-// SourceHash: 285fce4309a9837203a78657240531d5dce8afba4e61b6295c829cb9fad8579e
+// SourceHash: 9695f9f49112aa70129e75fd7aefa3df0e4d1b3235b9ddf7d405ab13187a5e9f
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -341,21 +341,21 @@ fn scale_bias(s_1: f32, b_1: f32, x_2: f32) -> f32 {
 }
 
 fn saturate_(x_3: f32) -> f32 {
-    var _if_tmp_700_: f32 = 0f;
-    var _if_tmp_732_: f32 = 0f;
+    var _if_tmp_956_: f32 = 0f;
+    var _if_tmp_988_: f32 = 0f;
 
     if (x_3 > 0f) {
-        _if_tmp_700_ = x_3;
+        _if_tmp_956_ = x_3;
     } else {
-        _if_tmp_700_ = 0f;
+        _if_tmp_956_ = 0f;
     }
-    let a = _if_tmp_700_;
+    let a = _if_tmp_956_;
     if (a < 1f) {
-        _if_tmp_732_ = a;
+        _if_tmp_988_ = a;
     } else {
-        _if_tmp_732_ = 1f;
+        _if_tmp_988_ = 1f;
     }
-    let _e11 = _if_tmp_732_;
+    let _e11 = _if_tmp_988_;
     return _e11;
 }
 
@@ -542,56 +542,56 @@ var<storage, read_write> output: array<f32, 4>;
 var<uniform> params: ColorParams;
 
 fn color_to_r(c: u32) -> f32 {
-    var _case_tmp_705_: f32 = 0f;
+    var _case_tmp_905_: f32 = 0f;
 
     if (c == 0u) {
-        _case_tmp_705_ = 1f;
+        _case_tmp_905_ = 1f;
     } else {
         if (c == 1u) {
-            _case_tmp_705_ = 0f;
+            _case_tmp_905_ = 0f;
         } else {
             if (c == 2u) {
-                _case_tmp_705_ = 0f;
+                _case_tmp_905_ = 0f;
             }
         }
     }
-    let _e12 = _case_tmp_705_;
+    let _e12 = _case_tmp_905_;
     return _e12;
 }
 
 fn color_to_g(c_1: u32) -> f32 {
-    var _case_tmp_806_: f32 = 0f;
+    var _case_tmp_1006_: f32 = 0f;
 
     if (c_1 == 0u) {
-        _case_tmp_806_ = 0f;
+        _case_tmp_1006_ = 0f;
     } else {
         if (c_1 == 1u) {
-            _case_tmp_806_ = 1f;
+            _case_tmp_1006_ = 1f;
         } else {
             if (c_1 == 2u) {
-                _case_tmp_806_ = 0f;
+                _case_tmp_1006_ = 0f;
             }
         }
     }
-    let _e12 = _case_tmp_806_;
+    let _e12 = _case_tmp_1006_;
     return _e12;
 }
 
 fn color_to_b(c_2: u32) -> f32 {
-    var _case_tmp_907_: f32 = 0f;
+    var _case_tmp_1107_: f32 = 0f;
 
     if (c_2 == 0u) {
-        _case_tmp_907_ = 0f;
+        _case_tmp_1107_ = 0f;
     } else {
         if (c_2 == 1u) {
-            _case_tmp_907_ = 0f;
+            _case_tmp_1107_ = 0f;
         } else {
             if (c_2 == 2u) {
-                _case_tmp_907_ = 1f;
+                _case_tmp_1107_ = 1f;
             }
         }
     }
-    let _e12 = _case_tmp_907_;
+    let _e12 = _case_tmp_1107_;
     return _e12;
 }
 
