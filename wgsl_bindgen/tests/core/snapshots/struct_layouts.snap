@@ -1,5 +1,6 @@
 ---
 source: wgsl_bindgen/tests/core/mod.rs
+assertion_line: 100
 ---
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
@@ -675,7 +676,7 @@ pub mod layouts {
       self.into_array().into_iter().collect()
     }
   }
-  #[derive(Debug)]
+  #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
   pub struct WgpuBindGroup1(wgpu::BindGroup);
   impl WgpuBindGroup1 {
     pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
@@ -748,6 +749,12 @@ pub mod layouts {
     pub fn set(&self, pass: &mut impl SetBindGroup) {
       pass.set_bind_group(1, &self.0, &[]);
     }
+    pub fn inner(&self) -> &wgpu::BindGroup {
+      &self.0
+    }
+    pub unsafe fn from_raw(bind_group: wgpu::BindGroup) -> Self {
+      Self(bind_group)
+    }
   }
   #[derive(Debug)]
   pub struct WgpuBindGroup2EntriesParams<'a> {
@@ -809,7 +816,7 @@ pub mod layouts {
       self.into_array().into_iter().collect()
     }
   }
-  #[derive(Debug)]
+  #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
   pub struct WgpuBindGroup2(wgpu::BindGroup);
   impl WgpuBindGroup2 {
     pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
@@ -924,6 +931,12 @@ pub mod layouts {
     }
     pub fn set(&self, pass: &mut impl SetBindGroup) {
       pass.set_bind_group(2, &self.0, &[]);
+    }
+    pub fn inner(&self) -> &wgpu::BindGroup {
+      &self.0
+    }
+    pub unsafe fn from_raw(bind_group: wgpu::BindGroup) -> Self {
+      Self(bind_group)
     }
   }
   #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
@@ -1140,7 +1153,7 @@ pub mod bindings {
       self.into_array().into_iter().collect()
     }
   }
-  #[derive(Debug)]
+  #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
   pub struct WgpuBindGroup0(wgpu::BindGroup);
   impl WgpuBindGroup0 {
     pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
@@ -1182,6 +1195,12 @@ pub mod bindings {
     }
     pub fn set(&self, pass: &mut impl SetBindGroup) {
       pass.set_bind_group(0, &self.0, &[]);
+    }
+    pub fn inner(&self) -> &wgpu::BindGroup {
+      &self.0
+    }
+    pub unsafe fn from_raw(bind_group: wgpu::BindGroup) -> Self {
+      Self(bind_group)
     }
   }
 }
