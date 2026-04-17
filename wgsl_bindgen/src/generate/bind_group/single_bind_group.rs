@@ -268,6 +268,14 @@ impl<'a> BindGroupStructBuilder<'a> {
             pub fn set(&self, pass: &mut impl SetBindGroup) {
                 pass.set_bind_group(#group_no, &self.0, &[]);
             }
+
+            pub fn inner(&self) -> &wgpu::BindGroup {
+                &self.0
+            }
+
+            pub unsafe fn from_raw(bind_group: wgpu::BindGroup) -> Self {
+                Self(bind_group)
+            }
         }
     }
   }
@@ -276,7 +284,7 @@ impl<'a> BindGroupStructBuilder<'a> {
     let bind_group_name = self.struct_name();
 
     let group_struct = quote! {
-        #[derive(Debug)]
+        #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
         pub struct #bind_group_name(wgpu::BindGroup);
     };
 
