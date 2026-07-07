@@ -207,7 +207,7 @@ impl Demo for ParticleComputeDemo {
           compilation_options: wgpu::PipelineCompilationOptions::default(),
           buffers: &[
             // Quad vertices (per vertex) - matches @location(0) quad_pos
-            wgpu::VertexBufferLayout {
+            Some(wgpu::VertexBufferLayout {
               array_stride: std::mem::size_of::<glam::Vec2>() as u64,
               step_mode: wgpu::VertexStepMode::Vertex,
               attributes: &[wgpu::VertexAttribute {
@@ -215,9 +215,9 @@ impl Demo for ParticleComputeDemo {
                 offset: 0,
                 shader_location: 0, // @location(0) quad_pos - matches generated VertexInput
               }],
-            },
+            }),
             // Instance data (per instance) - matches @location(1) position_and_size
-            wgpu::VertexBufferLayout {
+            Some(wgpu::VertexBufferLayout {
               array_stride: std::mem::size_of::<glam::Vec4>() as u64,
               step_mode: wgpu::VertexStepMode::Instance,
               attributes: &[wgpu::VertexAttribute {
@@ -225,7 +225,7 @@ impl Demo for ParticleComputeDemo {
                 offset: 0,
                 shader_location: 1, // @location(1) position_and_size - matches generated VertexInput
               }],
-            },
+            }),
           ],
         },
         fragment: Some(particle_renderer::fragment_state(
@@ -379,7 +379,7 @@ impl Demo for ParticleComputeDemo {
 
     // Process the mapped data
     if let Ok(Ok(())) = futures::executor::block_on(rx) {
-      let data = buffer_slice.get_mapped_range();
+      let data = buffer_slice.get_mapped_range().unwrap();
       let jobs: &[Job] = bytemuck::cast_slice(&data);
 
       // Extract instance data from GPU results

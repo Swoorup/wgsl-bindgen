@@ -92,7 +92,7 @@ pub mod clear {
   #[derive(Debug)]
   pub struct VertexEntry<const N: usize> {
     pub entry_point: &'static str,
-    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub buffers: [Option<wgpu::VertexBufferLayout<'static>>; N],
     pub constants: Vec<(&'static str, f64)>,
   }
   pub fn vertex_state<'a, const N: usize>(
@@ -112,7 +112,7 @@ pub mod clear {
   pub fn vertex_main_entry(vertex_in: wgpu::VertexStepMode) -> VertexEntry<1> {
     VertexEntry {
       entry_point: ENTRY_VERTEX_MAIN,
-      buffers: [vertices::VertexIn::vertex_buffer_layout(vertex_in)],
+      buffers: [Some(vertices::VertexIn::vertex_buffer_layout(vertex_in))],
       constants: Default::default(),
     }
   }

@@ -426,7 +426,7 @@ pub mod shader_a {
   #[derive(Debug)]
   pub struct VertexEntry<const N: usize> {
     pub entry_point: &'static str,
-    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub buffers: [Option<wgpu::VertexBufferLayout<'static>>; N],
     pub constants: Vec<(&'static str, f64)>,
   }
   pub fn vertex_state<'a, const N: usize>(
@@ -531,18 +531,18 @@ struct VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX {
     normal: vec3<f32>,
 }
 
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: SharedUniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX;
-@group(0) @binding(1) 
+@group(0) @binding(1)
 var<storage> vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX>;
-@group(0) @binding(2) 
+@group(0) @binding(2)
 var shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: texture_2d<f32>;
-@group(0) @binding(3) 
+@group(0) @binding(3)
 var shared_samplerX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: sampler;
-@group(1) @binding(0) 
+@group(1) @binding(0)
 var<storage> dynamic_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<array<f32, 4>>;
 
-@vertex 
+@vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
     let transform = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.view_matrix;
     let vertex = vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX[(vertex_index % arrayLength((&vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX)))];
@@ -554,7 +554,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<
     return vec4<f32>(vertex.position, 1f);
 }
 
-@fragment 
+@fragment
 fn fs_main() -> @location(0) vec4<f32> {
     let time_factor = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.time;
     let tex_color = textureSample(shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX, shared_samplerX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX, vec2<f32>(0.5f, 0.5f));
@@ -637,18 +637,18 @@ struct VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX {
     normal: vec3<f32>,
 }
 
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: SharedUniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX;
-@group(0) @binding(1) 
+@group(0) @binding(1)
 var<storage> vertex_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<VertexDataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX>;
-@group(0) @binding(2) 
+@group(0) @binding(2)
 var shared_textureX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: texture_2d<f32>;
-@group(1) @binding(1) 
+@group(1) @binding(1)
 var<uniform> compute_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: vec4<f32>;
-@group(1) @binding(2) 
+@group(1) @binding(2)
 var<storage, read_write> output_dataX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX: array<f32>;
 
-@compute @workgroup_size(1, 1, 1) 
+@compute @workgroup_size(1, 1, 1)
 fn cs_main() {
     let matrix = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.view_matrix;
     let current_time = shared_uniformsX_naga_oil_mod_XONUGC4TFMRPWIYLUMEX.time;

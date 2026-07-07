@@ -1238,27 +1238,27 @@ const MESH_FLAGS_SHADOW_RECEIVER_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4X
 const POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX: u32 = 1u;
 const DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BITX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX: u32 = 1u;
 
-@group(1) @binding(0) 
+@group(1) @binding(0)
 var<uniform> materialX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MJUW4ZDJNZTXGX: StandardMaterialX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2OR4XAZLTX;
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> viewX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: ViewX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX;
-@group(0) @binding(1) 
+@group(0) @binding(1)
 var<uniform> lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: LightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX;
-@group(0) @binding(6) 
+@group(0) @binding(6)
 var<storage> point_lightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: PointLightsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX;
-@group(0) @binding(7) 
+@group(0) @binding(7)
 var<storage> cluster_light_index_listsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: ClusterLightIndexListsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX;
-@group(0) @binding(8) 
+@group(0) @binding(8)
 var<storage> cluster_offsets_and_countsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: ClusterOffsetsAndCountsX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527OR4XAZLTX;
-@group(2) @binding(0) 
+@group(2) @binding(0)
 var<uniform> meshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7MJUW4ZDJNZTXGX: MeshX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OR4XAZLTX;
-@group(0) @binding(2) 
+@group(0) @binding(2)
 var point_shadow_texturesX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: texture_depth_cube_array;
-@group(0) @binding(3) 
+@group(0) @binding(3)
 var point_shadow_textures_samplerX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: sampler_comparison;
-@group(0) @binding(4) 
+@group(0) @binding(4)
 var directional_shadow_texturesX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: texture_depth_2d_array;
-@group(0) @binding(5) 
+@group(0) @binding(5)
 var directional_shadow_textures_samplerX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZUWK527MJUW4ZDJNZTXGX: sampler_comparison;
 
 fn standard_material_newX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2OR4XAZLTX() -> StandardMaterialX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2OR4XAZLTX {
@@ -1743,7 +1743,7 @@ fn tone_mappingX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX(in_1: ve
     return vec4<f32>(_e2, in_1.w);
 }
 
-@fragment 
+@fragment
 fn fragment(mesh: MeshVertexOutputX_naga_oil_mod_XMJSXM6K7OBRHEOR2NVSXG2C7OZSXE5DFPBPW65LUOB2XIX, @builtin(front_facing) is_front: bool, @builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     var output_color: vec4<f32>;
     var pbr_input: PbrInputX_naga_oil_mod_XMJSXM6K7OBRHEOR2OBRHEOR2MZ2W4Y3UNFXW44YX;

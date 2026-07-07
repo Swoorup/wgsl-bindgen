@@ -116,7 +116,7 @@ pub mod multiple_vertex_shaders {
   #[derive(Debug)]
   pub struct VertexEntry<const N: usize> {
     pub entry_point: &'static str,
-    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub buffers: [Option<wgpu::VertexBufferLayout<'static>>; N],
     pub constants: Vec<(&'static str, f64)>,
   }
   pub fn vertex_state<'a, const N: usize>(
@@ -136,7 +136,7 @@ pub mod multiple_vertex_shaders {
   pub fn dummy_vertex_shader_entry(vertex_input: wgpu::VertexStepMode) -> VertexEntry<1> {
     VertexEntry {
       entry_point: ENTRY_DUMMY_VERTEX_SHADER,
-      buffers: [VertexInput::vertex_buffer_layout(vertex_input)],
+      buffers: [Some(VertexInput::vertex_buffer_layout(vertex_input))],
       constants: Default::default(),
     }
   }
@@ -147,8 +147,8 @@ pub mod multiple_vertex_shaders {
     VertexEntry {
       entry_point: ENTRY_DUMMY_INSTANCED_VERTEX_SHADER,
       buffers: [
-        VertexInput::vertex_buffer_layout(vertex_input),
-        InstanceInput::vertex_buffer_layout(instance_input),
+        Some(VertexInput::vertex_buffer_layout(vertex_input)),
+        Some(InstanceInput::vertex_buffer_layout(instance_input)),
       ],
       constants: Default::default(),
     }

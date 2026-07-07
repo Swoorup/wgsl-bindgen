@@ -138,7 +138,7 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
                 VertexEntry {
                     entry_point: #const_name,
                     buffers: [
-                        #(#layout_expressions),*
+                        #(Some(#layout_expressions)),*
                     ],
                     constants: #constants
                 }
@@ -157,7 +157,7 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
         #[derive(Debug)]
         pub struct VertexEntry<const N: usize> {
             pub entry_point: &'static str,
-            pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+            pub buffers: [Option<wgpu::VertexBufferLayout<'static>>; N],
             pub constants: Vec<(&'static str, f64)>,
         }
 

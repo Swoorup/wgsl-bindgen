@@ -62,6 +62,7 @@ impl State {
         power_preference: wgpu::PowerPreference::default(),
         compatible_surface: Some(&surface),
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
       })
       .await
       .unwrap();
@@ -337,7 +338,7 @@ impl State {
     self.queue.submit(iter::once(encoder.finish()));
 
     // Actually draw the frame.
-    output.present();
+    self.queue.present(output);
   }
 }
 

@@ -52,7 +52,7 @@ struct mesh_view_types__DirectionalLight {
 }
 
 struct mesh_view_types__Lights {
-    directional_lights: array<mesh_view_types__DirectionalLight,1u>,
+    directional_lights: array<mesh_view_types__DirectionalLight, 1u>,
     ambient_color: vec4<f32>,
     cluster_dimensions: vec4<u32>,
     cluster_factors: vec4<f32>,
@@ -117,47 +117,47 @@ const utils__PI: f32 = 3.1415927410125732;
 
 const clustered_forward__CLUSTER_COUNT_SIZE: u32 = 9u;
 
-@group(2) @binding(0) 
+@group(2) @binding(0)
 var<uniform> mesh_bindings__mesh: mesh_types__Mesh;
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> mesh_view_bindings__view: mesh_view_types__View;
-@group(0) @binding(2) 
+@group(0) @binding(2)
 var mesh_view_bindings__point_shadow_textures: texture_depth_cube_array;
-@group(0) @binding(5) 
+@group(0) @binding(5)
 var mesh_view_bindings__directional_shadow_textures_sampler: sampler_comparison;
-@group(0) @binding(6) 
+@group(0) @binding(6)
 var<storage> mesh_view_bindings__point_lights: mesh_view_types__PointLights;
-@group(0) @binding(1) 
+@group(0) @binding(1)
 var<uniform> mesh_view_bindings__lights: mesh_view_types__Lights;
-@group(0) @binding(3) 
+@group(0) @binding(3)
 var mesh_view_bindings__point_shadow_textures_sampler: sampler_comparison;
-@group(0) @binding(4) 
+@group(0) @binding(4)
 var mesh_view_bindings__directional_shadow_textures: texture_depth_2d_array;
-@group(0) @binding(7) 
+@group(0) @binding(7)
 var<storage> mesh_view_bindings__cluster_light_index_lists: mesh_view_types__ClusterLightIndexLists;
-@group(0) @binding(8) 
+@group(0) @binding(8)
 var<storage> mesh_view_bindings__cluster_offsets_and_counts: mesh_view_types__ClusterOffsetsAndCounts;
-@group(1) @binding(8) 
+@group(1) @binding(8)
 var pbr_bindings__occlusion_sampler: sampler;
-@group(1) @binding(0) 
+@group(1) @binding(0)
 var<uniform> pbr_bindings__material: pbr_types__StandardMaterial;
-@group(1) @binding(3) 
+@group(1) @binding(3)
 var pbr_bindings__emissive_texture: texture_2d<f32>;
-@group(1) @binding(1) 
+@group(1) @binding(1)
 var pbr_bindings__base_color_texture: texture_2d<f32>;
-@group(1) @binding(5) 
+@group(1) @binding(5)
 var pbr_bindings__metallic_roughness_texture: texture_2d<f32>;
-@group(1) @binding(4) 
+@group(1) @binding(4)
 var pbr_bindings__emissive_sampler: sampler;
-@group(1) @binding(6) 
+@group(1) @binding(6)
 var pbr_bindings__metallic_roughness_sampler: sampler;
-@group(1) @binding(2) 
+@group(1) @binding(2)
 var pbr_bindings__base_color_sampler: sampler;
-@group(1) @binding(10) 
+@group(1) @binding(10)
 var pbr_bindings__normal_map_sampler: sampler;
-@group(1) @binding(9) 
+@group(1) @binding(9)
 var pbr_bindings__normal_map_texture: texture_2d<f32>;
-@group(1) @binding(7) 
+@group(1) @binding(7)
 var pbr_bindings__occlusion_texture: texture_2d<f32>;
 
 fn pbr_types__standard_material_new() -> pbr_types__StandardMaterial {
@@ -239,11 +239,11 @@ fn lighting__Fd_Burley(roughness_3: f32, NoV_2: f32, NoL_2: f32, LoH_2: f32) -> 
 }
 
 fn lighting__EnvBRDFApprox(f0_4: vec3<f32>, perceptual_roughness_1: f32, NoV_3: f32) -> vec3<f32> {
-    let c0_: vec4<f32> = vec4<f32>(-1.0, -0.027499999850988388, -0.5720000267028809, 0.02199999988079071);
-    let c1_: vec4<f32> = vec4<f32>(1.0, 0.042500000447034836, 1.0399999618530273, -0.03999999910593033);
+    let c0_: vec4<f32> = vec4<f32>(- 1.0, - 0.027499999850988388, - 0.5720000267028809, 0.02199999988079071);
+    let c1_: vec4<f32> = vec4<f32>(1.0, 0.042500000447034836, 1.0399999618530273, - 0.03999999910593033);
     let r: vec4<f32> = ((perceptual_roughness_1 * c0_) + c1_);
-    let a004_: f32 = ((min((r.x * r.x), exp2((-9.279999732971191 * NoV_3))) * r.x) + r.y);
-    let AB: vec2<f32> = ((vec2<f32>(-1.0399999618530273, 1.0399999618530273) * a004_) + r.zw);
+    let a004_: f32 = ((min((r.x * r.x), exp2((- 9.279999732971191 * NoV_3))) * r.x) + r.y);
+    let AB: vec2<f32> = ((vec2<f32>(- 1.0399999618530273, 1.0399999618530273) * a004_) + r.zw);
     return ((f0_4 * AB.x) + vec3<f32>(AB.y));
 }
 
@@ -353,11 +353,11 @@ fn lighting__spot_light(world_position_1: vec3<f32>, light_1: mesh_view_types__P
     spot_dir.y = sqrt(((1.0 - (_e24 * _e26)) - (_e30 * _e32)));
     if ((light_1.flags & mesh_view_types__POINT_LIGHT_FLAGS_SPOT_LIGHT_Y_NEGATIVE) != 0u) {
         let _e42: f32 = spot_dir.y;
-        spot_dir.y = -(_e42);
+        spot_dir.y = - (_e42);
     }
     let light_to_frag_1: vec3<f32> = (light_1.position_radius.xyz - world_position_1.xyz);
     let _e48: vec3<f32> = spot_dir;
-    let cd: f32 = dot(-(_e48), normalize(light_to_frag_1));
+    let cd: f32 = dot(- (_e48), normalize(light_to_frag_1));
     let _e58: f32 = utils__saturate(((cd * light_1.light_custom_data.z) + light_1.light_custom_data.w));
     let spot_attenuation: f32 = (_e58 * _e58);
     return (_e13 * spot_attenuation);
@@ -382,10 +382,11 @@ fn clustered_forward__view_z_to_z_slice(view_z: f32, is_orthographic: bool) -> u
         let _e18: f32 = mesh_view_bindings__lights.cluster_factors.z;
         let _e22: f32 = mesh_view_bindings__lights.cluster_factors.w;
         z_slice = u32(floor(((view_z - _e18) * _e22)));
-    } else {
+    }
+    else {
         let _e30: f32 = mesh_view_bindings__lights.cluster_factors.z;
         let _e34: f32 = mesh_view_bindings__lights.cluster_factors.w;
-        z_slice = u32((((log(-(view_z)) * _e30) - _e34) + 1.0));
+        z_slice = u32((((log(- (view_z)) * _e30) - _e34) + 1.0));
     }
     let _e39: u32 = z_slice;
     let _e42: u32 = mesh_view_bindings__lights.cluster_dimensions.z;
@@ -427,7 +428,7 @@ fn shadows__fetch_point_shadow(light_id: u32, frag_position: vec4<f32>, surface_
     let frag_ls: vec3<f32> = (light_3.position_radius.xyz - offset_position.xyz);
     let abs_position_ls: vec3<f32> = abs(frag_ls);
     let major_axis_magnitude: f32 = max(abs_position_ls.x, max(abs_position_ls.y, abs_position_ls.z));
-    let zw: vec2<f32> = ((-(major_axis_magnitude) * light_3.light_custom_data.xy) + light_3.light_custom_data.zw);
+    let zw: vec2<f32> = ((- (major_axis_magnitude) * light_3.light_custom_data.xy) + light_3.light_custom_data.zw);
     let depth: f32 = (zw.x / zw.y);
     let _e60: f32 = textureSampleCompareLevel(mesh_view_bindings__point_shadow_textures, mesh_view_bindings__point_shadow_textures_sampler, frag_ls, i32(light_id), depth);
     return _e60;
@@ -435,7 +436,7 @@ fn shadows__fetch_point_shadow(light_id: u32, frag_position: vec4<f32>, surface_
 
 fn shadows__fetch_spot_shadow(light_id_1: u32, frag_position_1: vec4<f32>, surface_normal_1: vec3<f32>) -> f32 {
     var spot_dir_1: vec3<f32>;
-    var sign: f32 = -1.0;
+    var sign: f32 = - 1.0;
 
     let light_4: mesh_view_types__PointLight = mesh_view_bindings__point_lights.data[light_id_1];
     let surface_to_light_1: vec3<f32> = (light_4.position_radius.xyz - frag_position_1.xyz);
@@ -447,30 +448,30 @@ fn shadows__fetch_spot_shadow(light_id_1: u32, frag_position_1: vec4<f32>, surfa
     spot_dir_1.y = sqrt(((1.0 - (_e32 * _e34)) - (_e38 * _e40)));
     if ((light_4.flags & mesh_view_types__POINT_LIGHT_FLAGS_SPOT_LIGHT_Y_NEGATIVE) != 0u) {
         let _e50: f32 = spot_dir_1.y;
-        spot_dir_1.y = -(_e50);
+        spot_dir_1.y = - (_e50);
     }
     let _e52: vec3<f32> = spot_dir_1;
-    let fwd: vec3<f32> = -(_e52);
+    let fwd: vec3<f32> = - (_e52);
     let distance_to_light_1: f32 = dot(fwd, surface_to_light_1);
-    let offset_position_1: vec3<f32> = ((-(surface_to_light_1) + (light_4.shadow_depth_bias * normalize(surface_to_light_1))) + ((surface_normal_1.xyz * light_4.shadow_normal_bias) * distance_to_light_1));
+    let offset_position_1: vec3<f32> = ((- (surface_to_light_1) + (light_4.shadow_depth_bias * normalize(surface_to_light_1))) + ((surface_normal_1.xyz * light_4.shadow_normal_bias) * distance_to_light_1));
     if (fwd.z >= 0.0) {
         sign = 1.0;
     }
     let _e73: f32 = sign;
-    let a_1: f32 = (-1.0 / (fwd.z + _e73));
+    let a_1: f32 = (- 1.0 / (fwd.z + _e73));
     let b: f32 = ((fwd.x * fwd.y) * a_1);
     let _e81: f32 = sign;
     let _e88: f32 = sign;
     let _e90: f32 = sign;
-    let up_dir: vec3<f32> = vec3<f32>((1.0 + (((_e81 * fwd.x) * fwd.x) * a_1)), (_e88 * b), (-(_e90) * fwd.x));
+    let up_dir: vec3<f32> = vec3<f32>((1.0 + (((_e81 * fwd.x) * fwd.x) * a_1)), (_e88 * b), (- (_e90) * fwd.x));
     let _e96: f32 = sign;
-    let right_dir: vec3<f32> = vec3<f32>(-(b), (-(_e96) - ((fwd.y * fwd.y) * a_1)), fwd.y);
+    let right_dir: vec3<f32> = vec3<f32>(- (b), (- (_e96) - ((fwd.y * fwd.y) * a_1)), fwd.y);
     let light_inv_rot: mat3x3<f32> = mat3x3<f32>(right_dir, up_dir, fwd);
     let projected_position: vec3<f32> = (offset_position_1 * light_inv_rot);
-    let f_div_minus_z: f32 = (1.0 / (light_4.spot_light_tan_angle * -(projected_position.z)));
+    let f_div_minus_z: f32 = (1.0 / (light_4.spot_light_tan_angle * - (projected_position.z)));
     let shadow_xy_ndc: vec2<f32> = (projected_position.xy * f_div_minus_z);
-    let shadow_uv: vec2<f32> = ((shadow_xy_ndc * vec2<f32>(0.5, -0.5)) + vec2<f32>(0.5, 0.5));
-    let depth_1: f32 = (0.10000000149011612 / -(projected_position.z));
+    let shadow_uv: vec2<f32> = ((shadow_xy_ndc * vec2<f32>(0.5, - 0.5)) + vec2<f32>(0.5, 0.5));
+    let depth_1: f32 = (0.10000000149011612 / - (projected_position.z));
     let _e129: i32 = mesh_view_bindings__lights.spot_light_shadowmap_offset;
     let _e131: f32 = textureSampleCompareLevel(mesh_view_bindings__directional_shadow_textures, mesh_view_bindings__directional_shadow_textures_sampler, shadow_uv, (i32(light_id_1) + _e129), depth_1);
     return _e131;
@@ -486,10 +487,10 @@ fn shadows__fetch_directional_shadow(light_id_2: u32, frag_position_2: vec4<f32>
         return 1.0;
     }
     let offset_position_ndc: vec3<f32> = (offset_position_clip.xyz / vec3<f32>(offset_position_clip.w));
-    if ((any((offset_position_ndc.xy < vec2<f32>(-1.0))) || (offset_position_ndc.z < 0.0)) || any((offset_position_ndc > vec3<f32>(1.0)))) {
+    if ((any((offset_position_ndc.xy < vec2<f32>(- 1.0))) || (offset_position_ndc.z < 0.0)) || any((offset_position_ndc > vec3<f32>(1.0)))) {
         return 1.0;
     }
-    let flip_correction: vec2<f32> = vec2<f32>(0.5, -0.5);
+    let flip_correction: vec2<f32> = vec2<f32>(0.5, - 0.5);
     let light_local: vec2<f32> = ((offset_position_ndc.xy * flip_correction) + vec2<f32>(0.5, 0.5));
     let depth_2: f32 = offset_position_ndc.z;
     let _e66: f32 = textureSampleCompareLevel(mesh_view_bindings__directional_shadow_textures, mesh_view_bindings__directional_shadow_textures_sampler, light_local, i32(light_id_2), depth_2);
@@ -503,7 +504,7 @@ fn pbr_functions__prepare_normal(standard_material_flags: u32, world_normal: vec
     if ((standard_material_flags & pbr_types__STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u) {
         if !(is_front_1) {
             let _e37: vec3<f32> = N_2;
-            N_2 = -(_e37);
+            N_2 = - (_e37);
         }
     }
     let _e39: vec3<f32> = N_2;
@@ -518,7 +519,8 @@ fn pbr_functions__calculate_view(world_position_2: vec4<f32>, is_orthographic_3:
         let _e39: f32 = mesh_view_bindings__view.view_proj[1][2];
         let _e44: f32 = mesh_view_bindings__view.view_proj[2][2];
         V_2 = normalize(vec3<f32>(_e34, _e39, _e44));
-    } else {
+    }
+    else {
         let _e48: vec3<f32> = mesh_view_bindings__view.world_position;
         V_2 = normalize((_e48.xyz - world_position_2.xyz));
     }
@@ -560,12 +562,14 @@ fn pbr_functions__pbr(in: pbr_functions__PbrInput) -> vec4<f32> {
     let occlusion_1: f32 = in.occlusion;
     if ((in.material.flags & pbr_types__STANDARD_MATERIAL_FLAGS_ALPHA_MODE_OPAQUE) != 0u) {
         output_color_2.w = 1.0;
-    } else {
+    }
+    else {
         if ((in.material.flags & pbr_types__STANDARD_MATERIAL_FLAGS_ALPHA_MODE_MASK) != 0u) {
             let _e52: f32 = output_color_2.w;
             if (_e52 >= in.material.alpha_cutoff) {
                 output_color_2.w = 1.0;
-            } else {
+            }
+            else {
                 discard;
             }
         }
@@ -576,7 +580,7 @@ fn pbr_functions__pbr(in: pbr_functions__PbrInput) -> vec4<f32> {
     let F0_3: vec3<f32> = (vec3<f32>((((0.1599999964237213 * reflectance) * reflectance) * (1.0 - metallic_1))) + (_e71.xyz * metallic_1));
     let _e76: vec4<f32> = output_color_2;
     let diffuse_color: vec3<f32> = (_e76.xyz * (1.0 - metallic_1));
-    let R_3: vec3<f32> = reflect(-(in.V), in.N);
+    let R_3: vec3<f32> = reflect(- (in.V), in.N);
     light_accum = vec3<f32>(0.0);
     let _e92: f32 = mesh_view_bindings__view.inverse_view[0][2];
     let _e97: f32 = mesh_view_bindings__view.inverse_view[1][2];
@@ -588,8 +592,8 @@ fn pbr_functions__pbr(in: pbr_functions__PbrInput) -> vec4<f32> {
     i = _e115.x;
     loop {
         let _e119: u32 = i;
-        if (_e119 < (_e115.x + _e115.y)) {
-        } else {
+        if (_e119 < (_e115.x + _e115.y)) { }
+        else {
             break;
         }
         let _e129: u32 = i;
@@ -613,8 +617,8 @@ fn pbr_functions__pbr(in: pbr_functions__PbrInput) -> vec4<f32> {
     i_1 = (_e115.x + _e115.y);
     loop {
         let _e164: u32 = i_1;
-        if (_e164 < ((_e115.x + _e115.y) + _e115.z)) {
-        } else {
+        if (_e164 < ((_e115.x + _e115.y) + _e115.z)) { }
+        else {
             break;
         }
         let _e177: u32 = i_1;
@@ -638,8 +642,8 @@ fn pbr_functions__pbr(in: pbr_functions__PbrInput) -> vec4<f32> {
     let n_directional_lights: u32 = mesh_view_bindings__lights.n_directional_lights;
     loop {
         let _e210: u32 = i_2;
-        if (_e210 < n_directional_lights) {
-        } else {
+        if (_e210 < n_directional_lights) { }
+        else {
             break;
         }
         let _e216: u32 = i_2;
@@ -679,7 +683,7 @@ fn pbr_functions__tone_mapping(in_1: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(_e29, in_1.w);
 }
 
-@fragment 
+@fragment
 fn fragment(mesh: mesh_vertex_output__MeshVertexOutput, @builtin(front_facing) is_front: bool, @builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     var output_color: vec4<f32>;
     var pbr_input: pbr_functions__PbrInput;

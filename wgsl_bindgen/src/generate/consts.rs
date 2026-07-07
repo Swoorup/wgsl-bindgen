@@ -28,11 +28,13 @@ pub fn consts_items(
         naga::Expression::Literal(literal) => match literal {
           naga::Literal::F64(v) => Some(quote!(f32 = #v)),
           naga::Literal::F32(v) => Some(quote!(f32 = #v)),
-          naga::Literal::U32(v) => Some(quote!(u32 = #v)),
-          naga::Literal::U64(v) => Some(quote!(u64 = #v)),
+          naga::Literal::I16(v) => Some(quote!(i16 = #v)),
+          naga::Literal::U16(v) => Some(quote!(u16 = #v)),
           naga::Literal::I32(v) => Some(quote!(i32 = #v)),
-          naga::Literal::Bool(v) => Some(quote!(bool = #v)),
+          naga::Literal::U32(v) => Some(quote!(u32 = #v)),
           naga::Literal::I64(v) => Some(quote!(i64 = #v)),
+          naga::Literal::U64(v) => Some(quote!(u64 = #v)),
+          naga::Literal::Bool(v) => Some(quote!(bool = #v)),
           naga::Literal::AbstractInt(v) => Some(quote!(i64 = #v)),
           naga::Literal::AbstractFloat(v) => Some(quote!(f64 = #v)),
           naga::Literal::F16(v) => {

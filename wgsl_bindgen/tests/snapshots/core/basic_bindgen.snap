@@ -506,19 +506,19 @@ struct Style {
     width: f32,
 }
 
-@group(1) @binding(0) 
+@group(1) @binding(0)
 var<uniform> ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX: f32;
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<storage, read_write> buffer: array<f32>;
-@group(0) @binding(1) 
+@group(0) @binding(1)
 var texture_float: texture_2d<f32>;
-@group(0) @binding(2) 
+@group(0) @binding(2)
 var texture_sint: texture_2d<i32>;
-@group(0) @binding(3) 
+@group(0) @binding(3)
 var texture_uint: texture_2d<u32>;
 var<push_constant> const_style: Style;
 
-@compute @workgroup_size(1, 1, 1) 
+@compute @workgroup_size(1, 1, 1)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     let _e5 = ONEX_naga_oil_mod_XMJUW4ZDJNZTXGX;
     let _e11 = const_style.color.w;

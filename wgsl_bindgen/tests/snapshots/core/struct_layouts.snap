@@ -516,7 +516,7 @@ pub mod layouts {
   #[derive(Debug)]
   pub struct VertexEntry<const N: usize> {
     pub entry_point: &'static str,
-    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub buffers: [Option<wgpu::VertexBufferLayout<'static>>; N],
     pub constants: Vec<(&'static str, f64)>,
   }
   pub fn vertex_state<'a, const N: usize>(
@@ -536,7 +536,7 @@ pub mod layouts {
   pub fn vertex_main_entry(vertex_in: wgpu::VertexStepMode) -> VertexEntry<1> {
     VertexEntry {
       entry_point: ENTRY_VERTEX_MAIN,
-      buffers: [VertexIn::vertex_buffer_layout(vertex_in)],
+      buffers: [Some(VertexIn::vertex_buffer_layout(vertex_in))],
       constants: Default::default(),
     }
   }
@@ -919,28 +919,28 @@ struct VertexOutput {
     @builtin(position) position: vec4<f32>,
 }
 
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var color_texture: texture_2d<f32>;
-@group(0) @binding(1) 
+@group(0) @binding(1)
 var color_sampler: sampler;
-@group(1) @binding(0) 
+@group(1) @binding(0)
 var<uniform> uniforms: Uniforms;
-@group(2) @binding(2) 
+@group(2) @binding(2)
 var<storage> a: Scalars;
-@group(2) @binding(3) 
+@group(2) @binding(3)
 var<storage> b: VectorsU32_;
-@group(2) @binding(4) 
+@group(2) @binding(4)
 var<storage> c: VectorsI32_;
-@group(2) @binding(5) 
+@group(2) @binding(5)
 var<storage> d: VectorsF32_;
-@group(2) @binding(6) 
+@group(2) @binding(6)
 var<storage> f: MatricesF32_;
-@group(2) @binding(8) 
+@group(2) @binding(8)
 var<storage> h: StaticArrays;
-@group(2) @binding(9) 
+@group(2) @binding(9)
 var<storage> i: Nested;
 
-@vertex 
+@vertex
 fn vertex_main(input: VertexIn) -> VertexOutput {
     var output: VertexOutput;
 
@@ -949,7 +949,7 @@ fn vertex_main(input: VertexIn) -> VertexOutput {
     return _e4;
 }
 
-@fragment 
+@fragment
 fn fragment_main(input_1: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(1f, 1f, 1f, 1f);
 }

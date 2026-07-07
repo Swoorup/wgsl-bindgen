@@ -111,7 +111,7 @@ pub mod lines {
     #[derive(Debug)]
     pub struct VertexEntry<const N: usize> {
       pub entry_point: &'static str,
-      pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+      pub buffers: [Option<wgpu::VertexBufferLayout<'static>>; N],
       pub constants: Vec<(&'static str, f64)>,
     }
     pub fn vertex_state<'a, const N: usize>(
@@ -282,10 +282,10 @@ struct VertexOutput {
     @location(0) color: vec4<f32>,
 }
 
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> segment: SegmentData;
 
-@vertex 
+@vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     var output: VertexOutput;
 
@@ -302,7 +302,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     return _e22;
 }
 
-@fragment 
+@fragment
 fn fs_main(@location(0) color: vec4<f32>) -> @location(0) vec4<f32> {
     return color;
 }
