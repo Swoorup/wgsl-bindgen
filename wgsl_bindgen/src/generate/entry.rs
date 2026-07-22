@@ -40,7 +40,7 @@ pub fn entry_point_constants(module: &naga::Module) -> TokenStream {
     .map(|entry_point| {
       let entry_name = Literal::string(&entry_point.name);
       let const_name = Ident::new(
-        &format!("ENTRY_{}", &entry_point.name.to_uppercase()),
+        &format!("ENTRY_{}", entry_point.name.to_uppercase()),
         Span::call_site(),
       );
       quote! {
