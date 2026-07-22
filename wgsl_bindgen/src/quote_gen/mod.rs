@@ -27,7 +27,7 @@ use crate::bevy_util::demangle_str;
 ///
 /// The token stream representing the raw string literal.
 pub(crate) fn create_shader_raw_string_literal(shader_content: &str) -> TokenStream {
-  syn::parse_str::<TokenStream>(&format!("r#\"\n{}\"#", &shader_content)).unwrap()
+  syn::parse_str::<TokenStream>(&format!("r#\"\n{}\"#", shader_content)).unwrap()
 }
 
 /// Demangles the given string and qualifies it with the qualification root.

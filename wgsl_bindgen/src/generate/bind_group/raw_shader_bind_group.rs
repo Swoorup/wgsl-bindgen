@@ -67,7 +67,7 @@ impl<'a> RawShadersBindGroups<'a> {
       for binding in new_group.bindings.iter() {
         merged_bindings.push(binding.clone());
       }
-      merged_bindings.sort_by(|a, b| a.binding_index.cmp(&b.binding_index));
+      merged_bindings.sort_by_key(|a| a.binding_index);
       merged_bindings.dedup_by(|a, b| {
         a.binding_index == b.binding_index
           && a.item_path == b.item_path

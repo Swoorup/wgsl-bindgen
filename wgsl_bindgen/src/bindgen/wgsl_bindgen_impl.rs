@@ -212,7 +212,7 @@ impl WGSLBindgen {
       .unwrap_or("");
 
     let is_hash_changed =
-      || old_hashstr_comment != format!("// SourceHash: {}", &self.content_hash);
+      || old_hashstr_comment != format!("// SourceHash: {}", self.content_hash);
 
     if self.options.skip_hash_check || is_hash_changed() {
       let content = self.generate_string()?;

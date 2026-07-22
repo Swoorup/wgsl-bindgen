@@ -105,10 +105,10 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
         }
 
         let fn_name =
-          Ident::new(&format!("{}_entry", &entry_point.name), Span::call_site());
+          Ident::new(&format!("{}_entry", entry_point.name), Span::call_site());
 
         let const_name = Ident::new(
-          &format!("ENTRY_{}", &entry_point.name.to_uppercase()),
+          &format!("ENTRY_{}", entry_point.name.to_uppercase()),
           Span::call_site(),
         );
 
@@ -262,10 +262,10 @@ pub fn fragment_states(module: &naga::Module) -> TokenStream {
     .filter_map(|entry_point| match &entry_point.stage {
       ShaderStage::Fragment => {
         let fn_name =
-          Ident::new(&format!("{}_entry", &entry_point.name), Span::call_site());
+          Ident::new(&format!("{}_entry", entry_point.name), Span::call_site());
 
         let const_name = Ident::new(
-          &format!("ENTRY_{}", &entry_point.name.to_uppercase()),
+          &format!("ENTRY_{}", entry_point.name.to_uppercase()),
           Span::call_site(),
         );
 
