@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.3](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.22.2...wgsl_bindgen-v0.22.3) - 2026-07-25
+
+### Other
+
+- Fix clippy warning
+- Fix clippy warnings
+- Upgrade to wgpu-30
+
 ## [0.22.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.22.1...wgsl_bindgen-v0.22.2) - 2026-03-31
 
 ### Fixed
