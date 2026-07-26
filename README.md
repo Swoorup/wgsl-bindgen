@@ -54,6 +54,7 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 
 | `wgsl_bindgen` | `wgpu` |
 | -------------- | ------ |
+| **0.23.x**     | **30.x** |
 | **0.22.x**     | **29.x** |
 | 0.21.2 - 0.21.3| 26.x   |
 | 0.19.0 - 0.21.1| 25.x   |
