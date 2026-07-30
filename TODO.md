@@ -28,6 +28,6 @@
   - https://www.reddit.com/r/rust/comments/16e18kp/how_to_set_alignment_of_individual_struct_members/
 
 * Add a way to encode variant types in wgsl?. 
-  * Maybe a seperate binary that accepts rust source. 
+  * Maybe a separate binary that accepts rust source. 
   * Generates accessors, setters in wgsl
   * Struct fields are efficiently utilised.

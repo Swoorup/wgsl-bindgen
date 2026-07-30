@@ -100,7 +100,7 @@ bind_group.set(&mut render_pass); // Simple, safe usage
     )?;
     ```
 
--   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accomodate for different permutation of the shader modules.
+-   Shader registry utility to dynamically call `create_shader` variants depending on the variant. This is useful when trying to keep cache of entry to shader modules. Also remember to add shader defines to accommodate for different permutation of the shader modules.
 -   Ability to add additional scan directories for shader imports when defining the workflow.
 
 ### Type Handling:

@@ -251,7 +251,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Adjust size if custom alignment is specified. ([`a4b61c7`](https://github.com/Swoorup/wgsl-bindgen/commit/a4b61c7d52496499b92b029a3604053d2420b147))
     - Ability to override alignment for structs ([`cd26b91`](https://github.com/Swoorup/wgsl-bindgen/commit/cd26b91be29870ac629a1674a8a43ba98d46b6d6))
     - Use Result type for create_shader* when using `NagaOilComposer` ([`80a7f95`](https://github.com/Swoorup/wgsl-bindgen/commit/80a7f9594330b6e982bb91bb12991df8b79cba70))
-    - Seperate types, assertions, impls in generated output ([`c2c4dc9`](https://github.com/Swoorup/wgsl-bindgen/commit/c2c4dc956925aedef11d706cd7024c8b25593a66))
+    - Separate types, assertions, impls in generated output ([`c2c4dc9`](https://github.com/Swoorup/wgsl-bindgen/commit/c2c4dc956925aedef11d706cd7024c8b25593a66))
     - RustSourceItem => RustItem ([`ce2a91e`](https://github.com/Swoorup/wgsl-bindgen/commit/ce2a91eca61507ba237fd9828a84a5d00a6e2d99))
     - Pass entry point name to builders ([`4fc895b`](https://github.com/Swoorup/wgsl-bindgen/commit/4fc895bef6ce8a29b32611fc363ea68a40b60405))
     - Export quote, syn functions and macros ([`782f481`](https://github.com/Swoorup/wgsl-bindgen/commit/782f481c70bb5d8ae8381c0ddf83ec4ddc6a2a79))
