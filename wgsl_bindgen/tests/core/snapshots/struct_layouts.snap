@@ -1,6 +1,5 @@
 ---
 source: wgsl_bindgen/tests/core/mod.rs
-assertion_line: 100
 ---
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
@@ -441,16 +440,21 @@ pub mod layouts {
     #[doc = "offset: 32, size: 32768, type: `array<mat4x4<f32>, 512>`"]
     pub c: [glam::Mat4; 512],
     #[doc = "offset: 32800, size: 64, type: `array<vec3<f32>, 4>`"]
-    pub d: [WgslBindgenArrayElement<16usize>; 4],
+    pub d: [Padded<4usize, glam::Vec3>; 4],
   }
   impl StaticArrays {
     pub const fn new(
       a: [u32; 5],
       b: [f32; 3],
       c: [glam::Mat4; 512],
-      d: [WgslBindgenArrayElement<16usize>; 4],
+      d: [glam::Vec3; 4],
     ) -> Self {
-      Self { a, b, c, d }
+      Self {
+        a,
+        b,
+        c,
+        d: pad_array(d),
+      }
     }
   }
   #[repr(C)]
@@ -467,7 +471,7 @@ pub mod layouts {
         a: self.a,
         b: self.b,
         c: self.c,
-        d: self.d.map(|value| WgslBindgenArrayElement::new(value)),
+        d: pad_array(self.d),
       }
     }
   }
@@ -477,35 +481,76 @@ pub mod layouts {
     }
   }
   #[doc(hidden)]
-  #[repr(transparent)]
+  #[repr(C)]
   #[derive(Debug, PartialEq, Clone, Copy)]
-  pub struct WgslBindgenArrayElement<const STRIDE: usize>(pub [u8; STRIDE]);
-  impl<const STRIDE: usize> WgslBindgenArrayElement<STRIDE> {
-    pub fn new<T: bytemuck::Pod>(value: T) -> Self {
-      assert!(
-        ::core::mem::size_of::<T>() <= STRIDE,
-        "Rust array element exceeds its WGSL stride",
-      );
-      let value_bytes = bytemuck::bytes_of(&value);
-      let mut result = ::core::mem::MaybeUninit::<Self>::uninit();
-      unsafe {
-        let result_bytes = result.as_mut_ptr().cast::<u8>();
-        ::core::ptr::copy_nonoverlapping(
-          value_bytes.as_ptr(),
-          result_bytes,
-          value_bytes.len(),
-        );
-        ::core::ptr::write_bytes(
-          result_bytes.add(value_bytes.len()),
-          0,
-          STRIDE - value_bytes.len(),
-        );
-        result.assume_init()
+  pub struct Padded<const N: usize, T> {
+    pub field: T,
+    padding: [u8; N],
+  }
+  impl<const N: usize, T> Padded<N, T> {
+    pub const fn new(field: T) -> Self {
+      Self {
+        field,
+        padding: [0; N],
       }
     }
   }
-  unsafe impl<const STRIDE: usize> bytemuck::Zeroable for WgslBindgenArrayElement<STRIDE> {}
-  unsafe impl<const STRIDE: usize> bytemuck::Pod for WgslBindgenArrayElement<STRIDE> {}
+  #[doc = r" Widens each element of a fixed-size array to its WGSL array stride."]
+  #[doc = r""]
+  #[doc = r" `[T; N]::map` is not callable from a `const fn` on stable, so this"]
+  #[doc = r" loops instead. Only ever called with `COUNT >= 1`, since WGSL"]
+  #[doc = r" fixed-size arrays cannot be empty."]
+  #[doc(hidden)]
+  pub const fn pad_array<const N: usize, const COUNT: usize, T: Copy>(
+    values: [T; COUNT],
+  ) -> [Padded<N, T>; COUNT] {
+    let mut padded = [Padded::new(values[0]); COUNT];
+    let mut index = 1;
+    while index < COUNT {
+      padded[index] = Padded::new(values[index]);
+      index += 1;
+    }
+    padded
+  }
+  #[doc(hidden)]
+  mod __wgsl_bindgen_padded_layout {
+    #[doc = r" Marks a `Padded` instantiation whose layout is known to match its"]
+    #[doc = r" WGSL array stride, which is what makes the `bytemuck` impls below"]
+    #[doc = r" sound."]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r""]
+    #[doc = r" Implementors must contain no implicit Rust padding and must have a"]
+    #[doc = r" size exactly equal to the stride of the WGSL array they represent."]
+    #[doc = r" Every implementation is emitted next to a `const` assertion that"]
+    #[doc = r" checks this, so do not implement this trait by hand."]
+    pub unsafe trait Valid {}
+  }
+  #[allow(private_bounds)]
+  unsafe impl<const N: usize, T> bytemuck::Zeroable for Padded<N, T>
+  where
+    T: bytemuck::Zeroable,
+    Padded<N, T>: __wgsl_bindgen_padded_layout::Valid,
+  {
+  }
+  #[allow(private_bounds)]
+  unsafe impl<const N: usize, T> bytemuck::Pod for Padded<N, T>
+  where
+    T: bytemuck::Pod,
+    Padded<N, T>: __wgsl_bindgen_padded_layout::Valid,
+  {
+  }
+  const _: () = {
+    assert!(
+      ::core::mem::size_of::<glam::Vec3>() + 4usize == 16usize,
+      "Rust array element size does not match its WGSL stride",
+    );
+    assert!(
+      ::core::mem::size_of::<Padded<4usize, glam::Vec3>>() == 16usize,
+      "Padded contains implicit Rust padding or has the wrong stride",
+    );
+  };
+  unsafe impl __wgsl_bindgen_padded_layout::Valid for Padded<4usize, glam::Vec3> {}
   #[repr(C, align(16))]
   #[derive(Debug, PartialEq, Clone, Copy)]
   pub struct Nested {

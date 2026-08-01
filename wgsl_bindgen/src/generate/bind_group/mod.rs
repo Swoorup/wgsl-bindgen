@@ -14,8 +14,8 @@ pub use single_bind_group::SingleBindGroupData;
 use smol_str::{SmolStr, ToSmolStr};
 
 use crate::quote_gen::{
-  array_element_helper_item, RustSourceItem, RustSourceItemCategory, RustSourceItemPath,
-  MOD_REFERENCE_ROOT,
+  padded_helper_item, padded_layout_impl_item, PaddedTypeInfo, RustSourceItem,
+  RustSourceItemCategory, RustSourceItemPath, MOD_REFERENCE_ROOT,
 };
 use crate::wgsl::buffer_binding_type;
 use crate::*;
@@ -69,15 +69,16 @@ impl<'a> ReusableShaderBindGroups<'a> {
           options,
         };
         items.push(builder.build());
-        if bind_group_uses_array_element_helper(
+        let padded_types = bind_group_padded_types(
           group_data,
           &common_bind_groups.containing_module,
           options,
-        ) {
-          items.push(array_element_helper_item(
-            &common_bind_groups.containing_module,
-            options,
-          ));
+        );
+        if !padded_types.is_empty() {
+          items.push(padded_helper_item(&common_bind_groups.containing_module, options));
+          items.extend(padded_types.iter().map(|padded_type| {
+            padded_layout_impl_item(&common_bind_groups.containing_module, padded_type)
+          }));
         }
       }
     }
@@ -97,12 +98,13 @@ impl<'a> ReusableShaderBindGroups<'a> {
           options,
         };
         items.push(builder.build());
-        if bind_group_uses_array_element_helper(
-          &group_ref.data,
-          &shader.containing_module,
-          options,
-        ) {
-          items.push(array_element_helper_item(&shader.containing_module, options));
+        let padded_types =
+          bind_group_padded_types(&group_ref.data, &shader.containing_module, options);
+        if !padded_types.is_empty() {
+          items.push(padded_helper_item(&shader.containing_module, options));
+          items.extend(padded_types.iter().map(|padded_type| {
+            padded_layout_impl_item(&shader.containing_module, padded_type)
+          }));
         }
       }
     }
@@ -121,40 +123,44 @@ impl<'a> ReusableShaderBindGroups<'a> {
   }
 }
 
-fn bind_group_uses_array_element_helper(
+fn bind_group_padded_types(
   group_data: &SingleBindGroupData<'_>,
   invoking_entry_module: &str,
   options: &WgslBindgenOption,
-) -> bool {
-  fn binding_type_uses_helper(
+) -> Vec<PaddedTypeInfo> {
+  fn binding_type_padded_types(
     binding_type: &naga::Type,
     invoking_entry_module: &str,
     naga_module: &naga::Module,
     options: &WgslBindgenOption,
-  ) -> bool {
+  ) -> Vec<PaddedTypeInfo> {
     match &binding_type.inner {
       naga::TypeInner::Array { .. } => {
         rust_type(Some(invoking_entry_module), naga_module, binding_type, options)
-          .uses_array_element_helper()
+          .padded_types()
       }
-      naga::TypeInner::BindingArray { base, .. } => binding_type_uses_helper(
+      naga::TypeInner::BindingArray { base, .. } => binding_type_padded_types(
         &naga_module.types[*base],
         invoking_entry_module,
         naga_module,
         options,
       ),
-      _ => false,
+      _ => Vec::new(),
     }
   }
 
-  group_data.bindings.iter().any(|binding| {
-    binding_type_uses_helper(
-      binding.binding_type,
-      invoking_entry_module,
-      group_data.naga_module,
-      options,
-    )
-  })
+  group_data
+    .bindings
+    .iter()
+    .flat_map(|binding| {
+      binding_type_padded_types(
+        binding.binding_type,
+        invoking_entry_module,
+        group_data.naga_module,
+        options,
+      )
+    })
+    .collect()
 }
 
 fn generate_bind_groups_module_extras(

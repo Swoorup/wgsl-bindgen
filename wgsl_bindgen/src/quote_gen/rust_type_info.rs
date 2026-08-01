@@ -26,30 +26,130 @@ pub(crate) struct RustTypeInfo {
 
 #[derive(Debug, Clone)]
 pub(crate) enum RustTypeInitConversion {
-  Array(Box<Self>),
-  PaddedArrayElement(Option<Box<Self>>),
+  Array {
+    count: usize,
+    element_conversion: Box<Self>,
+  },
+  Padded {
+    padding: usize,
+    stride: usize,
+    inner_type: TokenStream,
+    inner_conversion: Option<Box<Self>>,
+  },
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct PaddedTypeInfo {
+  pub padding: usize,
+  pub stride: usize,
+  pub inner_type: TokenStream,
 }
 
 impl RustTypeInitConversion {
   pub fn generate(&self, value: TokenStream) -> TokenStream {
     match self {
-      Self::Array(element_conversion) => {
-        let converted = element_conversion.generate(quote!(value));
-        quote!(#value.map(|value| #converted))
-      }
-      Self::PaddedArrayElement(inner_conversion) => {
+      // `[T; N]::map` is not callable from a `const fn` on stable, so arrays
+      // go through the generated `pad_array` helper instead. Elements that
+      // need a conversion of their own before being widened cannot use it
+      // (that would need a const closure), so those expand element by
+      // element. `value` is always a `Copy` place expression, so repeating
+      // it is free.
+      Self::Array {
+        count,
+        element_conversion,
+      } => match element_conversion.as_ref() {
+        Self::Padded {
+          inner_conversion: None,
+          ..
+        } => quote!(pad_array(#value)),
+        _ => {
+          let elements = (0..*count).map(|index| {
+            let index = Index::from(index);
+            element_conversion.generate(quote!(#value[#index]))
+          });
+          quote!([#(#elements),*])
+        }
+      },
+      Self::Padded {
+        inner_conversion, ..
+      } => {
         let value = inner_conversion
           .as_ref()
           .map_or(value.clone(), |conversion| conversion.generate(value));
-        quote!(WgslBindgenArrayElement::new(#value))
+        quote!(Padded::new(#value))
       }
     }
   }
 
-  pub fn uses_array_element_helper(&self) -> bool {
+  /// Maps `value`, an array of statically unknown length whose elements each
+  /// need `self` applied to them.
+  pub fn generate_array_map(&self, value: TokenStream) -> TokenStream {
+    match self.as_conversion_fn() {
+      Some(conversion_fn) => quote!(#value.map(#conversion_fn)),
+      None => {
+        let converted = self.generate(quote!(value));
+        quote!(#value.map(|value| #converted))
+      }
+    }
+  }
+
+  /// The generated conversion as a plain function path, when it needs no
+  /// arguments beyond the value itself. Lets array mapping stay point-free
+  /// instead of emitting a closure `clippy::redundant_closure` would flag.
+  fn as_conversion_fn(&self) -> Option<TokenStream> {
     match self {
-      Self::Array(element_conversion) => element_conversion.uses_array_element_helper(),
-      Self::PaddedArrayElement(_) => true,
+      Self::Padded {
+        inner_conversion: None,
+        ..
+      } => Some(quote!(Padded::new)),
+      Self::Array {
+        element_conversion, ..
+      } => match element_conversion.as_ref() {
+        Self::Padded {
+          inner_conversion: None,
+          ..
+        } => Some(quote!(pad_array)),
+        _ => None,
+      },
+      Self::Padded { .. } => None,
+    }
+  }
+
+  /// Whether the generated conversion can run inside a `const fn`.
+  pub fn is_const_evaluable(&self) -> bool {
+    match self {
+      Self::Array {
+        element_conversion, ..
+      } => element_conversion.is_const_evaluable(),
+      Self::Padded {
+        inner_conversion, ..
+      } => inner_conversion
+        .as_ref()
+        .is_none_or(|conversion| conversion.is_const_evaluable()),
+    }
+  }
+
+  pub fn padded_types(&self) -> Vec<PaddedTypeInfo> {
+    match self {
+      Self::Array {
+        element_conversion, ..
+      } => element_conversion.padded_types(),
+      Self::Padded {
+        padding,
+        stride,
+        inner_type,
+        inner_conversion,
+      } => {
+        let mut types = vec![PaddedTypeInfo {
+          padding: *padding,
+          stride: *stride,
+          inner_type: inner_type.clone(),
+        }];
+        if let Some(inner_conversion) = inner_conversion {
+          types.extend(inner_conversion.padded_types());
+        }
+        types
+      }
     }
   }
 }
@@ -77,14 +177,14 @@ impl RustTypeInfo {
     }
   }
 
-  pub fn uses_array_element_helper(&self) -> bool {
+  pub fn padded_types(&self) -> Vec<PaddedTypeInfo> {
     self
       .init_conversion
       .as_ref()
-      .is_some_and(RustTypeInitConversion::uses_array_element_helper)
+      .map_or_else(Vec::new, RustTypeInitConversion::padded_types)
   }
 
-  fn input_type(&self) -> TokenStream {
+  pub(crate) fn input_type(&self) -> TokenStream {
     self
       .init_type
       .clone()
@@ -388,19 +488,23 @@ pub(crate) fn rust_type(
         let actual_stride = *stride as usize;
 
         if element_size < actual_stride {
-          // Store padded array elements as exact-stride byte blocks. The struct
-          // builder emits the transparent helper type and converts the ergonomic
-          // element values into these blocks in the Init builder.
+          let padding = actual_stride - element_size;
+          // Preserve the element's Rust type and append explicit padding to make
+          // each element occupy exactly its WGSL array stride.
           RustTypeInfoWithInit(
-            quote!([WgslBindgenArrayElement<#actual_stride>; #count]),
+            quote!([Padded<#padding, #inner_ty>; #count]),
             total_size,
             alignment,
             quote!([#inner_input_type; #count]),
-            RustTypeInitConversion::Array(Box::new(
-              RustTypeInitConversion::PaddedArrayElement(
-                inner_ty.init_conversion.clone().map(Box::new),
-              ),
-            )),
+            RustTypeInitConversion::Array {
+              count: size.get() as usize,
+              element_conversion: Box::new(RustTypeInitConversion::Padded {
+                padding,
+                stride: actual_stride,
+                inner_type: inner_ty.tokens.clone(),
+                inner_conversion: inner_ty.init_conversion.clone().map(Box::new),
+              }),
+            },
           )
         } else if let Some(inner_conversion) = inner_ty.init_conversion.clone() {
           RustTypeInfoWithInit(
@@ -408,7 +512,10 @@ pub(crate) fn rust_type(
             total_size,
             alignment,
             quote!([#inner_input_type; #count]),
-            RustTypeInitConversion::Array(Box::new(inner_conversion)),
+            RustTypeInitConversion::Array {
+              count: size.get() as usize,
+              element_conversion: Box::new(inner_conversion),
+            },
           )
         } else {
           // No padding needed
@@ -433,12 +540,16 @@ pub(crate) fn rust_type(
           let element_size = element_type.size.unwrap_or(0);
           let stride = *stride as usize;
           if element_size < stride {
+            let padding = stride - element_size;
             (
-              quote!(WgslBindgenArrayElement<#stride>),
+              quote!(Padded<#padding, #element_type>),
               Some(input_element_type),
-              Some(RustTypeInitConversion::PaddedArrayElement(
-                element_type.init_conversion.clone().map(Box::new),
-              )),
+              Some(RustTypeInitConversion::Padded {
+                padding,
+                stride,
+                inner_type: element_type.tokens.clone(),
+                inner_conversion: element_type.init_conversion.clone().map(Box::new),
+              }),
             )
           } else if let Some(element_conversion) = element_type.init_conversion.clone() {
             (

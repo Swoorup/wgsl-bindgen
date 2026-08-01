@@ -206,7 +206,7 @@ fn test_issue_109_widened_vec3_and_runtime_layout() -> Result<()> {
 }
 
 #[test]
-fn test_direct_padded_array_emits_stride_helper() -> Result<()> {
+fn test_direct_padded_array_emits_typed_helper() -> Result<()> {
   let actual = WgslBindgenOptionBuilder::default()
     .workspace_root("tests/shaders/issues")
     .add_entry_point("tests/shaders/issues/padded_array_direct.wgsl")
@@ -220,8 +220,14 @@ fn test_direct_padded_array_emits_stride_helper() -> Result<()> {
     .generate_string()
     .into_diagnostic()?;
 
-  assert_eq!(actual.matches("pub struct WgslBindgenArrayElement").count(), 1);
-  assert!(actual.contains("WgslBindgenArrayElement<16usize>"));
+  assert_eq!(
+    actual
+      .matches("pub struct Padded<const N: usize, T>")
+      .count(),
+    1
+  );
+  assert!(actual.contains("pub field: T"));
+  assert!(!actual.contains("MaybeUninit"));
 
   let parsed_output = parse_str(&actual).unwrap();
   assert_rust_compilation!(parsed_output);
@@ -243,9 +249,51 @@ fn test_nested_padded_array_propagates_init_conversion() -> Result<()> {
     .generate_string()
     .into_diagnostic()?;
 
-  assert!(actual.contains("pub values: [[WgslBindgenArrayElement<16usize>; 2]; 3]"));
+  assert!(actual.contains("pub values: [[Padded<4usize, glam::Vec3>; 2]; 3]"));
   assert!(actual.contains("pub values: [[glam::Vec3; 2]; 3]"));
   assert!(actual.contains("values: &[[glam::Vec3; 2]]"));
+
+  // Nested fixed-size arrays stay const. The innermost level widens through
+  // the helper; the outer level expands because its elements need their own
+  // conversion first.
+  assert!(actual.contains("pub const fn new(values: [[glam::Vec3; 2]; 3]) -> Self"));
+  for index in 0..3 {
+    assert!(actual.contains(&format!("pad_array(values[{index}])")));
+  }
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_padded_array_constructors_take_unpadded_arrays() -> Result<()> {
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/padded_array_runtime_mixed.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  // Constructors accept the unpadded element type and pad on the way in.
+  assert!(actual.contains("accents: [glam::Vec3; 2]"));
+  assert!(actual.contains("values: &[glam::Vec3]"));
+
+  // Fixed-size arrays widen through the `pad_array` helper, which keeps the
+  // conversion callable from a `const fn` without emitting one expression
+  // per element. `[T; N]::map` is not yet const on stable.
+  assert!(actual.contains("pub const fn pad_array<"));
+  assert!(actual.contains(".write(pad_array(accents))"));
+  assert!(!actual.contains("accents.map("));
+
+  // The runtime-sized tail has no statically known length, so it still maps.
+  assert!(actual.contains("values.map(Padded::new)"));
 
   let parsed_output = parse_str(&actual).unwrap();
   assert_rust_compilation!(parsed_output);
@@ -267,8 +315,9 @@ fn test_padded_array_stride_helper_supports_serde() -> Result<()> {
     .generate_string()
     .into_diagnostic()?;
 
-  assert!(actual.contains("impl<const STRIDE: usize> serde::Serialize"));
-  assert!(actual.contains("impl<'de, const STRIDE: usize> serde::Deserialize<'de>"));
+  assert!(actual.contains("impl<const N: usize, T> serde::Serialize for Padded<N, T>"));
+  assert!(actual
+    .contains("impl<'de, const N: usize, T> serde::Deserialize<'de> for Padded<N, T>"));
 
   let parsed_output = parse_str(&actual).unwrap();
   assert_rust_compilation!(parsed_output);

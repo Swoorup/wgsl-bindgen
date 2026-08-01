@@ -1,22 +1,23 @@
 use super::{Demo, DemoContext};
-use crate::buffer_layout_bindings::buffer_layouts::{
+use crate::shader_bindings::buffer_layouts::{
   self, FixedLayout, RuntimeLayout, WgpuBindGroup0Entries, WgpuBindGroup0EntriesParams,
 };
+use glam::{vec3, vec4, Vec3, Vec4};
 use wgpu::util::DeviceExt;
 use winit::{event::KeyEvent, keyboard::KeyCode, keyboard::PhysicalKey};
 
 const MIN_RUNTIME_COLORS: usize = 1;
 const MAX_RUNTIME_COLORS: usize = 8;
 
-const RUNTIME_COLORS: [[f32; 4]; MAX_RUNTIME_COLORS] = [
-  [0.10, 0.78, 0.90, 1.0],
-  [0.92, 0.20, 0.72, 1.0],
-  [0.96, 0.82, 0.18, 1.0],
-  [0.30, 0.86, 0.38, 1.0],
-  [0.98, 0.48, 0.18, 1.0],
-  [0.38, 0.42, 1.00, 1.0],
-  [0.84, 0.28, 0.98, 1.0],
-  [0.12, 0.68, 0.58, 1.0],
+const RUNTIME_COLORS: [Vec4; MAX_RUNTIME_COLORS] = [
+  vec4(0.10, 0.78, 0.90, 1.0),
+  vec4(0.92, 0.20, 0.72, 1.0),
+  vec4(0.96, 0.82, 0.18, 1.0),
+  vec4(0.30, 0.86, 0.38, 1.0),
+  vec4(0.98, 0.48, 0.18, 1.0),
+  vec4(0.38, 0.42, 1.00, 1.0),
+  vec4(0.84, 0.28, 0.98, 1.0),
+  vec4(0.12, 0.68, 0.58, 1.0),
 ];
 
 pub struct BufferLayoutsDemo {
@@ -27,7 +28,7 @@ pub struct BufferLayoutsDemo {
   array_buffer: wgpu::Buffer,
   runtime_buffer: wgpu::Buffer,
   runtime_header: FixedLayout,
-  runtime_colors: Vec<[f32; 4]>,
+  runtime_colors: Vec<Vec4>,
   runtime_array_dirty: bool,
 }
 
@@ -182,11 +183,11 @@ impl Demo for BufferLayoutsDemo {
   }
 }
 
-fn rgb(red: f32, green: f32, blue: f32) -> [f32; 4] {
-  [red, green, blue, 0.0]
+fn rgb(red: f32, green: f32, blue: f32) -> Vec3 {
+  vec3(red, green, blue)
 }
 
-fn fixed_layout(primary: [f32; 4], accents: [[f32; 4]; 2], tag: u32) -> FixedLayout {
+fn fixed_layout(primary: Vec3, accents: [Vec3; 2], tag: u32) -> FixedLayout {
   FixedLayout::new(primary, accents, tag)
 }
 
@@ -221,7 +222,7 @@ fn bind_group(
   )
 }
 
-fn resize_runtime_colors(colors: &mut Vec<[f32; 4]>, key_code: KeyCode) -> bool {
+fn resize_runtime_colors(colors: &mut Vec<Vec4>, key_code: KeyCode) -> bool {
   match key_code {
     KeyCode::Equal | KeyCode::NumpadAdd if colors.len() < MAX_RUNTIME_COLORS => {
       colors.push(RUNTIME_COLORS[colors.len()]);

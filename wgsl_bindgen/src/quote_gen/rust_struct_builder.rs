@@ -9,7 +9,8 @@ use smol_str::SmolStr;
 use syn::{Ident, Index};
 
 use super::{
-  rust_type, RustSourceItem, RustSourceItemPath, RustTypeInfo, RustTypeInitConversion,
+  rust_type, PaddedTypeInfo, RustSourceItem, RustSourceItemPath, RustTypeInfo,
+  RustTypeInitConversion,
 };
 use crate::bevy_util::demangle_str;
 use crate::quote_gen::{
@@ -197,7 +198,7 @@ impl<'a> NagaToRustStructState<'a> {
         let init_type = rust_type_info.init_type.clone().map(syn::Type::Verbatim);
         let init_conversion = rust_type_info.init_conversion.clone();
 
-        RustStructMemberEntry::Field(Field {
+        RustStructMemberEntry::Field(Box::new(Field {
           name_ident: name_ident.clone(),
           naga_member,
           naga_type: member_naga_type,
@@ -206,7 +207,7 @@ impl<'a> NagaToRustStructState<'a> {
           init_type,
           init_conversion,
           is_rsa: is_runtime_sized_array,
-        })
+        }))
       };
 
       state.index += 1;
@@ -268,12 +269,45 @@ impl<'a> Field<'a> {
 
   fn generate_fn_new_param(&self, runtime_tail_as_array: bool) -> TokenStream {
     let name = &self.name_ident;
+    let ty = self.input_type();
     if self.is_rsa && runtime_tail_as_array {
-      let ty = self.input_type();
       quote!(#name: [#ty; N])
     } else {
-      let ty = &self.rust_type;
       quote!(#name: #ty)
+    }
+  }
+
+  /// Converts a value of this field's constructor parameter type into the
+  /// value stored in the emitted struct.
+  fn generate_input_to_target_conversion(&self, value: TokenStream) -> TokenStream {
+    match &self.init_conversion {
+      Some(conversion) => conversion.generate(value),
+      None => value,
+    }
+  }
+
+  /// Instantiates this field inside a constructor from the parameter of the
+  /// same name.
+  fn generate_fn_new_assignment(&self) -> TokenStream {
+    let name = &self.name_ident;
+    match &self.init_conversion {
+      Some(conversion) => {
+        let converted = conversion.generate(quote!(#name));
+        quote!(#name: #converted)
+      }
+      None => quote!(#name),
+    }
+  }
+
+  /// Whether instantiating this field from its constructor parameter is
+  /// allowed inside a `const fn`.
+  fn conversion_is_const_evaluable(&self) -> bool {
+    match &self.init_conversion {
+      // A runtime-sized tail holds the element conversion, which the
+      // constructor applies through `[T; N]::map`.
+      Some(_) if self.is_rsa => false,
+      Some(conversion) => conversion.is_const_evaluable(),
+      None => true,
     }
   }
 
@@ -291,25 +325,25 @@ impl<'a> Field<'a> {
       .as_ref()
       .expect("init-friendly field must have a conversion");
     let converted = if self.is_rsa {
-      let converted_element = conversion.generate(quote!(value));
-      quote!(#other_struct_var_name.#name.map(|value| #converted_element))
+      conversion.generate_array_map(quote!(#other_struct_var_name.#name))
     } else {
       conversion.generate(quote!(#other_struct_var_name.#name))
     };
     quote!(#name: #converted)
   }
 
-  fn uses_array_element_helper(&self) -> bool {
+  fn padded_types(&self) -> Vec<PaddedTypeInfo> {
     self
       .init_conversion
       .as_ref()
-      .is_some_and(RustTypeInitConversion::uses_array_element_helper)
+      .map_or_else(Vec::new, RustTypeInitConversion::padded_types)
   }
 }
 
 #[derive(IsVariant)]
 pub enum RustStructMemberEntry<'a> {
-  Field(Field<'a>),
+  // Boxed because `Field` is an order of magnitude larger than `Padding`.
+  Field(Box<Field<'a>>),
   Padding(Padding),
 }
 
@@ -372,7 +406,7 @@ impl<'a> RustStructBuilder<'a> {
     }
 
     self.members.iter().find_map(|member| match member {
-      RustStructMemberEntry::Field(field) if field.is_rsa => Some(field),
+      RustStructMemberEntry::Field(field) if field.is_rsa => Some(field.as_ref()),
       _ => None,
     })
   }
@@ -533,10 +567,9 @@ impl<'a> RustStructBuilder<'a> {
     for entry in &self.members {
       match entry {
         RustStructMemberEntry::Field(field) => {
-          let name = &field.name_ident;
           non_padding_members
             .push(field.generate_fn_new_param(self.uses_generics_for_rts()));
-          member_assignments.push(quote!(#name));
+          member_assignments.push(field.generate_fn_new_assignment());
         }
         RustStructMemberEntry::Padding(padding) => {
           member_assignments.push(padding.generate_member_instantiate())
@@ -544,12 +577,14 @@ impl<'a> RustStructBuilder<'a> {
       }
     }
 
+    let const_qualifier = self.fn_new_const_qualifier();
+
     match self.options.short_constructor {
       Some(max_param_length) if self.members.len() <= max_param_length as usize => {
         let struct_name = self.name_ident();
         let ty_param_def = self.ty_param_def();
         quote! {
-          pub const fn #struct_name #ty_param_def(#(#non_padding_members),*) -> #struct_name_in_usage {
+          pub #const_qualifier fn #struct_name #ty_param_def(#(#non_padding_members),*) -> #struct_name_in_usage {
             #struct_name {
               #(#member_assignments),*
             }
@@ -558,7 +593,7 @@ impl<'a> RustStructBuilder<'a> {
       }
       _ => quote! {
         #impl_fragment #struct_name_in_usage {
-          pub const fn new(
+          pub #const_qualifier fn new(
             #(#non_padding_members),*
           ) -> Self {
             Self {
@@ -567,6 +602,21 @@ impl<'a> RustStructBuilder<'a> {
           }
         }
       },
+    }
+  }
+
+  /// Constructors stay `const fn` unless a field conversion needs
+  /// `[T; N]::map`, which cannot be called from a `const fn`.
+  fn fn_new_const_qualifier(&self) -> TokenStream {
+    let is_const = self.members.iter().all(|entry| match entry {
+      RustStructMemberEntry::Field(field) => field.conversion_is_const_evaluable(),
+      RustStructMemberEntry::Padding(_) => true,
+    });
+
+    if is_const {
+      quote!(const)
+    } else {
+      quote!()
     }
   }
 
@@ -580,11 +630,18 @@ impl<'a> RustStructBuilder<'a> {
     let tail_name = &tail.name_ident;
     let element_type = &tail.rust_type;
     let input_element_type = tail.input_type();
-    let sized_new_const = if tail.has_init_type() {
-      quote!()
-    } else {
-      quote!(const)
+    let tail_stride = match &tail.naga_type.inner {
+      naga::TypeInner::Array { stride, .. } => Index::from(*stride as usize),
+      _ => unreachable!("runtime array field must use an array type"),
     };
+    let tail_layout_assertion = tail.has_init_type().then(|| {
+      quote! {
+        const _: () = {
+          assert!(::core::mem::size_of::<#element_type>() == #tail_stride);
+        };
+      }
+    });
+    let sized_new_const = self.fn_new_const_qualifier();
     let sized_new_bounds = if tail.has_init_type() {
       quote!(where #input_element_type: bytemuck::Pod,)
     } else {
@@ -637,23 +694,23 @@ impl<'a> RustStructBuilder<'a> {
       match entry {
         RustStructMemberEntry::Field(field) => {
           let name = &field.name_ident;
-          byte_types.push(&field.rust_type);
+          byte_types.push(field.input_type());
           sized_params.push(field.generate_fn_new_param(true));
-          if field.is_rsa && field.has_init_type() {
-            let conversion = field
-              .init_conversion
-              .as_ref()
-              .expect("init-friendly runtime tail must have a conversion");
-            let converted = conversion.generate(quote!(value));
-            sized_assignments.push(quote!(#name: #name.map(|value| #converted)));
-          } else {
-            sized_assignments.push(quote!(#name));
-          }
 
-          if !field.is_rsa {
+          if field.is_rsa {
+            sized_assignments.push(match &field.init_conversion {
+              Some(conversion) => {
+                let converted = conversion.generate_array_map(quote!(#name));
+                quote!(#name: #converted)
+              }
+              None => quote!(#name),
+            });
+          } else {
+            sized_assignments.push(field.generate_fn_new_assignment());
             fixed_params.push(field.generate_fn_new_param(true));
+            let value = field.generate_input_to_target_conversion(quote!(#name));
             raw_writes.push(quote! {
-              ::core::ptr::addr_of_mut!((*__wgsl_bindgen_this).#name).write(#name);
+              ::core::ptr::addr_of_mut!((*__wgsl_bindgen_this).#name).write(#value);
             });
           }
         }
@@ -670,6 +727,8 @@ impl<'a> RustStructBuilder<'a> {
     }
 
     quote! {
+      #tail_layout_assertion
+
       #visibility type #sized_name<const N: usize> = #struct_name<[#element_type; N]>;
 
       impl<const N: usize> #sized_name<N> {
@@ -783,7 +842,7 @@ impl<'a> RustStructBuilder<'a> {
             naga_ty_handle,
             init_type: _,
             init_conversion: _,
-          } = field;
+          } = field.as_ref();
 
           let doc_comment = if self.is_directly_shareable() {
             let offset = member.offset;
@@ -928,27 +987,20 @@ impl<'a> RustStructBuilder<'a> {
       let expected_alignment = Index::from(expected_alignment as usize);
 
       let size_assertion = if let Some(tail) = self.runtime_array_field() {
-        let stride = match &tail.naga_type.inner {
-          naga::TypeInner::Array {
-            size: naga::ArraySize::Dynamic,
-            stride,
-            ..
-          } => *stride,
-          _ => unreachable!("runtime array field must use a dynamic array type"),
-        };
-        let stride = Index::from(stride as usize);
-        let element_type = if tail.has_init_type() {
-          let helper_path = RustSourceItemPath::new(
-            self.item_path.module.clone(),
-            "WgslBindgenArrayElement".into(),
-          );
-          quote!(#helper_path<#stride>)
+        if tail.has_init_type() {
+          // A converted tail element can contain nested local helper types, so
+          // its stride assertion is emitted beside the type alias.
+          quote!()
         } else {
+          let stride = match &tail.naga_type.inner {
+            naga::TypeInner::Array { stride, .. } => *stride,
+            _ => unreachable!("runtime array field must use an array type"),
+          };
+          let stride = Index::from(stride as usize);
           let rust_type = &tail.rust_type;
-          quote!(#rust_type)
-        };
-        quote! {
-          assert!(std::mem::size_of::<#element_type>() == #stride);
+          quote! {
+            assert!(std::mem::size_of::<#rust_type>() == #stride);
+          }
         }
       } else {
         // For fixed-size bytemuck types, the explicit padding must make the
@@ -1029,16 +1081,28 @@ impl<'a> RustStructBuilder<'a> {
     ))
   }
 
-  fn build_array_element_helper(&self) -> Option<RustSourceItem> {
-    let uses_padded_array_element = self.members.iter().any(|member| match member {
-      RustStructMemberEntry::Field(field) => field.uses_array_element_helper(),
-      RustStructMemberEntry::Padding(_) => false,
-    });
-    if !uses_padded_array_element {
-      return None;
+  fn build_padded_helper_items(&self) -> Vec<RustSourceItem> {
+    let padded_types = self
+      .members
+      .iter()
+      .flat_map(|member| match member {
+        RustStructMemberEntry::Field(field) => field.padded_types(),
+        RustStructMemberEntry::Padding(_) => Vec::new(),
+      })
+      .collect::<Vec<_>>();
+
+    if padded_types.is_empty() {
+      return Vec::new();
     }
 
-    Some(array_element_helper_item(self.item_path.module.as_str(), self.options))
+    let mut items = vec![padded_helper_item(
+      self.item_path.module.as_str(),
+      self.options,
+    )];
+    items.extend(padded_types.iter().map(|padded_type| {
+      padded_layout_impl_item(self.item_path.module.as_str(), padded_type)
+    }));
+    items
   }
 
   pub fn build(&self) -> Vec<RustSourceItem> {
@@ -1128,9 +1192,7 @@ impl<'a> RustStructBuilder<'a> {
       ),
     ];
 
-    if let Some(array_element_helper) = self.build_array_element_helper() {
-      items.push(array_element_helper);
-    }
+    items.extend(self.build_padded_helper_items());
     if let Some(runtime_array_trait_helper) = self.build_runtime_array_trait_helper() {
       items.push(runtime_array_trait_helper);
     }
@@ -1169,72 +1231,34 @@ impl<'a> RustStructBuilder<'a> {
   }
 }
 
-pub(crate) fn array_element_helper_item(
+pub(crate) fn padded_helper_item(
   module: &str,
   options: &WgslBindgenOption,
 ) -> RustSourceItem {
   let derives = generate_derive_attributes(&["Debug", "PartialEq", "Clone", "Copy"]);
   let serde_impls = options.derive_serde.then(|| {
     quote! {
-      impl<const STRIDE: usize> serde::Serialize for WgslBindgenArrayElement<STRIDE> {
+      impl<const N: usize, T> serde::Serialize for Padded<N, T>
+      where
+        T: serde::Serialize,
+      {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
           S: serde::Serializer,
         {
-          let mut tuple = serde::Serializer::serialize_tuple(serializer, STRIDE)?;
-          for byte in &self.0 {
-            serde::ser::SerializeTuple::serialize_element(&mut tuple, byte)?;
-          }
-          serde::ser::SerializeTuple::end(tuple)
+          serde::Serialize::serialize(&self.field, serializer)
         }
       }
 
-      struct WgslBindgenArrayElementVisitor<const STRIDE: usize>;
-
-      impl<'de, const STRIDE: usize> serde::de::Visitor<'de>
-        for WgslBindgenArrayElementVisitor<STRIDE>
-      {
-        type Value = WgslBindgenArrayElement<STRIDE>;
-
-        fn expecting(
-          &self,
-          formatter: &mut std::fmt::Formatter<'_>,
-        ) -> std::fmt::Result {
-          formatter.write_str("a byte array with the generated WGSL stride")
-        }
-
-        fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
-        where
-          A: serde::de::SeqAccess<'de>,
-        {
-          let mut bytes = [0u8; STRIDE];
-          for (index, byte) in bytes.iter_mut().enumerate() {
-            *byte = sequence
-              .next_element()?
-              .ok_or_else(|| serde::de::Error::invalid_length(index, &self))?;
-          }
-          if sequence
-            .next_element::<serde::de::IgnoredAny>()?
-            .is_some()
-          {
-            return Err(serde::de::Error::invalid_length(STRIDE + 1, &self));
-          }
-          Ok(WgslBindgenArrayElement(bytes))
-        }
-      }
-
-      impl<'de, const STRIDE: usize> serde::Deserialize<'de>
-        for WgslBindgenArrayElement<STRIDE>
+      impl<'de, const N: usize, T> serde::Deserialize<'de> for Padded<N, T>
+      where
+        T: serde::Deserialize<'de>,
       {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where
           D: serde::Deserializer<'de>,
         {
-          serde::Deserializer::deserialize_tuple(
-            deserializer,
-            STRIDE,
-            WgslBindgenArrayElementVisitor::<STRIDE>,
-          )
+          serde::Deserialize::deserialize(deserializer).map(Self::new)
         }
       }
     }
@@ -1242,49 +1266,106 @@ pub(crate) fn array_element_helper_item(
 
   RustSourceItem::new(
     RustSourceItemCategory::TypeDefs | RustSourceItemCategory::TraitImpls,
-    RustSourceItemPath::new(module.into(), "WgslBindgenArrayElement".into()),
+    RustSourceItemPath::new(module.into(), "Padded".into()),
     quote! {
       #[doc(hidden)]
-      #[repr(transparent)]
+      #[repr(C)]
       #derives
-      pub struct WgslBindgenArrayElement<const STRIDE: usize>(pub [u8; STRIDE]);
+      pub struct Padded<const N: usize, T> {
+        pub field: T,
+        padding: [u8; N],
+      }
 
-      impl<const STRIDE: usize> WgslBindgenArrayElement<STRIDE> {
-        pub fn new<T: bytemuck::Pod>(value: T) -> Self {
-          assert!(
-            ::core::mem::size_of::<T>() <= STRIDE,
-            "Rust array element exceeds its WGSL stride",
-          );
-          let value_bytes = bytemuck::bytes_of(&value);
-          let mut result = ::core::mem::MaybeUninit::<Self>::uninit();
-
-          unsafe {
-            let result_bytes = result.as_mut_ptr().cast::<u8>();
-            ::core::ptr::copy_nonoverlapping(
-              value_bytes.as_ptr(),
-              result_bytes,
-              value_bytes.len(),
-            );
-            ::core::ptr::write_bytes(
-              result_bytes.add(value_bytes.len()),
-              0,
-              STRIDE - value_bytes.len(),
-            );
-
-            // The value bytes and every remaining stride byte were initialized.
-            result.assume_init()
+      impl<const N: usize, T> Padded<N, T> {
+        pub const fn new(field: T) -> Self {
+          Self {
+            field,
+            padding: [0; N],
           }
         }
       }
 
-      unsafe impl<const STRIDE: usize> bytemuck::Zeroable
-        for WgslBindgenArrayElement<STRIDE>
+      /// Widens each element of a fixed-size array to its WGSL array stride.
+      ///
+      /// `[T; N]::map` is not callable from a `const fn` on stable, so this
+      /// loops instead. Only ever called with `COUNT >= 1`, since WGSL
+      /// fixed-size arrays cannot be empty.
+      #[doc(hidden)]
+      pub const fn pad_array<const N: usize, const COUNT: usize, T: Copy>(
+        values: [T; COUNT],
+      ) -> [Padded<N, T>; COUNT] {
+        let mut padded = [Padded::new(values[0]); COUNT];
+        let mut index = 1;
+        while index < COUNT {
+          padded[index] = Padded::new(values[index]);
+          index += 1;
+        }
+        padded
+      }
+
+      #[doc(hidden)]
+      mod __wgsl_bindgen_padded_layout {
+        /// Marks a `Padded` instantiation whose layout is known to match its
+        /// WGSL array stride, which is what makes the `bytemuck` impls below
+        /// sound.
+        ///
+        /// # Safety
+        ///
+        /// Implementors must contain no implicit Rust padding and must have a
+        /// size exactly equal to the stride of the WGSL array they represent.
+        /// Every implementation is emitted next to a `const` assertion that
+        /// checks this, so do not implement this trait by hand.
+        pub unsafe trait Valid {}
+      }
+
+      #[allow(private_bounds)]
+      unsafe impl<const N: usize, T> bytemuck::Zeroable for Padded<N, T>
+      where
+        T: bytemuck::Zeroable,
+        Padded<N, T>: __wgsl_bindgen_padded_layout::Valid,
       {}
-      unsafe impl<const STRIDE: usize> bytemuck::Pod
-        for WgslBindgenArrayElement<STRIDE>
+
+      #[allow(private_bounds)]
+      unsafe impl<const N: usize, T> bytemuck::Pod for Padded<N, T>
+      where
+        T: bytemuck::Pod,
+        Padded<N, T>: __wgsl_bindgen_padded_layout::Valid,
       {}
 
       #serde_impls
+    },
+  )
+}
+
+pub(crate) fn padded_layout_impl_item(
+  module: &str,
+  padded_type: &PaddedTypeInfo,
+) -> RustSourceItem {
+  let PaddedTypeInfo {
+    padding,
+    stride,
+    inner_type,
+  } = padded_type;
+  let id = format!("Padded<{padding}, {}>", inner_type);
+
+  RustSourceItem::new(
+    RustSourceItemCategory::ConstVarDecls | RustSourceItemCategory::TraitImpls,
+    RustSourceItemPath::new(module.into(), id.into()),
+    quote! {
+      const _: () = {
+        assert!(
+          ::core::mem::size_of::<#inner_type>() + #padding == #stride,
+          "Rust array element size does not match its WGSL stride",
+        );
+        assert!(
+          ::core::mem::size_of::<Padded<#padding, #inner_type>>() == #stride,
+          "Padded contains implicit Rust padding or has the wrong stride",
+        );
+      };
+
+      unsafe impl __wgsl_bindgen_padded_layout::Valid
+        for Padded<#padding, #inner_type>
+      {}
     },
   )
 }
