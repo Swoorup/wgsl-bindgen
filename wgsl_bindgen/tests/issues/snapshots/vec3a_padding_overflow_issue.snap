@@ -1,7 +1,6 @@
 ---
 source: wgsl_bindgen/tests/issues/mod.rs
 ---
-#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
   Vec3aPaddingIssue,
@@ -23,6 +22,7 @@ impl ShaderEntry {
     }
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 mod _root {
   pub use super::*;
   pub trait SetBindGroup {
@@ -44,6 +44,7 @@ mod _root {
     }
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
@@ -80,6 +81,7 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<vec3a_padding_issue::Job>() == 48);
   };
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod vec3a_padding_issue {
   use super::{_root, _root::*};
   #[repr(C, align(16))]
@@ -279,6 +281,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 }
 "#;
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
   unsafe impl bytemuck::Zeroable for vec3a_padding_issue::Job {}

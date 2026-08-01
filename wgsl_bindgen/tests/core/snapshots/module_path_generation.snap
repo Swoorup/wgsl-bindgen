@@ -1,7 +1,6 @@
 ---
 source: wgsl_bindgen/tests/core/mod.rs
 ---
-#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
   LinesSegment,
@@ -21,6 +20,7 @@ impl ShaderEntry {
     }
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 mod _root {
   pub use super::*;
   pub trait SetBindGroup {
@@ -52,6 +52,7 @@ mod _root {
     }
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
@@ -87,8 +88,10 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<lines::segment::SegmentData>() == 32);
   };
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod lines {
   use super::{_root, _root::*};
+  #[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
   pub mod segment {
     use super::{_root, _root::*};
     #[repr(C, align(16))]
@@ -309,6 +312,7 @@ fn fs_main(@location(0) color: vec4<f32>) -> @location(0) vec4<f32> {
 "#;
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
   unsafe impl bytemuck::Zeroable for lines::segment::SegmentData {}

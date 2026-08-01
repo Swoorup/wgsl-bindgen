@@ -552,7 +552,6 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
         fn visit_dependencies_recursive(
           base_dir: &str,
           source: &str,
-          current_path: &str,
           load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
           visitor: &mut impl FnMut(&str, &str),
           visited: &mut std::collections::HashSet<String>,
@@ -605,7 +604,6 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
             visit_dependencies_recursive(
               base_dir,
               &import_source,
-              full_import_path.trim_start_matches(&format!("{base_dir}/")),
               load_file,
               visitor,
               visited,
@@ -631,7 +629,6 @@ pub(crate) fn generate_global_load_naga_module_from_path() -> TokenStream {
         visit_dependencies_recursive(
           base_dir,
           &entry_source,
-          self.relative_path(),
           &load_file,
           &mut visitor,
           &mut visited,

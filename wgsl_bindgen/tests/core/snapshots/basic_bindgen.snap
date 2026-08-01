@@ -1,7 +1,6 @@
 ---
 source: wgsl_bindgen/tests/core/mod.rs
 ---
-#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
   BasicMain,
@@ -69,7 +68,6 @@ impl ShaderEntry {
     fn visit_dependencies_recursive(
       base_dir: &str,
       source: &str,
-      current_path: &str,
       load_file: &impl Fn(&str) -> Result<String, std::io::Error>,
       visitor: &mut impl FnMut(&str, &str),
       visited: &mut std::collections::HashSet<String>,
@@ -116,7 +114,6 @@ impl ShaderEntry {
         visit_dependencies_recursive(
           base_dir,
           &import_source,
-          full_import_path.trim_start_matches(&format!("{base_dir}/")),
           load_file,
           visitor,
           visited,
@@ -133,7 +130,6 @@ impl ShaderEntry {
     visit_dependencies_recursive(
       base_dir,
       &entry_source,
-      self.relative_path(),
       &load_file,
       &mut visitor,
       &mut visited,
@@ -194,6 +190,7 @@ impl ShaderEntry {
       .map_err(|e| format!("{e}"))
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 mod _root {
   pub use super::*;
   pub trait SetBindGroup {
@@ -215,6 +212,7 @@ mod _root {
     }
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod layout_asserts {
   use super::{_root, _root::*};
   const WGSL_BASE_TYPE_ASSERTS: () = {
@@ -249,8 +247,10 @@ pub mod layout_asserts {
     assert!(std::mem::size_of::<basic::main::Style>() == 256);
   };
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod basic {
   use super::{_root, _root::*};
+  #[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
   pub mod main {
     use super::{_root, _root::*};
     #[repr(C, align(256))]
@@ -612,11 +612,13 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     }
   }
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod bytemuck_impls {
   use super::{_root, _root::*};
   unsafe impl bytemuck::Zeroable for basic::main::Style {}
   unsafe impl bytemuck::Pod for basic::main::Style {}
 }
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod bindings {
   use super::{_root, _root::*};
   #[derive(Debug)]
