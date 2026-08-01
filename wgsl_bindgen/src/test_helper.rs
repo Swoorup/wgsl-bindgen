@@ -200,6 +200,9 @@ fn detect_required_dependencies_from_content(
   if content.contains("naga_oil::") {
     deps.insert("naga_oil".to_string());
   }
+  if content.contains("serde::") {
+    deps.insert("serde".to_string());
+  }
 
   // Always include core dependencies that are commonly used
   deps.insert("wgpu".to_string());
@@ -253,7 +256,14 @@ edition = "2021"
           .get("glam")
           .map(|s| s.as_str())
           .unwrap_or("0.30");
-        cargo_toml.push_str(&format!("glam = \"{version}\"\n"));
+        let features = if dependencies.contains("serde") {
+          "[\"bytemuck\", \"serde\"]"
+        } else {
+          "[\"bytemuck\"]"
+        };
+        cargo_toml.push_str(&format!(
+          "glam = {{ version = \"{version}\", features = {features} }}\n"
+        ));
       }
       "bytemuck" => {
         let version = workspace_deps
@@ -277,6 +287,15 @@ edition = "2021"
           .map(|s| s.as_str())
           .unwrap_or("0.23");
         cargo_toml.push_str(&format!("naga_oil = \"{version}\"\n"));
+      }
+      "serde" => {
+        let version = workspace_deps
+          .get("serde")
+          .map(|s| s.as_str())
+          .unwrap_or("1.0");
+        cargo_toml.push_str(&format!(
+          "serde = {{ version = \"{version}\", features = [\"derive\"] }}\n"
+        ));
       }
       _ => {}
     }

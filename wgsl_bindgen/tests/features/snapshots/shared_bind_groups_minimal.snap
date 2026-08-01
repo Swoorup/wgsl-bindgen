@@ -97,11 +97,13 @@ pub mod layout_asserts {
   const SHARED_DATA_SHARED_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(shared_data::SharedUniforms, view_matrix) == 0);
     assert!(std::mem::offset_of!(shared_data::SharedUniforms, time) == 64);
+    assert!(std::mem::align_of::<shared_data::SharedUniforms>() == 16);
     assert!(std::mem::size_of::<shared_data::SharedUniforms>() == 80);
   };
   const SHARED_DATA_VERTEX_DATA_ASSERTS: () = {
     assert!(std::mem::offset_of!(shared_data::VertexData, position) == 0);
     assert!(std::mem::offset_of!(shared_data::VertexData, normal) == 16);
+    assert!(std::mem::align_of::<shared_data::VertexData>() == 16);
     assert!(std::mem::size_of::<shared_data::VertexData>() == 32);
   };
 }
@@ -115,14 +117,14 @@ pub mod shared_data {
     pub view_matrix: glam::Mat4,
     #[doc = "offset: 64, size: 4, type: `f32`"]
     pub time: f32,
-    pub _pad_time: [u8; 0xC],
+    pub _pad_time: [u8; 16 - ::core::mem::size_of::<f32>()],
   }
   impl SharedUniforms {
     pub const fn new(view_matrix: glam::Mat4, time: f32) -> Self {
       Self {
         view_matrix,
         time,
-        _pad_time: [0; 0xC],
+        _pad_time: [0; 16 - ::core::mem::size_of::<f32>()],
       }
     }
   }
@@ -137,7 +139,7 @@ pub mod shared_data {
       SharedUniforms {
         view_matrix: self.view_matrix,
         time: self.time,
-        _pad_time: [0; 0xC],
+        _pad_time: [0; 16 - ::core::mem::size_of::<f32>()],
       }
     }
   }
@@ -151,18 +153,18 @@ pub mod shared_data {
   pub struct VertexData {
     #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
     pub position: glam::Vec3,
-    pub _pad_position: [u8; 0x4],
+    pub _pad_position: [u8; 16 - ::core::mem::size_of::<glam::Vec3>()],
     #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
     pub normal: glam::Vec3,
-    pub _pad_normal: [u8; 0x4],
+    pub _pad_normal: [u8; 16 - ::core::mem::size_of::<glam::Vec3>()],
   }
   impl VertexData {
     pub const fn new(position: glam::Vec3, normal: glam::Vec3) -> Self {
       Self {
         position,
-        _pad_position: [0; 0x4],
+        _pad_position: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
         normal,
-        _pad_normal: [0; 0x4],
+        _pad_normal: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
       }
     }
   }
@@ -176,9 +178,9 @@ pub mod shared_data {
     pub fn build(&self) -> VertexData {
       VertexData {
         position: self.position,
-        _pad_position: [0; 0x4],
+        _pad_position: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
         normal: self.normal,
-        _pad_normal: [0; 0x4],
+        _pad_normal: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
       }
     }
   }

@@ -10,12 +10,14 @@ pub struct DemoContext {
   pub frame_size: glam::Vec2,
 }
 
+pub mod buffer_layouts_demo;
 pub mod fullscreen_effects_demo;
 pub mod gradient_triangle_demo;
 pub mod multisampled_texture_demo;
 pub mod particle_compute_demo;
 pub mod texture_array_demo;
 
+pub use buffer_layouts_demo::BufferLayoutsDemo;
 pub use fullscreen_effects_demo::FullscreenEffectsDemo;
 pub use gradient_triangle_demo::GradientTriangleDemo;
 pub use multisampled_texture_demo::MultisampledTextureDemo;
@@ -54,6 +56,11 @@ pub trait Demo {
     false // Default: no input handled
   }
 
+  /// Get demo-specific controls for the help overlay (optional)
+  fn controls(&self) -> Option<&'static str> {
+    None
+  }
+
   /// Get the render pipeline for this demo
   fn get_pipeline(&self) -> &wgpu::RenderPipeline;
 }
@@ -76,6 +83,7 @@ impl DemoManager {
       Box::new(FullscreenEffectsDemo::new(device, queue, surface_format)),
       Box::new(TextureArrayDemo::new(device, queue, surface_format)),
       Box::new(GradientTriangleDemo::new(device, queue, surface_format)),
+      Box::new(BufferLayoutsDemo::new(device, queue, surface_format)),
       Box::new(ParticleComputeDemo::new(device, queue, surface_format)),
       Box::new(MultisampledTextureDemo::new(device, queue, surface_format)),
     ];
@@ -140,6 +148,10 @@ impl DemoManager {
           self.switch_to_demo(4);
           return true;
         }
+        KeyCode::Digit6 => {
+          self.switch_to_demo(5);
+          return true;
+        }
         _ => {}
       }
     }
@@ -187,12 +199,20 @@ impl DemoManager {
   }
 
   pub fn get_help_text(&self) -> String {
+    let demo = self.current_demo();
+    let mut controls = format!("< > or 1-{}: Switch demos", self.demos.len());
+    if let Some(demo_controls) = demo.controls() {
+      controls.push('\n');
+      controls.push_str(demo_controls);
+    }
+
     format!(
-            "Demo {}/{}: {}\n{}\n\nControls:\n< > or 1-5: Switch demos\nH: Toggle this help\nESC: Exit",
-            self.current_demo + 1,
-            self.demos.len(),
-            self.current_demo().name(),
-            self.current_demo().description()
-        )
+      "Demo {}/{}: {}\n{}\n\nControls:\n{}\nH: Toggle this help\nESC: Exit",
+      self.current_demo + 1,
+      self.demos.len(),
+      demo.name(),
+      demo.description(),
+      controls,
+    )
   }
 }

@@ -98,6 +98,7 @@ pub mod layout_asserts {
     assert!(
       std::mem::offset_of!(bevy_pbr::pbr::types::StandardMaterial, alpha_cutoff) == 48
     );
+    assert!(std::mem::align_of::<bevy_pbr::pbr::types::StandardMaterial>() == 16);
     assert!(std::mem::size_of::<bevy_pbr::pbr::types::StandardMaterial>() == 64);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_VIEW_ASSERTS: () = {
@@ -114,6 +115,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, world_position) == 384);
     assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, width) == 396);
     assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::View, height) == 400);
+    assert!(std::mem::align_of::<bevy_pbr::mesh_view_types::View>() == 16);
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::View>() == 416);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_DIRECTIONAL_LIGHT_ASSERTS: () = {
@@ -145,6 +147,7 @@ pub mod layout_asserts {
         shadow_normal_bias
       ) == 100
     );
+    assert!(std::mem::align_of::<bevy_pbr::mesh_view_types::DirectionalLight>() == 16);
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::DirectionalLight>() == 112);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_LIGHTS_ASSERTS: () = {
@@ -170,6 +173,7 @@ pub mod layout_asserts {
         spot_light_shadowmap_offset
       ) == 164
     );
+    assert!(std::mem::align_of::<bevy_pbr::mesh_view_types::Lights>() == 16);
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::Lights>() == 176);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_POINT_LIGHT_ASSERTS: () = {
@@ -198,29 +202,41 @@ pub mod layout_asserts {
       std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLight, spot_light_tan_angle)
         == 60
     );
+    assert!(std::mem::align_of::<bevy_pbr::mesh_view_types::PointLight>() == 16);
     assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::PointLight>() == 64);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_POINT_LIGHTS_ASSERTS: () = {
-    assert!(std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLights<1>, data) == 0);
-    assert!(std::mem::size_of::<bevy_pbr::mesh_view_types::PointLights<1>>() == 64);
+    assert!(
+      std::mem::offset_of!(bevy_pbr::mesh_view_types::PointLightsSized<0>, data) == 0
+    );
+    assert!(std::mem::align_of::<bevy_pbr::mesh_view_types::PointLightsSized<0>>() == 16);
+    assert!(std::mem::size_of::<_root::bevy_pbr::mesh_view_types::PointLight>() == 64);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_CLUSTER_LIGHT_INDEX_LISTS_ASSERTS: () = {
     assert!(
-      std::mem::offset_of!(bevy_pbr::mesh_view_types::ClusterLightIndexLists<1>, data)
-        == 0
+      std::mem::offset_of!(
+        bevy_pbr::mesh_view_types::ClusterLightIndexListsSized<0>,
+        data
+      ) == 0
     );
     assert!(
-      std::mem::size_of::<bevy_pbr::mesh_view_types::ClusterLightIndexLists<1>>() == 4
+      std::mem::align_of::<bevy_pbr::mesh_view_types::ClusterLightIndexListsSized<0>>()
+        == 4
     );
+    assert!(std::mem::size_of::<u32>() == 4);
   };
   const BEVY_PBR_MESH_VIEW_TYPES_CLUSTER_OFFSETS_AND_COUNTS_ASSERTS: () = {
     assert!(
-      std::mem::offset_of!(bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<1>, data)
-        == 0
+      std::mem::offset_of!(
+        bevy_pbr::mesh_view_types::ClusterOffsetsAndCountsSized<0>,
+        data
+      ) == 0
     );
     assert!(
-      std::mem::size_of::<bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<1>>() == 16
+      std::mem::align_of::<bevy_pbr::mesh_view_types::ClusterOffsetsAndCountsSized<0>>()
+        == 16
     );
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
   };
   const BEVY_PBR_MESH_TYPES_MESH_ASSERTS: () = {
     assert!(std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, model) == 0);
@@ -228,6 +244,7 @@ pub mod layout_asserts {
       std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, inverse_transpose_model) == 64
     );
     assert!(std::mem::offset_of!(bevy_pbr::mesh_types::Mesh, flags) == 128);
+    assert!(std::mem::align_of::<bevy_pbr::mesh_types::Mesh>() == 16);
     assert!(std::mem::size_of::<bevy_pbr::mesh_types::Mesh>() == 144);
   };
 }
@@ -275,7 +292,7 @@ pub mod bevy_pbr {
         pub flags: u32,
         #[doc = "offset: 48, size: 4, type: `f32`"]
         pub alpha_cutoff: f32,
-        pub _pad_alpha_cutoff: [u8; 0xC],
+        pub _pad_alpha_cutoff: [u8; 16 - ::core::mem::size_of::<f32>()],
       }
       impl StandardMaterial {
         pub const fn new(
@@ -295,7 +312,7 @@ pub mod bevy_pbr {
             reflectance,
             flags,
             alpha_cutoff,
-            _pad_alpha_cutoff: [0; 0xC],
+            _pad_alpha_cutoff: [0; 16 - ::core::mem::size_of::<f32>()],
           }
         }
       }
@@ -320,7 +337,7 @@ pub mod bevy_pbr {
             reflectance: self.reflectance,
             flags: self.flags,
             alpha_cutoff: self.alpha_cutoff,
-            _pad_alpha_cutoff: [0; 0xC],
+            _pad_alpha_cutoff: [0; 16 - ::core::mem::size_of::<f32>()],
           }
         }
       }
@@ -429,7 +446,7 @@ pub mod bevy_pbr {
       pub width: f32,
       #[doc = "offset: 400, size: 4, type: `f32`"]
       pub height: f32,
-      pub _pad_height: [u8; 0xC],
+      pub _pad_height: [u8; 16 - ::core::mem::size_of::<f32>()],
     }
     impl View {
       pub const fn new(
@@ -453,7 +470,7 @@ pub mod bevy_pbr {
           world_position,
           width,
           height,
-          _pad_height: [0; 0xC],
+          _pad_height: [0; 16 - ::core::mem::size_of::<f32>()],
         }
       }
     }
@@ -482,7 +499,7 @@ pub mod bevy_pbr {
           world_position: self.world_position,
           width: self.width,
           height: self.height,
-          _pad_height: [0; 0xC],
+          _pad_height: [0; 16 - ::core::mem::size_of::<f32>()],
         }
       }
     }
@@ -506,7 +523,7 @@ pub mod bevy_pbr {
       pub shadow_depth_bias: f32,
       #[doc = "offset: 100, size: 4, type: `f32`"]
       pub shadow_normal_bias: f32,
-      pub _pad_shadow_normal_bias: [u8; 0x8],
+      pub _pad_shadow_normal_bias: [u8; 12 - ::core::mem::size_of::<f32>()],
     }
     impl DirectionalLight {
       pub const fn new(
@@ -524,7 +541,7 @@ pub mod bevy_pbr {
           flags,
           shadow_depth_bias,
           shadow_normal_bias,
-          _pad_shadow_normal_bias: [0; 0x8],
+          _pad_shadow_normal_bias: [0; 12 - ::core::mem::size_of::<f32>()],
         }
       }
     }
@@ -547,7 +564,7 @@ pub mod bevy_pbr {
           flags: self.flags,
           shadow_depth_bias: self.shadow_depth_bias,
           shadow_normal_bias: self.shadow_normal_bias,
-          _pad_shadow_normal_bias: [0; 0x8],
+          _pad_shadow_normal_bias: [0; 12 - ::core::mem::size_of::<f32>()],
         }
       }
     }
@@ -571,7 +588,7 @@ pub mod bevy_pbr {
       pub n_directional_lights: u32,
       #[doc = "offset: 164, size: 4, type: `i32`"]
       pub spot_light_shadowmap_offset: i32,
-      pub _pad_spot_light_shadowmap_offset: [u8; 0x8],
+      pub _pad_spot_light_shadowmap_offset: [u8; 12 - ::core::mem::size_of::<i32>()],
     }
     impl Lights {
       pub const fn new(
@@ -589,7 +606,7 @@ pub mod bevy_pbr {
           cluster_factors,
           n_directional_lights,
           spot_light_shadowmap_offset,
-          _pad_spot_light_shadowmap_offset: [0; 0x8],
+          _pad_spot_light_shadowmap_offset: [0; 12 - ::core::mem::size_of::<i32>()],
         }
       }
     }
@@ -612,7 +629,7 @@ pub mod bevy_pbr {
           cluster_factors: self.cluster_factors,
           n_directional_lights: self.n_directional_lights,
           spot_light_shadowmap_offset: self.spot_light_shadowmap_offset,
-          _pad_spot_light_shadowmap_offset: [0; 0x8],
+          _pad_spot_light_shadowmap_offset: [0; 12 - ::core::mem::size_of::<i32>()],
         }
       }
     }
@@ -660,34 +677,275 @@ pub mod bevy_pbr {
         }
       }
     }
+    #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
-    pub struct PointLights<const N: usize> {
+    pub struct PointLights<Tail = [_root::bevy_pbr::mesh_view_types::PointLight]>
+    where
+      Tail:
+        WgslBindgenRuntimeArray<_root::bevy_pbr::mesh_view_types::PointLight> + ?Sized,
+    {
       #[doc = "offset: 0, size: 64, type: `array<bevy_pbr::mesh_view_types::PointLight>`"]
-      pub data: [_root::bevy_pbr::mesh_view_types::PointLight; N],
+      pub data: Tail,
     }
-    impl<const N: usize> PointLights<N> {
-      pub const fn new(data: [_root::bevy_pbr::mesh_view_types::PointLight; N]) -> Self {
+    pub type PointLightsSized<const N: usize> =
+      PointLights<[_root::bevy_pbr::mesh_view_types::PointLight; N]>;
+    impl<const N: usize> PointLightsSized<N> {
+      pub const fn new_sized(
+        data: [_root::bevy_pbr::mesh_view_types::PointLight; N],
+      ) -> Self {
         Self { data }
       }
+      pub fn as_bytes(&self) -> &[u8]
+      where
+        _root::bevy_pbr::mesh_view_types::PointLight: bytemuck::Pod,
+      {
+        let __wgsl_bindgen_unsized: &PointLights = self;
+        __wgsl_bindgen_unsized.as_bytes()
+      }
     }
+    impl PointLights {
+      pub fn new(data: &[_root::bevy_pbr::mesh_view_types::PointLight]) -> Box<Self>
+      where
+        _root::bevy_pbr::mesh_view_types::PointLight: bytemuck::Pod,
+      {
+        use std::{alloc, mem, ptr};
+        let __wgsl_bindgen_tail_offset = mem::offset_of!(PointLightsSized<0>, data);
+        let __wgsl_bindgen_tail_size = data
+          .len()
+          .checked_mul(mem::size_of::<_root::bevy_pbr::mesh_view_types::PointLight>())
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_unpadded_size = __wgsl_bindgen_tail_offset
+          .checked_add(__wgsl_bindgen_tail_size)
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_alignment = mem::align_of::<PointLightsSized<0>>();
+        let __wgsl_bindgen_allocation_size = __wgsl_bindgen_unpadded_size
+          .checked_add(__wgsl_bindgen_alignment - 1)
+          .map(|size| size & !(__wgsl_bindgen_alignment - 1))
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_layout = alloc::Layout::from_size_align(
+          __wgsl_bindgen_allocation_size,
+          __wgsl_bindgen_alignment,
+        )
+        .expect("runtime-sized struct has an invalid allocation layout");
+        unsafe {
+          let __wgsl_bindgen_allocation = if __wgsl_bindgen_allocation_size == 0 {
+            ptr::NonNull::<PointLightsSized<0>>::dangling()
+              .as_ptr()
+              .cast::<u8>()
+          } else {
+            let allocation = alloc::alloc(__wgsl_bindgen_layout);
+            if allocation.is_null() {
+              alloc::handle_alloc_error(__wgsl_bindgen_layout);
+            }
+            allocation
+          };
+          let __wgsl_bindgen_tail = ptr::slice_from_raw_parts_mut(
+            __wgsl_bindgen_allocation
+              .cast::<_root::bevy_pbr::mesh_view_types::PointLight>(),
+            data.len(),
+          );
+          let __wgsl_bindgen_this = __wgsl_bindgen_tail as *mut Self;
+          ptr::copy_nonoverlapping(
+            data.as_ptr(),
+            ptr::addr_of_mut!((*__wgsl_bindgen_this).data)
+              .cast::<_root::bevy_pbr::mesh_view_types::PointLight>(),
+            data.len(),
+          );
+          Box::from_raw(__wgsl_bindgen_this)
+        }
+      }
+      pub fn as_bytes(&self) -> &[u8]
+      where
+        _root::bevy_pbr::mesh_view_types::PointLight: bytemuck::Pod,
+      {
+        let __wgsl_bindgen_len = ::core::mem::offset_of!(PointLightsSized<0>, data)
+          + ::core::mem::size_of_val(&self.data);
+        unsafe {
+          std::slice::from_raw_parts(self as *const Self as *const u8, __wgsl_bindgen_len)
+        }
+      }
+    }
+    #[doc(hidden)]
+    mod __wgsl_bindgen_runtime_array_sealed {
+      pub trait Sealed {}
+      impl<T> Sealed for [T] {}
+      impl<T, const N: usize> Sealed for [T; N] {}
+    }
+    #[doc(hidden)]
+    pub trait WgslBindgenRuntimeArray<T>:
+      __wgsl_bindgen_runtime_array_sealed::Sealed
+    {
+    }
+    impl<T> WgslBindgenRuntimeArray<T> for [T] {}
+    impl<T, const N: usize> WgslBindgenRuntimeArray<T> for [T; N] {}
+    #[repr(C, align(4))]
     #[derive(Debug, PartialEq, Clone, Copy)]
-    pub struct ClusterLightIndexLists<const N: usize> {
+    pub struct ClusterLightIndexLists<Tail = [u32]>
+    where
+      Tail: WgslBindgenRuntimeArray<u32> + ?Sized,
+    {
       #[doc = "offset: 0, size: 4, type: `array<u32>`"]
-      pub data: [u32; N],
+      pub data: Tail,
     }
-    impl<const N: usize> ClusterLightIndexLists<N> {
-      pub const fn new(data: [u32; N]) -> Self {
+    pub type ClusterLightIndexListsSized<const N: usize> =
+      ClusterLightIndexLists<[u32; N]>;
+    impl<const N: usize> ClusterLightIndexListsSized<N> {
+      pub const fn new_sized(data: [u32; N]) -> Self {
         Self { data }
       }
+      pub fn as_bytes(&self) -> &[u8]
+      where
+        u32: bytemuck::Pod,
+      {
+        let __wgsl_bindgen_unsized: &ClusterLightIndexLists = self;
+        __wgsl_bindgen_unsized.as_bytes()
+      }
     }
+    impl ClusterLightIndexLists {
+      pub fn new(data: &[u32]) -> Box<Self>
+      where
+        u32: bytemuck::Pod,
+      {
+        use std::{alloc, mem, ptr};
+        let __wgsl_bindgen_tail_offset =
+          mem::offset_of!(ClusterLightIndexListsSized<0>, data);
+        let __wgsl_bindgen_tail_size = data
+          .len()
+          .checked_mul(mem::size_of::<u32>())
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_unpadded_size = __wgsl_bindgen_tail_offset
+          .checked_add(__wgsl_bindgen_tail_size)
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_alignment = mem::align_of::<ClusterLightIndexListsSized<0>>();
+        let __wgsl_bindgen_allocation_size = __wgsl_bindgen_unpadded_size
+          .checked_add(__wgsl_bindgen_alignment - 1)
+          .map(|size| size & !(__wgsl_bindgen_alignment - 1))
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_layout = alloc::Layout::from_size_align(
+          __wgsl_bindgen_allocation_size,
+          __wgsl_bindgen_alignment,
+        )
+        .expect("runtime-sized struct has an invalid allocation layout");
+        unsafe {
+          let __wgsl_bindgen_allocation = if __wgsl_bindgen_allocation_size == 0 {
+            ptr::NonNull::<ClusterLightIndexListsSized<0>>::dangling()
+              .as_ptr()
+              .cast::<u8>()
+          } else {
+            let allocation = alloc::alloc(__wgsl_bindgen_layout);
+            if allocation.is_null() {
+              alloc::handle_alloc_error(__wgsl_bindgen_layout);
+            }
+            allocation
+          };
+          let __wgsl_bindgen_tail = ptr::slice_from_raw_parts_mut(
+            __wgsl_bindgen_allocation.cast::<u32>(),
+            data.len(),
+          );
+          let __wgsl_bindgen_this = __wgsl_bindgen_tail as *mut Self;
+          ptr::copy_nonoverlapping(
+            data.as_ptr(),
+            ptr::addr_of_mut!((*__wgsl_bindgen_this).data).cast::<u32>(),
+            data.len(),
+          );
+          Box::from_raw(__wgsl_bindgen_this)
+        }
+      }
+      pub fn as_bytes(&self) -> &[u8]
+      where
+        u32: bytemuck::Pod,
+      {
+        let __wgsl_bindgen_len =
+          ::core::mem::offset_of!(ClusterLightIndexListsSized<0>, data)
+            + ::core::mem::size_of_val(&self.data);
+        unsafe {
+          std::slice::from_raw_parts(self as *const Self as *const u8, __wgsl_bindgen_len)
+        }
+      }
+    }
+    #[repr(C, align(16))]
     #[derive(Debug, PartialEq, Clone, Copy)]
-    pub struct ClusterOffsetsAndCounts<const N: usize> {
+    pub struct ClusterOffsetsAndCounts<Tail = [glam::UVec4]>
+    where
+      Tail: WgslBindgenRuntimeArray<glam::UVec4> + ?Sized,
+    {
       #[doc = "offset: 0, size: 16, type: `array<vec4<u32>>`"]
-      pub data: [glam::UVec4; N],
+      pub data: Tail,
     }
-    impl<const N: usize> ClusterOffsetsAndCounts<N> {
-      pub const fn new(data: [glam::UVec4; N]) -> Self {
+    pub type ClusterOffsetsAndCountsSized<const N: usize> =
+      ClusterOffsetsAndCounts<[glam::UVec4; N]>;
+    impl<const N: usize> ClusterOffsetsAndCountsSized<N> {
+      pub const fn new_sized(data: [glam::UVec4; N]) -> Self {
         Self { data }
+      }
+      pub fn as_bytes(&self) -> &[u8]
+      where
+        glam::UVec4: bytemuck::Pod,
+      {
+        let __wgsl_bindgen_unsized: &ClusterOffsetsAndCounts = self;
+        __wgsl_bindgen_unsized.as_bytes()
+      }
+    }
+    impl ClusterOffsetsAndCounts {
+      pub fn new(data: &[glam::UVec4]) -> Box<Self>
+      where
+        glam::UVec4: bytemuck::Pod,
+      {
+        use std::{alloc, mem, ptr};
+        let __wgsl_bindgen_tail_offset =
+          mem::offset_of!(ClusterOffsetsAndCountsSized<0>, data);
+        let __wgsl_bindgen_tail_size = data
+          .len()
+          .checked_mul(mem::size_of::<glam::UVec4>())
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_unpadded_size = __wgsl_bindgen_tail_offset
+          .checked_add(__wgsl_bindgen_tail_size)
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_alignment = mem::align_of::<ClusterOffsetsAndCountsSized<0>>();
+        let __wgsl_bindgen_allocation_size = __wgsl_bindgen_unpadded_size
+          .checked_add(__wgsl_bindgen_alignment - 1)
+          .map(|size| size & !(__wgsl_bindgen_alignment - 1))
+          .expect("runtime-sized struct allocation is too large");
+        let __wgsl_bindgen_layout = alloc::Layout::from_size_align(
+          __wgsl_bindgen_allocation_size,
+          __wgsl_bindgen_alignment,
+        )
+        .expect("runtime-sized struct has an invalid allocation layout");
+        unsafe {
+          let __wgsl_bindgen_allocation = if __wgsl_bindgen_allocation_size == 0 {
+            ptr::NonNull::<ClusterOffsetsAndCountsSized<0>>::dangling()
+              .as_ptr()
+              .cast::<u8>()
+          } else {
+            let allocation = alloc::alloc(__wgsl_bindgen_layout);
+            if allocation.is_null() {
+              alloc::handle_alloc_error(__wgsl_bindgen_layout);
+            }
+            allocation
+          };
+          let __wgsl_bindgen_tail = ptr::slice_from_raw_parts_mut(
+            __wgsl_bindgen_allocation.cast::<glam::UVec4>(),
+            data.len(),
+          );
+          let __wgsl_bindgen_this = __wgsl_bindgen_tail as *mut Self;
+          ptr::copy_nonoverlapping(
+            data.as_ptr(),
+            ptr::addr_of_mut!((*__wgsl_bindgen_this).data).cast::<glam::UVec4>(),
+            data.len(),
+          );
+          Box::from_raw(__wgsl_bindgen_this)
+        }
+      }
+      pub fn as_bytes(&self) -> &[u8]
+      where
+        glam::UVec4: bytemuck::Pod,
+      {
+        let __wgsl_bindgen_len =
+          ::core::mem::offset_of!(ClusterOffsetsAndCountsSized<0>, data)
+            + ::core::mem::size_of_val(&self.data);
+        unsafe {
+          std::slice::from_raw_parts(self as *const Self as *const u8, __wgsl_bindgen_len)
+        }
       }
     }
     pub const POINT_LIGHT_FLAGS_SPOT_LIGHT_Y_NEGATIVE: u32 = 2u32;
@@ -706,7 +964,7 @@ pub mod bevy_pbr {
       pub inverse_transpose_model: glam::Mat4,
       #[doc = "offset: 128, size: 4, type: `u32`"]
       pub flags: u32,
-      pub _pad_flags: [u8; 0xC],
+      pub _pad_flags: [u8; 16 - ::core::mem::size_of::<u32>()],
     }
     impl Mesh {
       pub const fn new(
@@ -718,7 +976,7 @@ pub mod bevy_pbr {
           model,
           inverse_transpose_model,
           flags,
-          _pad_flags: [0; 0xC],
+          _pad_flags: [0; 16 - ::core::mem::size_of::<u32>()],
         }
       }
     }
@@ -735,7 +993,7 @@ pub mod bevy_pbr {
           model: self.model,
           inverse_transpose_model: self.inverse_transpose_model,
           flags: self.flags,
-          _pad_flags: [0; 0xC],
+          _pad_flags: [0; 16 - ::core::mem::size_of::<u32>()],
         }
       }
     }
@@ -1053,27 +1311,6 @@ pub mod bytemuck_impls {
   unsafe impl bytemuck::Pod for bevy_pbr::mesh_view_types::Lights {}
   unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_view_types::PointLight {}
   unsafe impl bytemuck::Pod for bevy_pbr::mesh_view_types::PointLight {}
-  unsafe impl<const N: usize> bytemuck::Zeroable
-    for bevy_pbr::mesh_view_types::PointLights<N>
-  {
-  }
-  unsafe impl<const N: usize> bytemuck::Pod for bevy_pbr::mesh_view_types::PointLights<N> {}
-  unsafe impl<const N: usize> bytemuck::Zeroable
-    for bevy_pbr::mesh_view_types::ClusterLightIndexLists<N>
-  {
-  }
-  unsafe impl<const N: usize> bytemuck::Pod
-    for bevy_pbr::mesh_view_types::ClusterLightIndexLists<N>
-  {
-  }
-  unsafe impl<const N: usize> bytemuck::Zeroable
-    for bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<N>
-  {
-  }
-  unsafe impl<const N: usize> bytemuck::Pod
-    for bevy_pbr::mesh_view_types::ClusterOffsetsAndCounts<N>
-  {
-  }
   unsafe impl bytemuck::Zeroable for bevy_pbr::mesh_types::Mesh {}
   unsafe impl bytemuck::Pod for bevy_pbr::mesh_types::Mesh {}
 }

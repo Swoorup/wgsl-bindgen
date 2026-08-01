@@ -78,6 +78,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(vec3a_padding_issue::Job, direction) == 16);
     assert!(std::mem::offset_of!(vec3a_padding_issue::Job, accum) == 32);
     assert!(std::mem::offset_of!(vec3a_padding_issue::Job, depth) == 44);
+    assert!(std::mem::align_of::<vec3a_padding_issue::Job>() == 16);
     assert!(std::mem::size_of::<vec3a_padding_issue::Job>() == 48);
   };
 }
@@ -89,10 +90,10 @@ pub mod vec3a_padding_issue {
   pub struct Job {
     #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
     pub position: glam::Vec3,
-    pub _pad_position: [u8; 0x4],
+    pub _pad_position: [u8; 16 - ::core::mem::size_of::<glam::Vec3>()],
     #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
     pub direction: glam::Vec3,
-    pub _pad_direction: [u8; 0x4],
+    pub _pad_direction: [u8; 16 - ::core::mem::size_of::<glam::Vec3>()],
     #[doc = "offset: 32, size: 12, type: `vec3<f32>`"]
     pub accum: glam::Vec3,
     #[doc = "offset: 44, size: 4, type: `u32`"]
@@ -107,9 +108,9 @@ pub mod vec3a_padding_issue {
     ) -> Self {
       Self {
         position,
-        _pad_position: [0; 0x4],
+        _pad_position: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
         direction,
-        _pad_direction: [0; 0x4],
+        _pad_direction: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
         accum,
         depth,
       }
@@ -127,9 +128,9 @@ pub mod vec3a_padding_issue {
     pub fn build(&self) -> Job {
       Job {
         position: self.position,
-        _pad_position: [0; 0x4],
+        _pad_position: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
         direction: self.direction,
-        _pad_direction: [0; 0x4],
+        _pad_direction: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
         accum: self.accum,
         depth: self.depth,
       }

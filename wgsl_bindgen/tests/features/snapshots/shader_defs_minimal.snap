@@ -248,6 +248,7 @@ pub mod layout_asserts {
   };
   const TEST_SHADER_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(test_shader::Uniforms, color) == 0);
+    assert!(std::mem::align_of::<test_shader::Uniforms>() == 16);
     assert!(std::mem::size_of::<test_shader::Uniforms>() == 16);
   };
 }

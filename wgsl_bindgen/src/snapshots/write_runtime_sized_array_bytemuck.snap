@@ -1,25 +1,112 @@
 ---
 source: wgsl_bindgen/src/structs.rs
 ---
+#[repr(C, align(4))]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct RtsStruct<const N: usize> {
+pub struct RtsStruct<Tail = [u32]>
+where
+  Tail: WgslBindgenRuntimeArray<u32> + ?Sized,
+{
   #[doc = "offset: 0, size: 4, type: `i32`"]
   pub other_data: i32,
   #[doc = "offset: 4, size: 4, type: `array<u32>`"]
-  pub the_array: [u32; N],
+  pub the_array: Tail,
 }
-impl<const N: usize> RtsStruct<N> {
-  pub const fn new(other_data: i32, the_array: [u32; N]) -> Self {
+pub type RtsStructSized<const N: usize> = RtsStruct<[u32; N]>;
+impl<const N: usize> RtsStructSized<N> {
+  pub const fn new_sized(other_data: i32, the_array: [u32; N]) -> Self {
     Self {
       other_data,
       the_array,
     }
   }
+  pub fn as_bytes(&self) -> &[u8]
+  where
+    i32: bytemuck::Pod,
+    u32: bytemuck::Pod,
+  {
+    let __wgsl_bindgen_unsized: &RtsStruct = self;
+    __wgsl_bindgen_unsized.as_bytes()
+  }
+}
+impl RtsStruct {
+  pub fn new(other_data: i32, the_array: &[u32]) -> Box<Self>
+  where
+    u32: bytemuck::Pod,
+  {
+    use std::{alloc, mem, ptr};
+    let __wgsl_bindgen_tail_offset = mem::offset_of!(RtsStructSized<0>, the_array);
+    let __wgsl_bindgen_tail_size = the_array
+      .len()
+      .checked_mul(mem::size_of::<u32>())
+      .expect("runtime-sized struct allocation is too large");
+    let __wgsl_bindgen_unpadded_size = __wgsl_bindgen_tail_offset
+      .checked_add(__wgsl_bindgen_tail_size)
+      .expect("runtime-sized struct allocation is too large");
+    let __wgsl_bindgen_alignment = mem::align_of::<RtsStructSized<0>>();
+    let __wgsl_bindgen_allocation_size = __wgsl_bindgen_unpadded_size
+      .checked_add(__wgsl_bindgen_alignment - 1)
+      .map(|size| size & !(__wgsl_bindgen_alignment - 1))
+      .expect("runtime-sized struct allocation is too large");
+    let __wgsl_bindgen_layout = alloc::Layout::from_size_align(
+      __wgsl_bindgen_allocation_size,
+      __wgsl_bindgen_alignment,
+    )
+    .expect("runtime-sized struct has an invalid allocation layout");
+    unsafe {
+      let __wgsl_bindgen_allocation = if __wgsl_bindgen_allocation_size == 0 {
+        ptr::NonNull::<RtsStructSized<0>>::dangling()
+          .as_ptr()
+          .cast::<u8>()
+      } else {
+        let allocation = alloc::alloc(__wgsl_bindgen_layout);
+        if allocation.is_null() {
+          alloc::handle_alloc_error(__wgsl_bindgen_layout);
+        }
+        allocation
+      };
+      let __wgsl_bindgen_tail = ptr::slice_from_raw_parts_mut(
+        __wgsl_bindgen_allocation.cast::<u32>(),
+        the_array.len(),
+      );
+      let __wgsl_bindgen_this = __wgsl_bindgen_tail as *mut Self;
+      ::core::ptr::addr_of_mut!((*__wgsl_bindgen_this).other_data).write(other_data);
+      ptr::copy_nonoverlapping(
+        the_array.as_ptr(),
+        ptr::addr_of_mut!((*__wgsl_bindgen_this).the_array).cast::<u32>(),
+        the_array.len(),
+      );
+      Box::from_raw(__wgsl_bindgen_this)
+    }
+  }
+  pub fn as_bytes(&self) -> &[u8]
+  where
+    i32: bytemuck::Pod,
+    u32: bytemuck::Pod,
+  {
+    let __wgsl_bindgen_len = ::core::mem::offset_of!(RtsStructSized<0>, the_array)
+      + ::core::mem::size_of_val(&self.the_array);
+    unsafe {
+      std::slice::from_raw_parts(self as *const Self as *const u8, __wgsl_bindgen_len)
+    }
+  }
 }
 const RTS_STRUCT_ASSERTS: () = {
-  assert!(std::mem::offset_of!(RtsStruct<1>, other_data) == 0);
-  assert!(std::mem::offset_of!(RtsStruct<1>, the_array) == 4);
-  assert!(std::mem::size_of::<RtsStruct<1>>() == 8);
+  assert!(std::mem::offset_of!(RtsStructSized<0>, other_data) == 0);
+  assert!(std::mem::offset_of!(RtsStructSized<0>, the_array) == 4);
+  assert!(std::mem::align_of::<RtsStructSized<0>>() == 4);
+  assert!(std::mem::size_of::<u32>() == 4);
 };
-unsafe impl<const N: usize> bytemuck::Zeroable for RtsStruct<N> {}
-unsafe impl<const N: usize> bytemuck::Pod for RtsStruct<N> {}
+#[doc(hidden)]
+mod __wgsl_bindgen_runtime_array_sealed {
+  pub trait Sealed {}
+  impl<T> Sealed for [T] {}
+  impl<T, const N: usize> Sealed for [T; N] {}
+}
+#[doc(hidden)]
+pub trait WgslBindgenRuntimeArray<T>:
+  __wgsl_bindgen_runtime_array_sealed::Sealed
+{
+}
+impl<T> WgslBindgenRuntimeArray<T> for [T] {}
+impl<T, const N: usize> WgslBindgenRuntimeArray<T> for [T; N] {}
