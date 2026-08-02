@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.23.0...wgsl_bindgen-v0.23.1) - 2026-08-01
+
+### Other
+
+- Fix generated bindings for include!()
+- fix typos in project documentation
+
 ## [0.23.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.22.2...wgsl_bindgen-v0.23.0) - 2026-07-25
 
 ### Other
