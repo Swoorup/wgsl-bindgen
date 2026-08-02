@@ -85,6 +85,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(test_shader::Uniforms, color) == 0);
     assert!(std::mem::offset_of!(test_shader::Uniforms, time) == 16);
     assert!(std::mem::offset_of!(test_shader::Uniforms, scale) == 20);
+    assert!(std::mem::align_of::<test_shader::Uniforms>() == 16);
     assert!(std::mem::size_of::<test_shader::Uniforms>() == 32);
   };
 }
@@ -100,7 +101,7 @@ pub mod test_shader {
     pub time: f32,
     #[doc = "offset: 20, size: 4, type: `f32`"]
     pub scale: f32,
-    pub _pad_scale: [u8; 0x8],
+    pub _pad_scale: [u8; 12 - ::core::mem::size_of::<f32>()],
   }
   impl Uniforms {
     pub const fn new(color: glam::Vec4, time: f32, scale: f32) -> Self {
@@ -108,7 +109,7 @@ pub mod test_shader {
         color,
         time,
         scale,
-        _pad_scale: [0; 0x8],
+        _pad_scale: [0; 12 - ::core::mem::size_of::<f32>()],
       }
     }
   }
@@ -125,7 +126,7 @@ pub mod test_shader {
         color: self.color,
         time: self.time,
         scale: self.scale,
-        _pad_scale: [0; 0x8],
+        _pad_scale: [0; 12 - ::core::mem::size_of::<f32>()],
       }
     }
   }

@@ -1,6 +1,7 @@
 ---
 source: wgsl_bindgen/src/structs.rs
 ---
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone, encase :: ShaderType)]
 pub struct RtsStruct {
   pub other_data: i32,

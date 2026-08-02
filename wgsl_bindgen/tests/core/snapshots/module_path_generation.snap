@@ -85,6 +85,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(lines::segment::SegmentData, start) == 0);
     assert!(std::mem::offset_of!(lines::segment::SegmentData, end) == 8);
     assert!(std::mem::offset_of!(lines::segment::SegmentData, color) == 16);
+    assert!(std::mem::align_of::<lines::segment::SegmentData>() == 16);
     assert!(std::mem::size_of::<lines::segment::SegmentData>() == 32);
   };
 }

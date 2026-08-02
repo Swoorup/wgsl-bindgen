@@ -20,6 +20,38 @@ pub(crate) struct RustTypeInfo {
   pub alignment: naga::proc::Alignment,
   /// If this type has tuple padding, this contains the init-friendly version
   pub init_type: Option<TokenStream>,
+  /// Converts the init-friendly representation into the emitted storage type.
+  pub init_conversion: Option<RustTypeInitConversion>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum RustTypeInitConversion {
+  Array(Box<Self>),
+  PaddedArrayElement(Option<Box<Self>>),
+}
+
+impl RustTypeInitConversion {
+  pub fn generate(&self, value: TokenStream) -> TokenStream {
+    match self {
+      Self::Array(element_conversion) => {
+        let converted = element_conversion.generate(quote!(value));
+        quote!(#value.map(|value| #converted))
+      }
+      Self::PaddedArrayElement(inner_conversion) => {
+        let value = inner_conversion
+          .as_ref()
+          .map_or(value.clone(), |conversion| conversion.generate(value));
+        quote!(WgslBindgenArrayElement::new(#value))
+      }
+    }
+  }
+
+  pub fn uses_array_element_helper(&self) -> bool {
+    match self {
+      Self::Array(element_conversion) => element_conversion.uses_array_element_helper(),
+      Self::PaddedArrayElement(_) => true,
+    }
+  }
 }
 
 impl RustTypeInfo {
@@ -43,6 +75,20 @@ impl RustTypeInfo {
       let ty = quote!(#self);
       quote!(std::num::NonZeroU64::new(std::mem::size_of::<#ty>() as _))
     }
+  }
+
+  pub fn uses_array_element_helper(&self) -> bool {
+    self
+      .init_conversion
+      .as_ref()
+      .is_some_and(RustTypeInitConversion::uses_array_element_helper)
+  }
+
+  fn input_type(&self) -> TokenStream {
+    self
+      .init_type
+      .clone()
+      .unwrap_or_else(|| self.tokens.clone())
   }
 }
 
@@ -95,6 +141,7 @@ pub(crate) const fn RustTypeInfo(
     size: Some(size),
     alignment,
     init_type: None,
+    init_conversion: None,
   }
 }
 
@@ -104,12 +151,14 @@ pub(crate) fn RustTypeInfoWithInit(
   size: usize,
   alignment: naga::proc::Alignment,
   init_type: TokenStream,
+  init_conversion: RustTypeInitConversion,
 ) -> RustTypeInfo {
   RustTypeInfo {
     tokens,
     size: Some(size),
     alignment,
     init_type: Some(init_type),
+    init_conversion: Some(init_conversion),
   }
 }
 
@@ -329,6 +378,7 @@ pub(crate) fn rust_type(
     } => {
       let inner_ty =
         rust_type(invoking_entry_module, module, &module.types[*base], options);
+      let inner_input_type = inner_ty.input_type();
       let count = Index::from(size.get() as usize);
       let total_size = (size.get() as usize) * (*stride as usize);
 
@@ -338,17 +388,27 @@ pub(crate) fn rust_type(
         let actual_stride = *stride as usize;
 
         if element_size < actual_stride {
-          // We need padding between elements
-          let padding_size = actual_stride - element_size;
-          let padding_hex = format!("0x{padding_size:X}");
-          let padding_size_tokens = syn::parse_str::<TokenStream>(&padding_hex).unwrap();
-
-          // Create a tuple type with the element and padding, and provide init type without padding
+          // Store padded array elements as exact-stride byte blocks. The struct
+          // builder emits the transparent helper type and converts the ergonomic
+          // element values into these blocks in the Init builder.
           RustTypeInfoWithInit(
-            quote!([(#inner_ty, [u8; #padding_size_tokens]); #count]),
+            quote!([WgslBindgenArrayElement<#actual_stride>; #count]),
             total_size,
             alignment,
+            quote!([#inner_input_type; #count]),
+            RustTypeInitConversion::Array(Box::new(
+              RustTypeInitConversion::PaddedArrayElement(
+                inner_ty.init_conversion.clone().map(Box::new),
+              ),
+            )),
+          )
+        } else if let Some(inner_conversion) = inner_ty.init_conversion.clone() {
+          RustTypeInfoWithInit(
             quote!([#inner_ty; #count]),
+            total_size,
+            alignment,
+            quote!([#inner_input_type; #count]),
+            RustTypeInitConversion::Array(Box::new(inner_conversion)),
           )
         } else {
           // No padding needed
@@ -361,24 +421,42 @@ pub(crate) fn rust_type(
     naga::TypeInner::Array {
       base,
       size: naga::ArraySize::Dynamic,
-      ..
+      stride,
     } => {
-      // panic!("Runtime-sized arrays can only be used in variable declarations or as the last field of a struct.");
       let element_type =
         rust_type(invoking_entry_module, module, &module.types[*base], options);
-      let member_type = match options.serialization_strategy {
-        WgslTypeSerializeStrategy::Encase => {
-          quote!(Vec<#element_type>)
-        }
+      let input_element_type = element_type.input_type();
+      let (member_type, init_type, init_conversion) = match options.serialization_strategy
+      {
+        WgslTypeSerializeStrategy::Encase => (quote!(Vec<#element_type>), None, None),
         WgslTypeSerializeStrategy::Bytemuck => {
-          quote!([#element_type; N])
+          let element_size = element_type.size.unwrap_or(0);
+          let stride = *stride as usize;
+          if element_size < stride {
+            (
+              quote!(WgslBindgenArrayElement<#stride>),
+              Some(input_element_type),
+              Some(RustTypeInitConversion::PaddedArrayElement(
+                element_type.init_conversion.clone().map(Box::new),
+              )),
+            )
+          } else if let Some(element_conversion) = element_type.init_conversion.clone() {
+            (
+              element_type.tokens.clone(),
+              Some(input_element_type),
+              Some(element_conversion),
+            )
+          } else {
+            (element_type.tokens.clone(), None, None)
+          }
         }
       };
       RustTypeInfo {
         tokens: member_type,
         size: None,
         alignment,
-        init_type: None,
+        init_type,
+        init_conversion,
       }
     }
     naga::TypeInner::Array {

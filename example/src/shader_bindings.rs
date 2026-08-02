@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.23.0
 // Changes made to this file will not be saved.
-// SourceHash: 431ceb65af1b72f8c952a0ccf6bfdcc79cbb43859e37053b56d0524961bfb75f
+// SourceHash: 2ad1ae0b9a2f1d88568b195db6cdc3576cb6448ded545ff8dc1666e8da1c2cdc
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ShaderEntry {
@@ -357,22 +357,27 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, scale_factor) == 4);
     assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, frame_size) == 8);
     assert!(std::mem::offset_of!(global_bindings::GlobalUniforms, mouse_pos) == 16);
+    assert!(std::mem::align_of::<global_bindings::GlobalUniforms>() == 8);
     assert!(std::mem::size_of::<global_bindings::GlobalUniforms>() == 24);
   };
   const FULLSCREEN_EFFECTS_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(fullscreen_effects::Uniforms, color_rgb) == 0);
+    assert!(std::mem::align_of::<fullscreen_effects::Uniforms>() == 16);
     assert!(std::mem::size_of::<fullscreen_effects::Uniforms>() == 16);
   };
   const FULLSCREEN_EFFECTS_IMMEDIATES_ASSERTS: () = {
     assert!(std::mem::offset_of!(fullscreen_effects::Immediates, color_matrix) == 0);
+    assert!(std::mem::align_of::<fullscreen_effects::Immediates>() == 16);
     assert!(std::mem::size_of::<fullscreen_effects::Immediates>() == 64);
   };
   const SIMPLE_ARRAY_DEMO_UNIFORMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(simple_array_demo::Uniforms, color_rgb) == 0);
+    assert!(std::mem::align_of::<simple_array_demo::Uniforms>() == 16);
     assert!(std::mem::size_of::<simple_array_demo::Uniforms>() == 16);
   };
   const SIMPLE_ARRAY_DEMO_IMMEDIATES_ASSERTS: () = {
     assert!(std::mem::offset_of!(simple_array_demo::Immediates, color_matrix) == 0);
+    assert!(std::mem::align_of::<simple_array_demo::Immediates>() == 16);
     assert!(std::mem::size_of::<simple_array_demo::Immediates>() == 64);
   };
   const OVERLAY_INFO_DATA_ASSERTS: () = {
@@ -384,6 +389,7 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(overlay::InfoData, window_height) == 20);
     assert!(std::mem::offset_of!(overlay::InfoData, padding1) == 24);
     assert!(std::mem::offset_of!(overlay::InfoData, padding2) == 28);
+    assert!(std::mem::align_of::<overlay::InfoData>() == 4);
     assert!(std::mem::size_of::<overlay::InfoData>() == 32);
   };
   const COMPUTE_DEMO_PARTICLE_PHYSICS_JOB_ASSERTS: () = {
@@ -391,11 +397,13 @@ pub mod layout_asserts {
     assert!(std::mem::offset_of!(compute_demo::particle_physics::Job, direction) == 16);
     assert!(std::mem::offset_of!(compute_demo::particle_physics::Job, accum) == 32);
     assert!(std::mem::offset_of!(compute_demo::particle_physics::Job, depth) == 44);
+    assert!(std::mem::align_of::<compute_demo::particle_physics::Job>() == 16);
     assert!(std::mem::size_of::<compute_demo::particle_physics::Job>() == 48);
   };
   const COMPUTE_DEMO_PARTICLE_PHYSICS_PARAMS_ASSERTS: () = {
     assert!(std::mem::offset_of!(compute_demo::particle_physics::Params, scale) == 0);
     assert!(std::mem::offset_of!(compute_demo::particle_physics::Params, damping) == 4);
+    assert!(std::mem::align_of::<compute_demo::particle_physics::Params>() == 4);
     assert!(std::mem::size_of::<compute_demo::particle_physics::Params>() == 8);
   };
 }
@@ -2111,10 +2119,10 @@ pub mod compute_demo {
     pub struct Job {
       #[doc = "offset: 0, size: 12, type: `vec3<f32>`"]
       pub position: glam::Vec3,
-      pub _pad_position: [u8; 0x4],
+      pub _pad_position: [u8; 16 - ::core::mem::size_of::<glam::Vec3>()],
       #[doc = "offset: 16, size: 12, type: `vec3<f32>`"]
       pub direction: glam::Vec3,
-      pub _pad_direction: [u8; 0x4],
+      pub _pad_direction: [u8; 16 - ::core::mem::size_of::<glam::Vec3>()],
       #[doc = "offset: 32, size: 12, type: `vec3<f32>`"]
       pub accum: glam::Vec3,
       #[doc = "offset: 44, size: 4, type: `u32`"]
@@ -2129,9 +2137,9 @@ pub mod compute_demo {
       ) -> Self {
         Self {
           position,
-          _pad_position: [0; 0x4],
+          _pad_position: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
           direction,
-          _pad_direction: [0; 0x4],
+          _pad_direction: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
           accum,
           depth,
         }
@@ -2149,9 +2157,9 @@ pub mod compute_demo {
       pub fn build(&self) -> Job {
         Job {
           position: self.position,
-          _pad_position: [0; 0x4],
+          _pad_position: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
           direction: self.direction,
-          _pad_direction: [0; 0x4],
+          _pad_direction: [0; 16 - ::core::mem::size_of::<glam::Vec3>()],
           accum: self.accum,
           depth: self.depth,
         }

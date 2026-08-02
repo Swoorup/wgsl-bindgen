@@ -12,6 +12,7 @@ pub const fn Uniform(position_data: glam::Vec2) -> Uniform {
 }
 const UNIFORM_ASSERTS: () = {
   assert!(std::mem::offset_of!(Uniform, position_data) == 0);
+  assert!(std::mem::align_of::<Uniform>() == 8);
   assert!(std::mem::size_of::<Uniform>() == 8);
 };
 unsafe impl bytemuck::Zeroable for Uniform {}

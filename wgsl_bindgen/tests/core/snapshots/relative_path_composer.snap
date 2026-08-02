@@ -242,6 +242,7 @@ pub mod layout_asserts {
   const TESTS_SHADERS_CORE_BASIC_MAIN_STYLE_ASSERTS: () = {
     assert!(std::mem::offset_of!(tests::shaders::core::basic::main::Style, color) == 0);
     assert!(std::mem::offset_of!(tests::shaders::core::basic::main::Style, width) == 16);
+    assert!(std::mem::align_of::<tests::shaders::core::basic::main::Style>() == 16);
     assert!(std::mem::size_of::<tests::shaders::core::basic::main::Style>() == 32);
   };
 }
@@ -267,14 +268,14 @@ pub mod tests {
             pub color: glam::Vec4,
             #[doc = "offset: 16, size: 4, type: `f32`"]
             pub width: f32,
-            pub _pad_width: [u8; 0xC],
+            pub _pad_width: [u8; 16 - ::core::mem::size_of::<f32>()],
           }
           impl Style {
             pub const fn new(color: glam::Vec4, width: f32) -> Self {
               Self {
                 color,
                 width,
-                _pad_width: [0; 0xC],
+                _pad_width: [0; 16 - ::core::mem::size_of::<f32>()],
               }
             }
           }
@@ -289,7 +290,7 @@ pub mod tests {
               Style {
                 color: self.color,
                 width: self.width,
-                _pad_width: [0; 0xC],
+                _pad_width: [0; 16 - ::core::mem::size_of::<f32>()],
               }
             }
           }

@@ -28,6 +28,7 @@ const MATRICES_F32_ASSERTS: () = {
   assert!(std::mem::offset_of!(MatricesF32, b) == 64);
   assert!(std::mem::offset_of!(MatricesF32, c) == 128);
   assert!(std::mem::offset_of!(MatricesF32, d) == 160);
+  assert!(std::mem::align_of::<MatricesF32>() == 16);
   assert!(std::mem::size_of::<MatricesF32>() == 208);
 };
 unsafe impl bytemuck::Zeroable for MatricesF32 {}

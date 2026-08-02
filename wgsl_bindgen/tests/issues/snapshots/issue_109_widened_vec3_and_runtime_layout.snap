@@ -1,0 +1,441 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+---
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  Issue109,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::Issue109 => issue_109::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::Issue109 => issue_109::create_shader_module_embed_source(device),
+    }
+  }
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+mod _root {
+  pub use super::*;
+  pub trait SetBindGroup {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    );
+  }
+  impl SetBindGroup for wgpu::ComputePass<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
+    }
+  }
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {};
+  const ISSUE_109_FIXED_LAYOUT_ASSERTS: () = {
+    assert!(std::mem::offset_of!(issue_109::FixedLayout, direction) == 0);
+    assert!(std::mem::offset_of!(issue_109::FixedLayout, samples) == 16);
+    assert!(std::mem::offset_of!(issue_109::FixedLayout, marker) == 48);
+    assert!(std::mem::align_of::<issue_109::FixedLayout>() == 16);
+    assert!(std::mem::size_of::<issue_109::FixedLayout>() == 64);
+  };
+  const ISSUE_109_RUNTIME_LAYOUT_ASSERTS: () = {
+    assert!(std::mem::offset_of!(issue_109::RuntimeLayoutSized<0>, header) == 0);
+    assert!(std::mem::offset_of!(issue_109::RuntimeLayoutSized<0>, values) == 64);
+    assert!(std::mem::align_of::<issue_109::RuntimeLayoutSized<0>>() == 16);
+    assert!(std::mem::size_of::<u32>() == 4);
+  };
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod issue_109 {
+  use super::{_root, _root::*};
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct FixedLayout {
+    #[doc = "offset: 0, size: 12, type: `vec3<i32>`"]
+    pub direction: [i32; 4],
+    #[doc = "offset: 16, size: 32, type: `array<vec3<i32>, 2>`"]
+    pub samples: [[i32; 4]; 2],
+    #[doc = "offset: 48, size: 4, type: `u32`"]
+    pub marker: u32,
+    pub _pad_marker: [u8; 16 - ::core::mem::size_of::<u32>()],
+  }
+  impl FixedLayout {
+    pub const fn new(direction: [i32; 4], samples: [[i32; 4]; 2], marker: u32) -> Self {
+      Self {
+        direction,
+        samples,
+        marker,
+        _pad_marker: [0; 16 - ::core::mem::size_of::<u32>()],
+      }
+    }
+  }
+  #[repr(C)]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct FixedLayoutInit {
+    pub direction: [i32; 4],
+    pub samples: [[i32; 4]; 2],
+    pub marker: u32,
+  }
+  impl FixedLayoutInit {
+    pub fn build(&self) -> FixedLayout {
+      FixedLayout {
+        direction: self.direction,
+        samples: self.samples,
+        marker: self.marker,
+        _pad_marker: [0; 16 - ::core::mem::size_of::<u32>()],
+      }
+    }
+  }
+  impl From<FixedLayoutInit> for FixedLayout {
+    fn from(data: FixedLayoutInit) -> Self {
+      data.build()
+    }
+  }
+  #[repr(C, align(16))]
+  #[derive(Debug, PartialEq, Clone, Copy)]
+  pub struct RuntimeLayout<Tail = [u32]>
+  where
+    Tail: WgslBindgenRuntimeArray<u32> + ?Sized,
+  {
+    #[doc = "offset: 0, size: 64, type: `FixedLayout`"]
+    pub header: FixedLayout,
+    #[doc = "offset: 64, size: 4, type: `array<u32>`"]
+    pub values: Tail,
+  }
+  pub type RuntimeLayoutSized<const N: usize> = RuntimeLayout<[u32; N]>;
+  impl<const N: usize> RuntimeLayoutSized<N> {
+    pub const fn new_sized(header: FixedLayout, values: [u32; N]) -> Self {
+      Self { header, values }
+    }
+    pub fn as_bytes(&self) -> &[u8]
+    where
+      FixedLayout: bytemuck::Pod,
+      u32: bytemuck::Pod,
+    {
+      let __wgsl_bindgen_unsized: &RuntimeLayout = self;
+      __wgsl_bindgen_unsized.as_bytes()
+    }
+  }
+  impl RuntimeLayout {
+    pub fn new(header: FixedLayout, values: &[u32]) -> Box<Self>
+    where
+      u32: bytemuck::Pod,
+    {
+      use std::{alloc, mem, ptr};
+      let __wgsl_bindgen_tail_offset = mem::offset_of!(RuntimeLayoutSized<0>, values);
+      let __wgsl_bindgen_tail_size = values
+        .len()
+        .checked_mul(mem::size_of::<u32>())
+        .expect("runtime-sized struct allocation is too large");
+      let __wgsl_bindgen_unpadded_size = __wgsl_bindgen_tail_offset
+        .checked_add(__wgsl_bindgen_tail_size)
+        .expect("runtime-sized struct allocation is too large");
+      let __wgsl_bindgen_alignment = mem::align_of::<RuntimeLayoutSized<0>>();
+      let __wgsl_bindgen_allocation_size = __wgsl_bindgen_unpadded_size
+        .checked_add(__wgsl_bindgen_alignment - 1)
+        .map(|size| size & !(__wgsl_bindgen_alignment - 1))
+        .expect("runtime-sized struct allocation is too large");
+      let __wgsl_bindgen_layout = alloc::Layout::from_size_align(
+        __wgsl_bindgen_allocation_size,
+        __wgsl_bindgen_alignment,
+      )
+      .expect("runtime-sized struct has an invalid allocation layout");
+      unsafe {
+        let __wgsl_bindgen_allocation = if __wgsl_bindgen_allocation_size == 0 {
+          ptr::NonNull::<RuntimeLayoutSized<0>>::dangling()
+            .as_ptr()
+            .cast::<u8>()
+        } else {
+          let allocation = alloc::alloc(__wgsl_bindgen_layout);
+          if allocation.is_null() {
+            alloc::handle_alloc_error(__wgsl_bindgen_layout);
+          }
+          allocation
+        };
+        let __wgsl_bindgen_tail = ptr::slice_from_raw_parts_mut(
+          __wgsl_bindgen_allocation.cast::<u32>(),
+          values.len(),
+        );
+        let __wgsl_bindgen_this = __wgsl_bindgen_tail as *mut Self;
+        ::core::ptr::addr_of_mut!((*__wgsl_bindgen_this).header).write(header);
+        ptr::copy_nonoverlapping(
+          values.as_ptr(),
+          ptr::addr_of_mut!((*__wgsl_bindgen_this).values).cast::<u32>(),
+          values.len(),
+        );
+        Box::from_raw(__wgsl_bindgen_this)
+      }
+    }
+    pub fn as_bytes(&self) -> &[u8]
+    where
+      FixedLayout: bytemuck::Pod,
+      u32: bytemuck::Pod,
+    {
+      let __wgsl_bindgen_len = ::core::mem::offset_of!(RuntimeLayoutSized<0>, values)
+        + ::core::mem::size_of_val(&self.values);
+      unsafe {
+        std::slice::from_raw_parts(self as *const Self as *const u8, __wgsl_bindgen_len)
+      }
+    }
+  }
+  #[doc(hidden)]
+  mod __wgsl_bindgen_runtime_array_sealed {
+    pub trait Sealed {}
+    impl<T> Sealed for [T] {}
+    impl<T, const N: usize> Sealed for [T; N] {}
+  }
+  #[doc(hidden)]
+  pub trait WgslBindgenRuntimeArray<T>:
+    __wgsl_bindgen_runtime_array_sealed::Sealed
+  {
+  }
+  impl<T> WgslBindgenRuntimeArray<T> for [T] {}
+  impl<T, const N: usize> WgslBindgenRuntimeArray<T> for [T; N] {}
+  pub mod compute {
+    use super::{_root, _root::*};
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+    pub fn create_main_pipeline_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_embed_source(device);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub uniform_layout: wgpu::BufferBinding<'a>,
+    pub direct_layout: wgpu::BufferBinding<'a>,
+    pub layout_array: wgpu::BufferBinding<'a>,
+    pub runtime_layout: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub uniform_layout: wgpu::BindGroupEntry<'a>,
+    pub direct_layout: wgpu::BindGroupEntry<'a>,
+    pub layout_array: wgpu::BindGroupEntry<'a>,
+    pub runtime_layout: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        uniform_layout: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::Buffer(params.uniform_layout),
+        },
+        direct_layout: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(params.direct_layout),
+        },
+        layout_array: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::Buffer(params.layout_array),
+        },
+        runtime_layout: wgpu::BindGroupEntry {
+          binding: 3,
+          resource: wgpu::BindingResource::Buffer(params.runtime_layout),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 4] {
+      [
+        self.uniform_layout,
+        self.direct_layout,
+        self.layout_array,
+        self.runtime_layout,
+      ]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("Issue109::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"uniform_layout\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Uniform,
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::issue_109::FixedLayout,
+              >() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"direct_layout\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                _root::issue_109::FixedLayout,
+              >() as _),
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"layout_array\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+          #[doc = " @binding(3): \"runtime_layout\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 3,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: None,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Issue109::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("Issue109::PipelineLayout"),
+      bind_group_layouts: &[Some(&WgpuBindGroup0::get_bind_group_layout(device))],
+      immediate_size: 0u32,
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("issue_109.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct FixedLayout {
+    direction: vec3<i32>,
+    samples: array<vec3<i32>, 2>,
+    marker: u32,
+}
+
+struct RuntimeLayout {
+    header: FixedLayout,
+    values: array<u32>,
+}
+
+@group(0) @binding(0) 
+var<uniform> uniform_layout: FixedLayout;
+@group(0) @binding(1) 
+var<storage> direct_layout: FixedLayout;
+@group(0) @binding(2) 
+var<storage> layout_array: array<FixedLayout>;
+@group(0) @binding(3) 
+var<storage> runtime_layout: RuntimeLayout;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    var local: bool;
+
+    if (id.x < arrayLength((&layout_array))) {
+        local = (id.x < arrayLength((&runtime_layout.values)));
+    } else {
+        local = false;
+    }
+    let _e13 = local;
+    if _e13 {
+        let _e17 = uniform_layout.direction.x;
+        let _e22 = uniform_layout.samples[1].z;
+        let _e27 = direct_layout.direction.x;
+        let _e35 = layout_array[id.x].samples[0].y;
+        let _e41 = runtime_layout.values[id.x];
+        let value = ((((_e17 + _e22) + _e27) + _e35) + i32(_e41));
+        if (value == 0i) {
+            return;
+        } else {
+            return;
+        }
+    } else {
+        return;
+    }
+}
+"#;
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod bytemuck_impls {
+  use super::{_root, _root::*};
+  unsafe impl bytemuck::Zeroable for issue_109::FixedLayout {}
+  unsafe impl bytemuck::Pod for issue_109::FixedLayout {}
+}

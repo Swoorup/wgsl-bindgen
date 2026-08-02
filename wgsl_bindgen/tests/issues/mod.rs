@@ -171,6 +171,111 @@ fn test_vec3a_padding_overflow_issue() -> Result<()> {
 }
 
 #[test]
+fn test_issue_109_widened_vec3_and_runtime_layout() -> Result<()> {
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/issue_109.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(RustWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  assert!(actual.contains("pub direction: [i32; 4]"));
+  assert!(!actual.contains("_pad_direction"));
+  assert!(actual.contains("pub struct RuntimeLayout<Tail = [u32]"));
+  assert!(actual.contains("Tail: WgslBindgenRuntimeArray<u32> + ?Sized"));
+  assert!(actual.contains("impl<T> WgslBindgenRuntimeArray<T> for [T]"));
+  assert!(actual.contains("WgslBindgenRuntimeArray<T> for [T; N]"));
+  assert!(actual.contains("pub type RuntimeLayoutSized<const N: usize>"));
+  assert!(actual.contains("pub uniform_layout: wgpu::BufferBinding<'a>"));
+  assert!(actual.contains("pub direct_layout: wgpu::BufferBinding<'a>"));
+  assert!(actual.contains("values: &[u32]"));
+  assert!(actual.contains(") -> Box<Self>"));
+  assert!(!actual.contains("ptr::metadata"));
+  assert!(!actual.contains("bytemuck::Pod for issue_109::RuntimeLayout"));
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_direct_padded_array_emits_stride_helper() -> Result<()> {
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/padded_array_direct.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  assert_eq!(actual.matches("pub struct WgslBindgenArrayElement").count(), 1);
+  assert!(actual.contains("WgslBindgenArrayElement<16usize>"));
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_nested_padded_array_propagates_init_conversion() -> Result<()> {
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/padded_array_nested.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  assert!(actual.contains("pub values: [[WgslBindgenArrayElement<16usize>; 2]; 3]"));
+  assert!(actual.contains("pub values: [[glam::Vec3; 2]; 3]"));
+  assert!(actual.contains("values: &[[glam::Vec3; 2]]"));
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
+fn test_padded_array_stride_helper_supports_serde() -> Result<()> {
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/padded_array_serde.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(true)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  assert!(actual.contains("impl<const STRIDE: usize> serde::Serialize"));
+  assert!(actual.contains("impl<'de, const STRIDE: usize> serde::Deserialize<'de>"));
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
 fn test_duplicate_import_vertexinput_issue() -> Result<()> {
   // This test reproduces the issue where importing the same VertexInput struct
   // into multiple shader files causes "duplicate content found" error

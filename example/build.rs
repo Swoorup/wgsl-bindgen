@@ -1,10 +1,15 @@
 use miette::{IntoDiagnostic, Result};
 use wgsl_bindgen::{
-  GlamWgslTypeMap, Regex, WgslBindgenOptionBuilder, WgslShaderIrCapabilities,
-  WgslShaderSourceType, WgslTypeSerializeStrategy,
+  GlamWgslTypeMap, Regex, RustWgslTypeMap, WgslBindgenOptionBuilder,
+  WgslShaderIrCapabilities, WgslShaderSourceType, WgslTypeSerializeStrategy,
 };
 
 fn main() -> Result<()> {
+  generate_demo_bindings()?;
+  generate_buffer_layout_bindings()
+}
+
+fn generate_demo_bindings() -> Result<()> {
   WgslBindgenOptionBuilder::default()
     .workspace_root("shaders")
     .add_entry_point("shaders/fullscreen_effects.wgsl")
@@ -28,6 +33,21 @@ fn main() -> Result<()> {
     )
     .derive_serde(false)
     .output("src/shader_bindings.rs")
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+  Ok(())
+}
+
+fn generate_buffer_layout_bindings() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .workspace_root("shaders")
+    .add_entry_point("shaders/buffer_layouts.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(RustWgslTypeMap)
+    .shader_source_type(WgslShaderSourceType::EmbedSource)
+    .output("src/buffer_layout_bindings.rs")
     .build()?
     .generate()
     .into_diagnostic()?;
