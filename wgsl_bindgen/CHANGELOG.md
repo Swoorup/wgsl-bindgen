@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.23.1...wgsl_bindgen-v0.23.2) - 2026-08-08
+
+### Other
+
+- Use Padded instead of WgslBindgenArrayElement, improve ergonomics
+- Exposing underlying BindGroup from wrappers
+- Merge pull request #112 from Swoorup/fix-issue-109
+
 ## [0.23.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.23.0...wgsl_bindgen-v0.23.1) - 2026-08-01
 
 ### Other
