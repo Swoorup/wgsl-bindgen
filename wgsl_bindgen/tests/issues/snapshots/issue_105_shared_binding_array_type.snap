@@ -1,0 +1,339 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+assertion_line: 423
+---
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  ComputePass1,
+  ComputePass2,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::ComputePass1 => compute_pass_1::create_pipeline_layout(device),
+      Self::ComputePass2 => compute_pass_2::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::ComputePass1 => compute_pass_1::create_shader_module_embed_source(device),
+      Self::ComputePass2 => compute_pass_2::create_shader_module_embed_source(device),
+    }
+  }
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+mod _root {
+  pub use super::*;
+  pub trait SetBindGroup {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    );
+  }
+  impl SetBindGroup for wgpu::ComputePass<'_> {
+    fn set_bind_group(
+      &mut self,
+      index: u32,
+      bind_group: &wgpu::BindGroup,
+      offsets: &[wgpu::DynamicOffset],
+    ) {
+      self.set_bind_group(index, bind_group, offsets);
+    }
+  }
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod compute_pass_1 {
+  use super::{_root, _root::*};
+  pub mod compute {
+    use super::{_root, _root::*};
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+    pub fn create_main_pipeline_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_embed_source(device);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a common_bindings::WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("ComputePass1::PipelineLayout"),
+      bind_group_layouts: &[Some(
+        &common_bindings::WgpuBindGroup0::get_bind_group_layout(device),
+      )],
+      immediate_size: 0u32,
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("compute_pass_1.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+@group(0) @binding(1) 
+var<storage> buffer_inX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX: array<array<u32, 8>, 8>;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main() {
+    let value = buffer_inX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX[0][0];
+    return;
+}
+"#;
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod compute_pass_2 {
+  use super::{_root, _root::*};
+  pub mod compute {
+    use super::{_root, _root::*};
+    pub const MAIN_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+    pub fn create_main_pipeline_embed_source(
+      device: &wgpu::Device,
+    ) -> wgpu::ComputePipeline {
+      let module = super::create_shader_module_embed_source(device);
+      let layout = super::create_pipeline_layout(device);
+      device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline main"),
+        layout: Some(&layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+      })
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a common_bindings::WgpuBindGroup0,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 1],
+    ) -> [wgpu::BindGroupLayout; 1] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("ComputePass2::PipelineLayout"),
+      bind_group_layouts: &[Some(
+        &common_bindings::WgpuBindGroup0::get_bind_group_layout(device),
+      )],
+      immediate_size: 0u32,
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("compute_pass_2.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+@group(0) @binding(0) 
+var main_texX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX: texture_storage_2d<rgba8unorm,write>;
+@group(0) @binding(1) 
+var<storage> buffer_inX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX: array<array<u32, 8>, 8>;
+@group(0) @binding(2) 
+var<storage, read_write> buffer_outX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX: array<array<u32, 8>, 8>;
+
+@compute @workgroup_size(1, 1, 1) 
+fn main() {
+    let _e6 = buffer_inX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX[0][0];
+    buffer_outX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX[0][0] = _e6;
+    textureStore(main_texX_naga_oil_mod_XMNXW23LPNZPWE2LOMRUW4Z3TX, vec2<i32>(0i, 0i), vec4(1f));
+    return;
+}
+"#;
+}
+#[allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+pub mod common_bindings {
+  use super::{_root, _root::*};
+  #[derive(Debug)]
+  pub struct WgpuBindGroup0EntriesParams<'a> {
+    pub main_tex: &'a wgpu::TextureView,
+    pub buffer_in: wgpu::BufferBinding<'a>,
+    pub buffer_out: wgpu::BufferBinding<'a>,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup0Entries<'a> {
+    pub main_tex: wgpu::BindGroupEntry<'a>,
+    pub buffer_in: wgpu::BindGroupEntry<'a>,
+    pub buffer_out: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup0Entries<'a> {
+    pub fn new(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+      Self {
+        main_tex: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::TextureView(params.main_tex),
+        },
+        buffer_in: wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Buffer(params.buffer_in),
+        },
+        buffer_out: wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::Buffer(params.buffer_out),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
+      [self.main_tex, self.buffer_in, self.buffer_out]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
+  pub struct WgpuBindGroup0(wgpu::BindGroup);
+  impl WgpuBindGroup0 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("CommonBindings::BindGroup0::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"_root::common_bindings::main_tex\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::StorageTexture {
+              access: wgpu::StorageTextureAccess::WriteOnly,
+              format: wgpu::TextureFormat::Rgba8Unorm,
+              view_dimension: wgpu::TextureViewDimension::D2,
+            },
+            count: None,
+          },
+          #[doc = " @binding(1): \"_root::common_bindings::buffer_in\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: true },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(
+                std::mem::size_of::<[[u32; 8]; 8]>() as _,
+              ),
+            },
+            count: None,
+          },
+          #[doc = " @binding(2): \"_root::common_bindings::buffer_out\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+              ty: wgpu::BufferBindingType::Storage { read_only: false },
+              has_dynamic_offset: false,
+              min_binding_size: std::num::NonZeroU64::new(
+                std::mem::size_of::<[[u32; 8]; 8]>() as _,
+              ),
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup0Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("CommonBindings::BindGroup0"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(0, &self.0, &[]);
+    }
+    pub fn inner(&self) -> &wgpu::BindGroup {
+      &self.0
+    }
+    pub unsafe fn from_raw(bind_group: wgpu::BindGroup) -> Self {
+      Self(bind_group)
+    }
+  }
+}

@@ -156,7 +156,7 @@ fn bind_group_padded_types(
       binding_type_padded_types(
         binding.binding_type,
         invoking_entry_module,
-        group_data.naga_module,
+        binding.naga_module,
         options,
       )
     })

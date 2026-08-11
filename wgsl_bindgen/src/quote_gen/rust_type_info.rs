@@ -414,9 +414,14 @@ pub(crate) fn rust_type(
     let alignment = type_layout.alignment;
     (type_layout, alignment)
   } else {
-    // Type is not in the arena - this happens with shared bind groups across multiple entry points
-    // For dynamic arrays and other synthetic types, we can determine minimal layout info manually
-    // TODO: I am not sure if this is the best way to handle this, but it works for now
+    // Type is not in `module`'s arena, so `ty` came from somewhere else and the
+    // handles reachable through it do not index `module`. Callers are expected
+    // to pass the module that owns `ty` (bind group bindings carry their own),
+    // which makes this unreachable for every shader the test suite covers.
+    //
+    // TODO: The recovery below is unsound - it indexes this module's arena with
+    // a foreign handle, so both the layout and the type rendered further down
+    // are silently wrong. Prefer fixing the caller over extending this branch.
     match &ty.inner {
       naga::TypeInner::Array { base, .. } => {
         // For arrays, try to get the base type's alignment

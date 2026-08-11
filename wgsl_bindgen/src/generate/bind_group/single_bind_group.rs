@@ -29,12 +29,9 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
   }
 
   /// Determines the resource type from a binding type
-  fn get_resource_type_from_binding(
-    &self,
-    binding_type: &naga::TypeInner,
-  ) -> BindResourceType {
+  fn get_resource_type_from_binding(binding: &SingleBindGroupEntry) -> BindResourceType {
     // TODO: Support more types.
-    match binding_type {
+    match &binding.binding_type.inner {
       naga::TypeInner::Struct { .. } => BindResourceType::Buffer,
       naga::TypeInner::Image { .. } => BindResourceType::Texture,
       naga::TypeInner::Sampler { .. } => BindResourceType::Sampler,
@@ -47,7 +44,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
         BindResourceType::AccelerationStructure
       }
       naga::TypeInner::BindingArray { base, .. } => {
-        let base_type = &self.data.naga_module.types[*base].inner;
+        let base_type = &binding.naga_module.types[*base].inner;
         Self::get_array_resource_type(base_type)
       }
       unknown => panic!("Unsupported type for binding fields: {unknown:#?}"),
@@ -68,7 +65,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
     let binding_name = Ident::new(&demangled_name.name, Span::call_site());
     let binding_var = quote!(#binding_var_name.#binding_name);
 
-    let resource_type = self.get_resource_type_from_binding(&binding.binding_type.inner);
+    let resource_type = Self::get_resource_type_from_binding(binding);
     entry_cons(binding_index, binding_var, resource_type)
   }
 
@@ -104,7 +101,7 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
     );
     let field_name = format_ident!("{}", &rust_item_path.name.as_str());
 
-    let resource_type = self.get_resource_type_from_binding(&binding.binding_type.inner);
+    let resource_type = Self::get_resource_type_from_binding(binding);
 
     let param_field_type = self.generator.binding_type_map[&resource_type].clone();
     let field_type = self.generator.entry_struct_type.clone();
@@ -605,7 +602,6 @@ fn storage_access(access: naga::StorageAccess) -> TokenStream {
 #[derive(Clone)]
 pub struct SingleBindGroupData<'a> {
   pub bindings: Vec<SingleBindGroupEntry<'a>>,
-  pub naga_module: &'a naga::Module,
 }
 
 impl<'a> SingleBindGroupData<'a> {
@@ -638,7 +634,6 @@ impl<'a> SingleBindGroupData<'a> {
         binding.with_updated_shader_stages(
           invoking_entry_module,
           options,
-          self.naga_module,
           shader_stages,
           binding.address_space,
         )
@@ -647,7 +642,6 @@ impl<'a> SingleBindGroupData<'a> {
 
     Self {
       bindings: updated_bindings,
-      naga_module: self.naga_module,
     }
   }
 }
@@ -658,6 +652,12 @@ pub struct SingleBindGroupEntry<'a> {
   pub item_path: RustSourceItemPath,
   pub binding_index: u32,
   pub binding_type: &'a naga::Type,
+  /// The module `binding_type` was taken from. Type handles reached through
+  /// `binding_type` are arena indices, so they are only meaningful against this
+  /// module. A bind group shared by several entry points collects bindings from
+  /// different modules, so the module has to travel with the binding rather
+  /// than with the group.
+  pub naga_module: &'a naga::Module,
   pub layout_entry_token_stream: TokenStream,
   pub address_space: naga::AddressSpace,
 }
@@ -667,7 +667,7 @@ impl<'a> SingleBindGroupEntry<'a> {
     name: Option<String>,
     invoking_entry_module: &'a str,
     options: &WgslBindgenOption,
-    naga_module: &naga::Module,
+    naga_module: &'a naga::Module,
     shader_stages: wgpu::ShaderStages,
     binding_index: u32,
     binding_type: &'a naga::Type,
@@ -692,6 +692,7 @@ impl<'a> SingleBindGroupEntry<'a> {
       item_path,
       binding_index,
       binding_type,
+      naga_module,
       layout_entry_token_stream,
       address_space,
     }
@@ -702,13 +703,12 @@ impl<'a> SingleBindGroupEntry<'a> {
     &self,
     invoking_entry_module: &str,
     options: &WgslBindgenOption,
-    naga_module: &naga::Module,
     shader_stages: wgpu::ShaderStages,
     address_space: naga::AddressSpace,
   ) -> Self {
     let layout_entry_token_stream = bind_group_layout_entry(
       invoking_entry_module,
-      naga_module,
+      self.naga_module,
       options,
       shader_stages,
       self.binding_index,
@@ -722,6 +722,7 @@ impl<'a> SingleBindGroupEntry<'a> {
       item_path: self.item_path.clone(),
       binding_index: self.binding_index,
       binding_type: self.binding_type,
+      naga_module: self.naga_module,
       layout_entry_token_stream,
       address_space: self.address_space,
     }

@@ -381,6 +381,51 @@ fn test_issue_93_non_struct_vertex() -> Result<()> {
 }
 
 #[test]
+fn test_issue_105_shared_binding_array_type() -> Result<()> {
+  // `common_bindings.wgsl` is imported by two entry points, but only
+  // `compute_pass_2.wgsl` uses `buffer_out` and `main_tex`. The two composed
+  // modules therefore hold different type arenas, and the merged bind group
+  // used to resolve every binding against the first entry point's arena. That
+  // made `buffer_out` gain an extra nesting level (`[[[u32; 8]; 8]; 8]`).
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues/issue_105")
+    .add_entry_point("tests/shaders/issues/issue_105/compute_pass_1.wgsl")
+    .add_entry_point("tests/shaders/issues/issue_105/compute_pass_2.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  // Both storage bindings declare `array<array<u32, size>, size>`, so both
+  // `min_binding_size` computations must use the same two-dimensional type.
+  let array_types: Vec<&str> = actual
+    .lines()
+    .map(str::trim)
+    .filter(|line| line.contains("u32; 8"))
+    .collect();
+
+  assert!(
+    !actual.contains("[[[u32; 8]; 8]; 8]"),
+    "buffer_out gained an extra array dimension: {array_types:#?}"
+  );
+  assert_eq!(
+    array_types.len(),
+    2,
+    "expected buffer_in and buffer_out to share the same array type: {array_types:#?}"
+  );
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
 fn test_issue_39_pipeline_overridable_constants() -> Result<()> {
   let actual = WgslBindgenOptionBuilder::default()
     .workspace_root("tests/shaders/issues")
