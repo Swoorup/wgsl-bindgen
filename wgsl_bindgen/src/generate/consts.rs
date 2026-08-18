@@ -93,7 +93,7 @@ pub fn pipeline_overridable_constants(
                   quote!(self.#name as f64)
               };
 
-              Some(quote!((#key.to_owned(), #value)))
+              Some(quote!((#key, #value)))
           }
       })
       .collect();
