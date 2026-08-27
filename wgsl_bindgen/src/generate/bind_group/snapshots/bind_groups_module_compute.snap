@@ -1,12 +1,22 @@
 ---
 source: wgsl_bindgen/src/generate/bind_group/mod.rs
-assertion_line: 457
 ---
 #[derive(Debug)]
 pub struct WgpuBindGroup0EntriesParams<'a> {
   pub src: wgpu::BufferBinding<'a>,
   pub vertex_weights: wgpu::BufferBinding<'a>,
   pub dst: wgpu::BufferBinding<'a>,
+}
+impl<'a> WgpuBindGroup0EntriesParams<'a> {
+  pub fn into_entries(self) -> WgpuBindGroup0Entries<'a> {
+    self.into()
+  }
+  pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 3] {
+    self.into_entries().into_array()
+  }
+  pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+    self.into_entries().collect()
+  }
 }
 #[derive(Clone, Debug)]
 pub struct WgpuBindGroup0Entries<'a> {
@@ -36,6 +46,11 @@ impl<'a> WgpuBindGroup0Entries<'a> {
   }
   pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
     self.into_array().into_iter().collect()
+  }
+}
+impl<'a> From<WgpuBindGroup0EntriesParams<'a>> for WgpuBindGroup0Entries<'a> {
+  fn from(params: WgpuBindGroup0EntriesParams<'a>) -> Self {
+    Self::new(params)
   }
 }
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
@@ -111,6 +126,17 @@ impl WgpuBindGroup0 {
 pub struct WgpuBindGroup1EntriesParams<'a> {
   pub transforms: wgpu::BufferBinding<'a>,
 }
+impl<'a> WgpuBindGroup1EntriesParams<'a> {
+  pub fn into_entries(self) -> WgpuBindGroup1Entries<'a> {
+    self.into()
+  }
+  pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+    self.into_entries().into_array()
+  }
+  pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+    self.into_entries().collect()
+  }
+}
 #[derive(Clone, Debug)]
 pub struct WgpuBindGroup1Entries<'a> {
   pub transforms: wgpu::BindGroupEntry<'a>,
@@ -129,6 +155,11 @@ impl<'a> WgpuBindGroup1Entries<'a> {
   }
   pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
     self.into_array().into_iter().collect()
+  }
+}
+impl<'a> From<WgpuBindGroup1EntriesParams<'a>> for WgpuBindGroup1Entries<'a> {
+  fn from(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+    Self::new(params)
   }
 }
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]

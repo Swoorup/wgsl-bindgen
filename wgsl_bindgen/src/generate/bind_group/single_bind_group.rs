@@ -164,6 +164,20 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
             #(#entries_param_fields),*
         }
 
+        impl #lifetime #entry_collection_param_name #lifetime {
+          pub fn into_entries(self) -> #entry_collection_name #lifetime {
+            self.into()
+          }
+
+          pub fn into_array(self) -> [#entry_struct_type; #entries_length] {
+            self.into_entries().into_array()
+          }
+
+          pub fn collect<B: FromIterator<#entry_struct_type>>(self) -> B {
+            self.into_entries().collect()
+          }
+        }
+
         #[derive(Clone, Debug)]
         pub struct #entry_collection_name #lifetime {
             #(#entries_fields),*
@@ -182,6 +196,12 @@ impl<'a> BindGroupEntriesStructBuilder<'a> {
 
           pub fn collect<B: FromIterator<#entry_struct_type>>(self) -> B {
             self.into_array().into_iter().collect()
+          }
+        }
+
+        impl #lifetime From<#entry_collection_param_name #lifetime> for #entry_collection_name #lifetime {
+          fn from(params: #entry_collection_param_name #lifetime) -> Self {
+            Self::new(params)
           }
         }
     }
